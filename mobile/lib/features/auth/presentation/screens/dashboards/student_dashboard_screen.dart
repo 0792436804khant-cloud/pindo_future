@@ -28,6 +28,10 @@ import '../../../../cohorts/data/datasources/cohort_remote_datasource.dart';
 import '../../../../cohorts/data/repositories/cohort_repository_impl.dart';
 import '../../../../cohorts/presentation/controllers/cohort_controller.dart';
 import '../../../../cohorts/presentation/screens/student_cohort_explorer_screen.dart';
+import '../../../../exams/data/datasources/exam_remote_datasource.dart';
+import '../../../../exams/data/repositories/exam_bank_repository_impl.dart';
+import '../../../../exams/presentation/controllers/exam_bank_controller.dart';
+import '../../../../exams/presentation/screens/exam_bank_explorer_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   final User user;
@@ -128,6 +132,22 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           student: widget.user,
           cohortController: controller,
         ),
+      ),
+    );
+  }
+
+  void _navigateToExamBank() async {
+    final authLocalDataSource = AuthLocalDataSourceImpl();
+    final token = await authLocalDataSource.getToken();
+    final apiClient = ApiClient();
+    final remoteDataSource = ExamRemoteDataSourceImpl(apiClient: apiClient);
+    final repository = ExamBankRepositoryImpl(remoteDataSource: remoteDataSource);
+    final controller = ExamBankController(repository: repository, userToken: token);
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExamBankExplorerScreen(controller: controller),
       ),
     );
   }
@@ -732,6 +752,21 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           badgeText: 'BAC & BEM 2026',
           badgeColor: const Color(0xFF10B981),
           onTap: _navigateToCohortExplorer,
+        ),
+
+        const SizedBox(height: 14),
+
+        // Phase 6: Algerian National Exam Bank & Timed Simulations (بنك الامتحانات وحوليات البكالوريا)
+        BentoCard(
+          isHero: true,
+          title: 'National Exam Bank & Timed Simulations (بنك الامتحانات الرسمية)',
+          subtitle: 'Practice with official BAC & BEM exam papers (2008–2025), ministerial answer keys (سلم التنقيط الوزاري), and real-time timed mock simulations.',
+          icon: Icons.history_edu_rounded,
+          accentColor: const Color(0xFFF59E0B),
+          secondaryAccent: const Color(0xFF10B981),
+          badgeText: 'BEM & BAC 2008-2025',
+          badgeColor: const Color(0xFFF59E0B),
+          onTap: _navigateToExamBank,
         ),
 
         const SizedBox(height: 14),

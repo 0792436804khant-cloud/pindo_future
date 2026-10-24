@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ClassroomAttendance;
 use App\Models\ClassroomSession;
 use App\Models\Enrollment;
+use App\Models\ExamSimulation;
 use App\Models\GuardianNote;
 use App\Models\ParentStudent;
 use App\Models\Role;
@@ -243,6 +244,26 @@ class ParentOversightController extends Controller
                 ];
             });
 
+        // Exam mock simulations completed by this child
+        $simulations = ExamSimulation::with('examPaper')
+            ->where('user_id', $student->id)
+            ->where('status', 'completed')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function (ExamSimulation $sim) {
+                return [
+                    'simulation_id' => $sim->id,
+                    'exam_title' => $sim->examPaper?->title,
+                    'cycle' => $sim->examPaper?->cycle,
+                    'stream' => $sim->examPaper?->stream,
+                    'subject' => $sim->examPaper?->subject_name_ar,
+                    'score' => $sim->self_assessment_score,
+                    'time_spent_minutes' => round($sim->time_spent_seconds / 60),
+                    'completed_at' => $sim->ended_at?->toIso8601String(),
+                ];
+            });
+
         return response()->json([
             'status' => 'success',
             'child' => [
@@ -251,6 +272,7 @@ class ParentOversightController extends Controller
                 'email' => $student->email,
             ],
             'data' => $enrollments,
+            'exam_simulations' => $simulations,
         ]);
     }
 

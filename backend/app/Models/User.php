@@ -204,6 +204,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Exam simulations taken by this student.
+     */
+    public function examSimulations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ExamSimulation::class, 'user_id');
+    }
+
+    /**
      * Earnings for courses taught by this user (as teacher).
      */
     public function teacherEarnings(): \Illuminate\Database\Eloquent\Relations\HasMany

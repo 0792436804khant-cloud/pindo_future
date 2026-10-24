@@ -427,5 +427,8 @@ class DatabaseSeeder extends Seeder
                 'status' => \App\Models\TeacherEarning::STATUS_AVAILABLE,
             ]
         );
+
+        // 10. Phase 6: Algerian National Exam Banks & Timed Simulations
+        $this->call(ExamBankSeeder::class);
     }
 }

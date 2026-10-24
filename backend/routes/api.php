@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Teacher\SessionController;
 use App\Http\Controllers\Api\Teacher\TeacherCourseController;
 use App\Http\Controllers\Api\Teacher\TeacherEarningsController;
 use App\Http\Controllers\Api\Teacher\VerificationController;
+use App\Http\Controllers\Api\ExamBankController;
 use App\Http\Controllers\Api\TeacherPublicController;
 use Illuminate\Support\Facades\Route;
 
@@ -135,6 +136,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/cohorts/{id}/library', [\App\Http\Controllers\Api\Student\CohortLibraryController::class, 'index'])->name('api.v1.student.cohorts.library.index');
     Route::get('/student/recordings/{id}/stream', [\App\Http\Controllers\Api\Student\CohortLibraryController::class, 'streamRecording'])->name('api.v1.student.recordings.stream');
     Route::get('/student/materials/{id}/access', [\App\Http\Controllers\Api\Student\CohortLibraryController::class, 'downloadMaterial'])->name('api.v1.student.materials.access');
+
+    // Phase 6: Student Exam Simulation History
+    Route::get('/student/exam-simulations', [ExamBankController::class, 'mySimulations'])->name('api.v1.student.simulations.index');
+});
+
+// Phase 6: Algerian National Exam Bank & Timed Simulations Engine (BEM & BAC)
+Route::prefix('exams')->group(function () {
+    Route::get('/', [ExamBankController::class, 'index'])->name('api.v1.exams.index');
+    Route::get('/subjects', [ExamBankController::class, 'subjects'])->name('api.v1.exams.subjects');
+    Route::get('/{id}', [ExamBankController::class, 'show'])->name('api.v1.exams.show');
+
+    // Protected student mock simulation lifecycle
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/{id}/simulations/start', [ExamBankController::class, 'startSimulation'])->name('api.v1.exams.simulations.start');
+        Route::put('/simulations/{simulationId}/progress', [ExamBankController::class, 'updateSimulationProgress'])->name('api.v1.exams.simulations.progress');
+        Route::post('/simulations/{simulationId}/finish', [ExamBankController::class, 'finishSimulation'])->name('api.v1.exams.simulations.finish');
+    });
 });
 
 // Phase 6: Parent Portal & Guardian Oversight Engine (Protected: auth:sanctum + parent)
