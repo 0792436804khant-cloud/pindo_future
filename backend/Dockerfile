@@ -36,5 +36,5 @@ RUN mkdir -p /var/www/storage/framework/sessions \
 ENV PORT=8080
 EXPOSE 8080
 
-# Robust runtime startup: discover packages, verify/generate key, run migrations, and serve
-CMD ["sh", "-c", "php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+# Robust runtime startup: discover packages, sanitize APP_URL, verify/generate key, run migrations, and serve
+CMD ["sh", "-c", "php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && if [ -z \"$APP_URL\" ] || [ \"$APP_URL\" = 'https://' ] || [ \"$APP_URL\" = 'https://${{RAILWAY_PUBLIC_DOMAIN}}' ]; then export APP_URL=http://localhost:8080; fi && php artisan migrate --force && php artisan config:clear && php artisan route:clear && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
