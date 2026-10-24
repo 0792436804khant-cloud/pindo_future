@@ -1,6 +1,6 @@
 FROM php:8.2-cli-alpine
 
-# Install system dependencies and PostgreSQL, Redis, OPcache
+# Install system dependencies, PostgreSQL, Redis, OPcache
 RUN apk add --no-cache \
     postgresql-dev \
     libpng-dev \
@@ -22,12 +22,22 @@ WORKDIR /var/www
 
 COPY . /var/www
 
+# Relocate files if context was root
+RUN if [ -f /var/www/backend/composer.json ]; then \
+      cp -r /var/www/backend/* /var/www/ && rm -rf /var/www/backend /var/www/mobile; \
+    fi
+
+RUN cp .env.example .env 2>/dev/null || touch .env
+
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
-# Permissions for storage and bootstrap cache
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN mkdir -p /var/www/storage/framework/sessions \
+    && mkdir -p /var/www/storage/framework/views \
+    && mkdir -p /var/www/storage/framework/cache \
+    && mkdir -p /var/www/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+CMD ["sh", "-c", "if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
