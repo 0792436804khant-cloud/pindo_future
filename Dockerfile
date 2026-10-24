@@ -1,4 +1,4 @@
-FROM php:8.2-cli-alpine
+FROM php:8.4-cli-alpine
 
 # Use official trusted extension installer to guarantee clean Alpine compilation
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
@@ -23,8 +23,8 @@ RUN if [ -f /var/www/backend/composer.json ]; then \
 # Temporary minimal .env to satisfy framework requirements during build
 RUN cp .env.example .env 2>/dev/null || touch .env
 
-# Cleanly install composer packages without running database-dependent scripts during docker build
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev --no-scripts
+# Install composer packages with --ignore-platform-reqs for maximum compatibility
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev --no-scripts --ignore-platform-reqs
 
 # Storage directory initialization and permissions
 RUN mkdir -p /var/www/storage/framework/sessions \
