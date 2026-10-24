@@ -1,0 +1,9 @@
+.git
+vendor/
+backend/vendor/
+mobile/
+postgres_data/
+redis_data/
+.dart_tool/
+build/
+*.log
