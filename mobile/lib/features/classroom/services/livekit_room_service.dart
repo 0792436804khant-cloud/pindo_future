@@ -390,6 +390,29 @@ class LiveKitRoomService extends ChangeNotifier {
     }
   }
 
+  /// Replace whiteboard strokes with a snapshot and broadcast sync
+  Future<void> setWhiteboardStrokes(List<WhiteboardStrokeEntity> strokes, {bool broadcast = true}) async {
+    _whiteboardStrokes.clear();
+    _whiteboardStrokes.addAll(strokes);
+    notifyListeners();
+
+    if (broadcast && _room?.localParticipant != null) {
+      try {
+        final syncPayload = {
+          'type': 'whiteboard_sync',
+          'strokes': _whiteboardStrokes.map((s) => s.toJson()).toList(),
+        };
+        await _room!.localParticipant!.publishData(
+          utf8.encode(jsonEncode(syncPayload)),
+          reliable: true,
+          topic: 'whiteboard',
+        );
+      } catch (e) {
+        debugPrint('Error broadcasting whiteboard snapshot restore: $e');
+      }
+    }
+  }
+
   /// Broadcast full vector history to newly joined attendees
   Future<void> _broadcastCurrentStateToAttendee() async {
     if (_room?.localParticipant == null) return;

@@ -5,8 +5,11 @@ import '../../domain/entities/classroom_chat_message.dart';
 import '../../domain/entities/classroom_stage_mode.dart';
 import '../../domain/entities/hand_raise_request.dart';
 import '../../domain/entities/room_connection_details.dart';
+import '../../domain/entities/whiteboard_snapshot_entity.dart';
 import '../../domain/entities/whiteboard_stroke_entity.dart';
 import '../../domain/usecases/get_room_token_usecase.dart';
+import '../../domain/usecases/get_whiteboard_snapshots_usecase.dart';
+import '../../domain/usecases/save_whiteboard_snapshot_usecase.dart';
 import '../../services/livekit_room_service.dart';
 
 enum ClassroomUiState {
@@ -21,6 +24,8 @@ enum ClassroomUiState {
 class ClassroomController extends ChangeNotifier {
   final GetRoomTokenUseCase getRoomTokenUseCase;
   final LiveKitRoomService roomService;
+  final SaveWhiteboardSnapshotUseCase? saveWhiteboardSnapshotUseCase;
+  final GetWhiteboardSnapshotsUseCase? getWhiteboardSnapshotsUseCase;
 
   ClassroomUiState _state = ClassroomUiState.initial;
   RoomConnectionDetails? _connectionDetails;
@@ -29,6 +34,8 @@ class ClassroomController extends ChangeNotifier {
   ClassroomController({
     required this.getRoomTokenUseCase,
     required this.roomService,
+    this.saveWhiteboardSnapshotUseCase,
+    this.getWhiteboardSnapshotsUseCase,
   }) {
     roomService.addListener(_onRoomServiceUpdated);
   }
@@ -142,6 +149,57 @@ class ClassroomController extends ChangeNotifier {
       await roomService.addWhiteboardStroke(stroke);
   Future<void> undoWhiteboardStroke() async => await roomService.undoWhiteboardStroke();
   Future<void> clearWhiteboard() async => await roomService.clearWhiteboard();
+
+  /// Persist current whiteboard vector canvas state to backend API
+  Future<WhiteboardSnapshotEntity?> saveWhiteboardSnapshot({
+    String? sessionId,
+    required String title,
+    String? token,
+  }) async {
+    final effectiveSessionId = sessionId ?? _connectionDetails?.sessionId;
+    if (effectiveSessionId == null || saveWhiteboardSnapshotUseCase == null) {
+      return null;
+    }
+
+    try {
+      final snapshot = await saveWhiteboardSnapshotUseCase!(
+        sessionId: effectiveSessionId,
+        title: title,
+        strokes: whiteboardStrokes,
+        token: token,
+      );
+      return snapshot;
+    } catch (e) {
+      debugPrint('Error saving whiteboard snapshot: $e');
+      return null;
+    }
+  }
+
+  /// Retrieve revision history of slides/snapshots for current session
+  Future<List<WhiteboardSnapshotEntity>> loadWhiteboardHistory({
+    String? sessionId,
+    String? token,
+  }) async {
+    final effectiveSessionId = sessionId ?? _connectionDetails?.sessionId;
+    if (effectiveSessionId == null || getWhiteboardSnapshotsUseCase == null) {
+      return [];
+    }
+
+    try {
+      return await getWhiteboardSnapshotsUseCase!.getHistory(
+        sessionId: effectiveSessionId,
+        token: token,
+      );
+    } catch (e) {
+      debugPrint('Error loading whiteboard history: $e');
+      return [];
+    }
+  }
+
+  /// Restore whiteboard canvas to a previous snapshot slide
+  Future<void> restoreWhiteboardSnapshot(WhiteboardSnapshotEntity snapshot) async {
+    await roomService.setWhiteboardStrokes(snapshot.vectorData);
+  }
 
   /// Leave classroom and disconnect from SFU
   Future<void> leaveClassroom() async {

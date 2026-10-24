@@ -7,11 +7,13 @@ import '../controllers/classroom_controller.dart';
 class InteractiveWhiteboardCanvas extends StatefulWidget {
   final ClassroomController controller;
   final bool isTeacher;
+  final String? sessionId;
 
   const InteractiveWhiteboardCanvas({
     super.key,
     required this.controller,
     required this.isTeacher,
+    this.sessionId,
   });
 
   @override
@@ -99,23 +101,257 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
       return;
     }
 
+    final titleController = TextEditingController(
+      text: 'Lecture Slide v${DateTime.now().minute}:${DateTime.now().second}',
+    );
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.bookmark_add, color: Color(0xFF2DD4BF)),
+            SizedBox(width: 10),
+            Text('Save Slide Snapshot', style: TextStyle(color: Colors.white, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter a title for this whiteboard slide note:',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: titleController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.08),
+                hintText: 'e.g. Limits & Derivatives Intro',
+                hintStyle: const TextStyle(color: Colors.white38),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0D9488),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSave != true || !mounted) return;
+
     setState(() => _isSavingSnapshot = true);
 
     try {
-      // In a real session, persist to backend API
-      await Future.delayed(const Duration(milliseconds: 600));
+      final title = titleController.text.trim().isNotEmpty
+          ? titleController.text.trim()
+          : 'Lecture Slide Notes';
+
+      final saved = await widget.controller.saveWhiteboardSnapshot(
+        sessionId: widget.sessionId,
+        title: title,
+      );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Snapshot saved! (${strokes.length} vector strokes recorded)'),
-            backgroundColor: const Color(0xFF0D9488),
-          ),
-        );
+        if (saved != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Slide saved successfully! Version ${saved.version} (${strokes.length} strokes)'),
+              backgroundColor: const Color(0xFF0D9488),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notes saved to session memory!'),
+              backgroundColor: Color(0xFF0D9488),
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isSavingSnapshot = false);
     }
+  }
+
+  Future<void> _showSnapshotHistoryModal() async {
+    final history = await widget.controller.loadWhiteboardHistory(sessionId: widget.sessionId);
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return GlassmorphicContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          blurSigma: 24.0,
+          borderWidth: 1.2,
+          borderColor: Colors.white.withValues(alpha: 0.22),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1E293B).withValues(alpha: 0.95),
+              const Color(0xFF0F172A).withValues(alpha: 0.98),
+            ],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.55,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white38,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Icon(Icons.collections_bookmark_outlined, color: Color(0xFF2DD4BF)),
+                    SizedBox(width: 10),
+                    Text(
+                      'Whiteboard Slide History',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (history.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'No saved whiteboard slides yet in this session.',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: history.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final slide = history[index];
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'v${slide.version}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF2DD4BF),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      slide.snapshotTitle,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${slide.strokeCount} strokes • By ${slide.authorName}',
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (widget.isTeacher && slide.vectorData.isNotEmpty)
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0D9488),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  ),
+                                  onPressed: () {
+                                    widget.controller.restoreWhiteboardSnapshot(slide);
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Restored "${slide.snapshotTitle}"'),
+                                        backgroundColor: const Color(0xFF0D9488),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.restore, size: 16, color: Colors.white),
+                                  label: const Text('Restore', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -250,6 +486,28 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
                         );
                       },
                     ),
+                    const SizedBox(width: 4),
+                    GlassmorphicScaleButton(
+                      tooltip: 'Slide Revisions & History',
+                      pressedScale: 0.88,
+                      onPressed: _showSnapshotHistoryModal,
+                      builder: (context, isPressed, isHovered) {
+                        return Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isHovered
+                                ? Colors.white.withValues(alpha: 0.15)
+                                : Colors.transparent,
+                          ),
+                          child: const Icon(
+                            Icons.collections_bookmark_outlined,
+                            size: 20,
+                            color: Color(0xFF60A5FA),
+                          ),
+                        );
+                      },
+                    ),
                     if (widget.isTeacher) ...[
                       const SizedBox(width: 4),
                       GlassmorphicScaleButton(
@@ -335,6 +593,8 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
             _toolButton(WhiteboardTool.circle, Icons.circle_outlined, 'Circle'),
             _toolButton(WhiteboardTool.line, Icons.horizontal_rule, 'Line'),
             _toolButton(WhiteboardTool.arrow, Icons.arrow_outward, 'Arrow'),
+            _toolButton(WhiteboardTool.coordinateSystem, Icons.timeline, 'Axes / Repère'),
+            _toolButton(WhiteboardTool.laserPointer, Icons.flare, 'Laser Pointer'),
             _toolButton(WhiteboardTool.eraser, Icons.auto_fix_normal, 'Eraser'),
 
             _buildVerticalDivider(),
@@ -700,6 +960,51 @@ class WhiteboardPainter extends CustomPainter {
             ..lineTo(p2.dx, p2.dy)
             ..close();
           canvas.drawPath(arrowPath, paint..style = PaintingStyle.fill);
+        }
+        break;
+
+      case WhiteboardTool.coordinateSystem:
+        if (offsets.length >= 2) {
+          final p1 = offsets.first;
+          final p2 = offsets.last;
+          final left = math.min(p1.dx, p2.dx);
+          final right = math.max(p1.dx, p2.dx);
+          final top = math.min(p1.dy, p2.dy);
+          final bottom = math.max(p1.dy, p2.dy);
+          final origin = Offset(
+            left + (right - left) * 0.35,
+            bottom - (bottom - top) * 0.35,
+          );
+
+          // Horizontal X-axis with arrowhead
+          canvas.drawLine(Offset(left, origin.dy), Offset(right, origin.dy), paint);
+          canvas.drawLine(Offset(right, origin.dy), Offset(right - 8, origin.dy - 5), paint);
+          canvas.drawLine(Offset(right, origin.dy), Offset(right - 8, origin.dy + 5), paint);
+
+          // Vertical Y-axis with arrowhead
+          canvas.drawLine(Offset(origin.dx, bottom), Offset(origin.dx, top), paint);
+          canvas.drawLine(Offset(origin.dx, top), Offset(origin.dx - 5, top + 8), paint);
+          canvas.drawLine(Offset(origin.dx, top), Offset(origin.dx + 5, top + 8), paint);
+
+          // Origin indicator O
+          canvas.drawCircle(origin, 2.5, paint..style = PaintingStyle.fill);
+        }
+        break;
+
+      case WhiteboardTool.laserPointer:
+        if (offsets.isNotEmpty) {
+          final target = offsets.last;
+          final laserGlow = Paint()
+            ..shader = RadialGradient(
+              colors: [
+                color.withValues(alpha: 0.95),
+                color.withValues(alpha: 0.40),
+                color.withValues(alpha: 0.0),
+              ],
+              stops: const [0.0, 0.40, 1.0],
+            ).createShader(Rect.fromCircle(center: target, radius: 20.0));
+          canvas.drawCircle(target, 20.0, laserGlow);
+          canvas.drawCircle(target, 3.5, Paint()..color = Colors.white..style = PaintingStyle.fill);
         }
         break;
 

@@ -5,8 +5,11 @@ import '../../../../../core/widgets/glassmorphism.dart';
 import '../../../../../core/widgets/bento_card.dart';
 import '../../../../../core/widgets/pindo_brand_logo.dart';
 import '../../../../classroom/data/datasources/classroom_remote_datasource.dart';
+import '../../../../classroom/data/datasources/whiteboard_remote_datasource.dart';
 import '../../../../classroom/data/repositories/classroom_repository_impl.dart';
+import '../../../../classroom/data/repositories/whiteboard_repository_impl.dart';
 import '../../../../classroom/domain/usecases/get_room_token_usecase.dart';
+import '../../../../classroom/domain/usecases/get_whiteboard_snapshots_usecase.dart';
 import '../../../../classroom/presentation/controllers/classroom_controller.dart';
 import '../../../../classroom/presentation/screens/live_classroom_screen.dart';
 import '../../../../classroom/services/livekit_room_service.dart';
@@ -75,10 +78,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
     final getRoomTokenUseCase = GetRoomTokenUseCase(repository);
     final roomService = LiveKitRoomService();
+    final whiteboardRemoteDataSource = WhiteboardRemoteDataSourceImpl(apiClient: apiClient);
+    final whiteboardRepository = WhiteboardRepositoryImpl(remoteDataSource: whiteboardRemoteDataSource);
+    final getWhiteboardSnapshotsUseCase = GetWhiteboardSnapshotsUseCase(whiteboardRepository);
 
     final classroomController = ClassroomController(
       getRoomTokenUseCase: getRoomTokenUseCase,
       roomService: roomService,
+      getWhiteboardSnapshotsUseCase: getWhiteboardSnapshotsUseCase,
     );
 
     Navigator.of(context).push(

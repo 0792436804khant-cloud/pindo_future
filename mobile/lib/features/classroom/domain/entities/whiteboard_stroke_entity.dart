@@ -6,6 +6,8 @@ enum WhiteboardTool {
   circle,
   line,
   arrow,
+  coordinateSystem,
+  laserPointer,
   text,
 }
 

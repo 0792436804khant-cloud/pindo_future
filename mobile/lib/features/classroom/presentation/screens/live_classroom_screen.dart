@@ -351,6 +351,7 @@ class _LiveClassroomScreenState extends State<LiveClassroomScreen> {
               child: InteractiveWhiteboardCanvas(
                 controller: controller,
                 isTeacher: isTeacher,
+                sessionId: widget.sessionId,
               ),
             ),
           ),
