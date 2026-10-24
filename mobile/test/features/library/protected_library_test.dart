@@ -143,12 +143,12 @@ void main() {
 
   group('CohortLibraryScreen Widget Tests', () {
     testWidgets('Renders library tabs and displays locked status when not subscribed', (tester) async {
-      final fakeData = CohortLibraryData(
+      const fakeData = CohortLibraryData(
         cohortInfo: {'name': 'BAC Math Cohort'},
         isSubscribed: false,
         requiresSubscription: true,
         recordings: [
-          const SessionRecordingEntity(
+          SessionRecordingEntity(
             id: 1,
             recordingCode: 'REC_1',
             title: 'Complex Numbers Masterclass',
@@ -184,12 +184,12 @@ void main() {
     });
 
     testWidgets('Displays accessible button when student is subscribed', (tester) async {
-      final fakeData = CohortLibraryData(
+      const fakeData = CohortLibraryData(
         cohortInfo: {'name': 'BAC Math Cohort'},
         isSubscribed: true,
         requiresSubscription: false,
         recordings: [
-          const SessionRecordingEntity(
+          SessionRecordingEntity(
             id: 2,
             recordingCode: 'REC_2',
             title: 'Derivatives and Limits Live Replay',

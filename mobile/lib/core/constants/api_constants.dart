@@ -2,10 +2,20 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
+  static const String productionBaseUrl = 'https://pindofuture-production.up.railway.app/api/v1';
+
   /// Automatic base URL resolution based on runtime environment:
+  /// - Release Mode: Production Railway HTTPS URL
   /// - Android Emulator: 10.0.2.2 points to host machine localhost
   /// - iOS Simulator / Desktop / Web: 127.0.0.1 / localhost
   static String get defaultBaseUrl {
+    const fromEnv = String.fromEnvironment('API_BASE_URL');
+    if (fromEnv.isNotEmpty) {
+      return fromEnv;
+    }
+    if (kReleaseMode) {
+      return productionBaseUrl;
+    }
     if (kIsWeb) {
       final host = Uri.base.host.isNotEmpty ? Uri.base.host : '127.0.0.1';
       return 'http://$host:8080/api/v1';
