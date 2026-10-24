@@ -27,7 +27,7 @@ RUN cp .env.example .env 2>/dev/null || touch .env
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev --no-scripts --ignore-platform-reqs
 
 # Storage directory initialization and permissions
-RUN rm -rf /var/www/bootstrap/cache/*.php \
+RUN rm -rf /var/www/bootstrap/cache/*.php /var/www/.env* \
     && mkdir -p /var/www/storage/framework/sessions \
     && mkdir -p /var/www/storage/framework/views \
     && mkdir -p /var/www/storage/framework/cache \
@@ -37,5 +37,5 @@ RUN rm -rf /var/www/bootstrap/cache/*.php \
 ENV PORT=8080
 EXPOSE 8080
 
-# Robust runtime startup: discover packages, sanitize APP_URL, verify/generate key, run migrations, and serve
-CMD ["sh", "-c", "rm -f /var/www/bootstrap/cache/*.php && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && if [ -z \"$APP_URL\" ] || [ \"$APP_URL\" = 'https://' ] || [ \"$APP_URL\" = 'https://${{RAILWAY_PUBLIC_DOMAIN}}' ]; then export APP_URL=http://localhost:8080; fi && php artisan migrate --force && php artisan config:clear && php artisan route:clear && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+# Robust runtime startup: purge env/cache, discover packages, migrate, compile config & route cache, and serve
+CMD ["sh", "-c", "rm -f /var/www/.env /var/www/.env.* /var/www/bootstrap/cache/*.php && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
