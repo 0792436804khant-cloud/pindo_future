@@ -1,0 +1,12 @@
+# Root Gitignore
+.env
+node_modules/
+vendor/
+.dart_tool/
+.packages
+build/
+.idea/
+.vscode/
+*.log
+postgres_data/
+redis_data/
