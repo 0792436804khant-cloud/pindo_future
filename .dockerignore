@@ -7,3 +7,5 @@ redis_data/
 .dart_tool/
 build/
 *.log
+bootstrap/cache/*.php
+backend/bootstrap/cache/*.php

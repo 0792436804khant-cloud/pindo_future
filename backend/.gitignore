@@ -12,3 +12,5 @@ Homestead.json
 Homestead.yaml
 .DS_Store
 Thumbs.db
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore

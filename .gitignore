@@ -10,3 +10,5 @@ build/
 *.log
 postgres_data/
 redis_data/
+bootstrap/cache/*.php
+backend/bootstrap/cache/*.php
