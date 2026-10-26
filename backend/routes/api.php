@@ -58,6 +58,9 @@ Route::post('/sessions/{sessionId}/token/verify', [\App\Http\Controllers\Api\Ses
 
 // Phase 2: Teacher Platform & Dynamic Session Management (Protected: auth + teacher)
 Route::middleware(['auth:sanctum', 'teacher'])->prefix('teacher')->group(function () {
+    // Teacher Unified Dashboard Payload
+    Route::get('/dashboard', [\App\Http\Controllers\Api\Teacher\TeacherDashboardController::class, 'index'])->name('api.v1.teacher.dashboard');
+
     // Platform Profile & Deep Link Management
     Route::get('/platform', [PlatformController::class, 'show'])->name('api.v1.teacher.platform.show');
     Route::put('/platform', [PlatformController::class, 'update'])->name('api.v1.teacher.platform.update');
