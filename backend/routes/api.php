@@ -123,6 +123,7 @@ Route::get('/cohorts', [CohortEnrollmentController::class, 'index'])->name('api.
 
 // Phase 5: Student Course & Cohort Enrollment & Learning Progress (Protected: auth:sanctum)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/student/dashboard', [\App\Http\Controllers\Api\Student\StudentDashboardController::class, 'index'])->name('api.v1.student.dashboard');
     Route::post('/courses/{courseId}/enroll', [\App\Http\Controllers\Api\StudentEnrollmentController::class, 'enroll'])->name('api.v1.courses.enroll');
     Route::get('/student/courses', [\App\Http\Controllers\Api\StudentEnrollmentController::class, 'index'])->name('api.v1.student.courses.index');
     Route::post('/courses/{courseId}/progress', [\App\Http\Controllers\Api\StudentEnrollmentController::class, 'updateProgress'])->name('api.v1.courses.progress');
