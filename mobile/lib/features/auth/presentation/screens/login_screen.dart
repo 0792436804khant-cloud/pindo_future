@@ -288,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final isWideScreen = constraints.maxWidth > 800;
+                      final isWideScreen = constraints.maxWidth >= 960;
 
                       if (isWideScreen) {
                         return Row(
@@ -374,13 +374,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ),
             const SizedBox(width: 16),
-            RichText(
-              text: const TextSpan(
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.5, fontFamily: 'Roboto'),
-                children: [
-                  TextSpan(text: 'Pindo ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-                  TextSpan(text: 'Future', style: TextStyle(color: Color(0xFF2DD4BF), fontWeight: FontWeight.w800)),
-                ],
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.5, fontFamily: 'Roboto'),
+                    children: [
+                      TextSpan(text: 'Pindo ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                      TextSpan(text: 'Future', style: TextStyle(color: Color(0xFF2DD4BF), fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -407,13 +413,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'SYSTEM SECURE • 30,000 CAPACITY LIVE SFU',
-                style: TextStyle(
-                  color: Color(0xFF34D399),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.6,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    'SYSTEM SECURE • 30,000 CAPACITY LIVE SFU',
+                    style: TextStyle(
+                      color: Color(0xFF34D399),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1406,12 +1418,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             children: [
               Icon(Icons.flash_on, color: Color(0xFFF59E0B), size: 14),
               SizedBox(width: 6),
-              Text(
-                'One-Tap Demo Credentials (Instant Access):',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFCBD5E1),
+              Flexible(
+                child: Text(
+                  'One-Tap Demo Credentials (Instant Access):',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFCBD5E1),
+                  ),
                 ),
               ),
             ],
