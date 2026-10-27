@@ -198,8 +198,12 @@ Route::prefix('sessions/{sessionId}/whiteboard')->group(function () {
 
 // Admin Control Panel (Protected: auth:sanctum + admin)
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'index'])->name('api.v1.admin.dashboard');
     Route::get('/teachers/verifications', [TeacherVerificationAdminController::class, 'index'])->name('api.v1.admin.teachers.verifications');
     Route::post('/teachers/{id}/verify', [TeacherVerificationAdminController::class, 'approve'])->name('api.v1.admin.teachers.verify');
     Route::post('/teachers/{id}/reject', [TeacherVerificationAdminController::class, 'reject'])->name('api.v1.admin.teachers.reject');
+    Route::get('/payouts', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'payouts'])->name('api.v1.admin.payouts.index');
+    Route::post('/payouts/{id}/approve', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'approvePayout'])->name('api.v1.admin.payouts.approve');
+    Route::post('/payouts/{id}/reject', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'rejectPayout'])->name('api.v1.admin.payouts.reject');
 });
 

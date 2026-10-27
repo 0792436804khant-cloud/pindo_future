@@ -442,11 +442,8 @@ class ParentOversightController extends Controller
     {
         $parent = $request->user();
 
-        $note = GuardianNote::where('id', $noteId)
-            ->whereHas('student.guardians', function ($q) use ($parent) {
-                $q->where('users.id', $parent->id);
-            })
-            ->firstOrFail();
+        $note = GuardianNote::findOrFail($noteId);
+        $this->authorizeParentAccess($parent->id, $note->student_id);
 
         $note->update(['is_acknowledged' => true]);
 
