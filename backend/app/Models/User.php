@@ -196,6 +196,14 @@ class User extends Authenticatable
     }
 
     /**
+     * In-app notifications for this user.
+     */
+    public function appNotifications(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'user_id');
+    }
+
+    /**
      * Orders made by this user (as student / purchaser).
      */
     public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany

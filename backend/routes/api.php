@@ -207,3 +207,13 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('/payouts/{id}/reject', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'rejectPayout'])->name('api.v1.admin.payouts.reject');
 });
 
+// Real-Time Notification & Live Class Alerts Engine (Protected: auth:sanctum)
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('api.v1.notifications.index');
+    Route::post('/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('api.v1.notifications.read');
+    Route::post('/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('api.v1.notifications.read_all');
+});
+
+Route::middleware('auth:sanctum')->post('/sessions/{sessionId}/notify-live', [\App\Http\Controllers\Api\NotificationController::class, 'broadcastSessionLive'])->name('api.v1.sessions.notify_live');
+
+
