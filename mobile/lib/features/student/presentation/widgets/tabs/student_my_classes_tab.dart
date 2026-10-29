@@ -125,21 +125,21 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
     return Column(
       children: [
         _cohortCard(
-          title: 'فوج النخبة بكالوريا 2026 (شعبة علوم تجريبية)',
+          title: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
           subject: 'الرياضيات',
-          teacherName: 'Professor Alan Turing',
+          teacherName: 'الأستاذ محمد أمين بن عيسى',
           remainingCredits: 4,
-          nextSession: 'اليوم 18:00 (المتتاليات وحساب النهايات)',
+          nextSession: 'اليوم 18:00 (حل المسائل الشاملة للبكالوريا)',
           sessionId: 'SES_8PP4LVG1',
           status: 'فعال',
         ),
         const SizedBox(height: 14),
         _cohortCard(
-          title: 'فوج التفوق في الفيزياء والكيمياء',
+          title: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
           subject: 'العلوم الفيزيائية',
-          teacherName: 'Dr. Marie Curie',
+          teacherName: 'الأستاذة كريمة بلقاسم',
           remainingCredits: 6,
-          nextSession: 'الأربعاء 17:30 (الميكانيكا وحركة الكواكب)',
+          nextSession: 'الأربعاء 17:30 (المتابعة الزمنية والميكانيكا)',
           sessionId: 'SES_CURIE_01',
           status: 'فعال',
         ),
@@ -254,12 +254,12 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
 
   Widget _buildWeeklyScheduleView() {
     final days = [
-      {'day': 'الأحد', 'time': '18:00', 'subject': 'الرياضيات', 'teacher': 'Alan Turing'},
-      {'day': 'الإثنين', 'time': '20:00', 'subject': 'الفيزياء', 'teacher': 'Marie Curie'},
-      {'day': 'الثلاثاء', 'time': '17:30', 'subject': 'العلوم الطبيعية', 'teacher': 'Ibn Sina'},
-      {'day': 'الأربعاء', 'time': '18:00', 'subject': 'الرياضيات', 'teacher': 'Alan Turing'},
-      {'day': 'الخميس', 'time': '19:00', 'subject': 'اللغة العربية والبلاغة', 'teacher': 'Fatima Al-Zahra'},
-      {'day': 'الجمعة', 'time': '15:00', 'subject': 'محاكاة بكالوريا تجريبية', 'teacher': 'منصة Pindo Future'},
+      {'day': 'الأحد', 'time': '18:00', 'subject': 'الرياضيات — حل المسائل النموذجية', 'teacher': 'الأستاذ محمد أمين'},
+      {'day': 'الإثنين', 'time': '20:00', 'subject': 'العلوم الفيزيائية — الميكانيكا والكهرباء', 'teacher': 'الأستاذة كريمة بلقاسم'},
+      {'day': 'الثلاثاء', 'time': '17:30', 'subject': 'علوم الطبيعة والحياة — منهجية الاستدلال', 'teacher': 'الأستاذ عبد الرحمن'},
+      {'day': 'الأربعاء', 'time': '18:00', 'subject': 'الرياضيات — الدوال والتطبيقات الرسمية', 'teacher': 'الأستاذ محمد أمين'},
+      {'day': 'الخميس', 'time': '19:00', 'subject': 'اللغة العربية وفنون البلاغة', 'teacher': 'الأستاذ مراد زروقي'},
+      {'day': 'الجمعة', 'time': '15:00', 'subject': 'جلسة المراجعة الشاملة للامتحانات الرسمية', 'teacher': 'إشراف المنصة'},
     ];
 
     return Column(
@@ -327,7 +327,7 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
     final attendance = widget.dashboardData.attendance;
 
     final records = [
-      {'date': '2026-10-24', 'session': 'المتتاليات العددية', 'join': '18:02', 'leave': '19:35', 'duration': '93 دقيقة', 'status': 'حاضر'},
+      {'date': '2026-10-24', 'session': 'حل المسائل الشاملة للبكالوريا', 'join': '18:02', 'leave': '19:35', 'duration': '93 دقيقة', 'status': 'حاضر'},
       {'date': '2026-10-21', 'session': 'الميكانيكا وقوانين نيوتن', 'join': '17:34', 'leave': '19:10', 'duration': '96 دقيقة', 'status': 'حاضر'},
       {'date': '2026-10-18', 'session': 'المقال الفلسفي', 'join': '18:15', 'leave': '19:30', 'duration': '75 دقيقة', 'status': 'متأخر'},
       {'date': '2026-10-15', 'session': 'التحولات النووية', 'join': '17:30', 'leave': '19:00', 'duration': '90 دقيقة', 'status': 'حاضر'},

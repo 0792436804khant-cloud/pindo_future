@@ -32,39 +32,44 @@ class TeacherHomeTab extends StatelessWidget {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Teacher Header Profile & Greeting
-            _buildGreetingHeader(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1080),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Teacher Header Profile & Greeting
+                _buildGreetingHeader(),
 
-            const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-            // Upcoming / Live Session Hero Card
-            _buildUpcomingSessionCard(context, upcoming),
+                // Upcoming / Live Session Hero Card
+                _buildUpcomingSessionCard(context, upcoming),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // Quick Actions Bar
-            _buildQuickActionsRow(context),
+                // Quick Actions Bar
+                _buildQuickActionsRow(context),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // 8 KPI Quick Stats Grid (Section 1 in specifications)
-            _buildKpiStatsSection(stats),
+                // 8 KPI Quick Stats Grid (Section 1 in specifications)
+                _buildKpiStatsSection(stats),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // Today's Schedule (Section 1.3 in specifications)
-            _buildTodayScheduleSection(context, schedule),
+                // Today's Schedule (Section 1.3 in specifications)
+                _buildTodayScheduleSection(context, schedule),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-            // Recent Alerts preview
-            _buildRecentAlertsPreview(context),
+                // Recent Alerts preview
+                _buildRecentAlertsPreview(context),
 
-            const SizedBox(height: 40),
-          ],
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -255,11 +260,15 @@ class TeacherHomeTab extends StatelessWidget {
             children: [
               const Icon(Icons.school_outlined, color: _brightCyan, size: 15),
               const SizedBox(width: 6),
-              Text(
-                '${session.subject} • ${session.cohortName}',
-                style: const TextStyle(color: _brightCyan, fontSize: 12.5, fontWeight: FontWeight.w500),
+              Expanded(
+                child: Text(
+                  '${session.subject} • ${session.cohortName}',
+                  style: const TextStyle(color: _brightCyan, fontSize: 12.5, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 10),
               Text(
                 session.scheduledAt,
                 style: const TextStyle(color: Colors.white60, fontSize: 12),
@@ -357,65 +366,118 @@ class TeacherHomeTab extends StatelessWidget {
   }
 
   Widget _buildKpiStatsSection(TeacherStats stats) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '📊 الإحصائيات العامة للمنصة',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 1.6,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final int crossAxisCount = width > 850 ? 4 : (width > 520 ? 3 : 2);
+        final double childAspectRatio = width > 850 ? 2.5 : (width > 520 ? 2.3 : 2.0);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatCard('إجمالي الطلاب', '${stats.enrolledStudentsCount}', Icons.people_alt_rounded, const Color(0xFF10B981)),
-            _buildStatCard('الأفواج النشطة', '${stats.activeCohortsCount}', Icons.groups_rounded, _brightCyan),
-            _buildStatCard('حصص مكتملة', '${stats.completedSessionsCount}', Icons.check_circle_rounded, _electricPurple),
-            _buildStatCard('حصص مجدولة', '${stats.scheduledSessionsCount}', Icons.pending_actions_rounded, Colors.orangeAccent),
-            _buildStatCard('المداخيل المحققة', '${stats.totalEarnings.toStringAsFixed(0)} دج', Icons.monetization_on_rounded, Colors.amber),
-            _buildStatCard('مداخيل قيد التأكيد', '${stats.pendingEarnings.toStringAsFixed(0)} دج', Icons.hourglass_top_rounded, Colors.amberAccent),
-            _buildStatCard('انتهى رصيدهم', '${stats.expiredCreditsStudentsCount}', Icons.credit_card_off_rounded, Colors.redAccent),
-            _buildStatCard('تسجيلات المكتبة', '${stats.libraryRecordingsCount}', Icons.video_library_rounded, const Color(0xFFEC4899)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '📊 الإحصائيات العامة للمنصة',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _brightCyan.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
+                      SizedBox(width: 5),
+                      Text(
+                        'مباشر ومحدث',
+                        style: TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: crossAxisCount,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: childAspectRatio,
+              children: [
+                _buildStatCard('إجمالي الطلاب', '${stats.enrolledStudentsCount}', Icons.people_alt_rounded, const Color(0xFF10B981)),
+                _buildStatCard('الأفواج النشطة', '${stats.activeCohortsCount}', Icons.groups_rounded, _brightCyan),
+                _buildStatCard('حصص مكتملة', '${stats.completedSessionsCount}', Icons.check_circle_rounded, _electricPurple),
+                _buildStatCard('حصص مجدولة', '${stats.scheduledSessionsCount}', Icons.pending_actions_rounded, Colors.orangeAccent),
+                _buildStatCard('المداخيل المحققة', '${stats.totalEarnings.toStringAsFixed(0)} دج', Icons.monetization_on_rounded, Colors.amber),
+                _buildStatCard('مداخيل قيد التأكيد', '${stats.pendingEarnings.toStringAsFixed(0)} دج', Icons.hourglass_top_rounded, Colors.amberAccent),
+                _buildStatCard('انتهى رصيدهم', '${stats.expiredCreditsStudentsCount}', Icons.credit_card_off_rounded, Colors.redAccent),
+                _buildStatCard('تسجيلات المكتبة', '${stats.libraryRecordingsCount}', Icons.video_library_rounded, const Color(0xFFEC4899)),
+              ],
+            ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: const Color(0xFF0F172A).withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-              Icon(icon, color: color, size: 18),
-            ],
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -302,49 +302,60 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       ),
 
       // 5-Tab Body via IndexedStack
-      body: IndexedStack(
-        index: _currentTabIndex,
-        children: [
-          // 0. الرئيسية (Home)
-          TeacherHomeTab(
-            dashboard: _dashboard,
-            onStartLiveSession: _launchLiveSession,
-            onNavigateToTab: _onTabSelected,
-          ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: IndexedStack(
+            index: _currentTabIndex,
+            children: [
+              // 0. الرئيسية (Home)
+              TeacherHomeTab(
+                dashboard: _dashboard,
+                onStartLiveSession: _launchLiveSession,
+                onNavigateToTab: _onTabSelected,
+              ),
 
-          // 1. أفواجي (Groups Management)
-          TeacherGroupsTab(
-            cohorts: _dashboard.cohorts,
-          ),
+              // 1. أفواجي (Groups Management)
+              TeacherGroupsTab(
+                cohorts: _dashboard.cohorts,
+              ),
 
-          // 2. الجدول (Schedule & Broadcasts)
-          TeacherScheduleTab(
-            schedule: _dashboard.todaySchedule,
-            cohorts: _dashboard.cohorts,
-            onStartLiveSession: _launchLiveSession,
-          ),
+              // 2. الجدول (Schedule & Broadcasts)
+              TeacherScheduleTab(
+                schedule: _dashboard.todaySchedule,
+                cohorts: _dashboard.cohorts,
+                onStartLiveSession: _launchLiveSession,
+              ),
 
-          // 3. المداخيل (Finance & Payouts)
-          TeacherFinanceTab(
-            dashboard: _dashboard,
-            onOpenDetailedEarnings: _navigateToEarnings,
-          ),
+              // 3. المداخيل (Finance & Payouts)
+              TeacherFinanceTab(
+                dashboard: _dashboard,
+                onOpenDetailedEarnings: _navigateToEarnings,
+              ),
 
-          // 4. حسابي (My Account & External Platforms)
-          TeacherAccountTab(
-            dashboard: _dashboard,
-            onEditProfile: _openProfileEditorModal,
-            onOpenAccountSettings: _openSettingsModal,
-            onSignOut: () => widget.authController.logout(),
-            onPreviewShowcase: () => _navigateToPublicShowcase(_currentUser.teacherId ?? 'TCH_123'),
+              // 4. حسابي (My Account & External Platforms)
+              TeacherAccountTab(
+                dashboard: _dashboard,
+                onEditProfile: _openProfileEditorModal,
+                onOpenAccountSettings: _openSettingsModal,
+                onSignOut: () => widget.authController.logout(),
+                onPreviewShowcase: () => _navigateToPublicShowcase(_currentUser.teacherId ?? 'TCH_123'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
 
       // Floating Glassmorphic 5-Tab Navigation Bar
-      bottomNavigationBar: TeacherBottomNavBar(
-        currentIndex: _currentTabIndex,
-        onTabSelected: _onTabSelected,
+      bottomNavigationBar: Center(
+        heightFactor: 1.0,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: TeacherBottomNavBar(
+            currentIndex: _currentTabIndex,
+            onTabSelected: _onTabSelected,
+          ),
+        ),
       ),
     );
   }

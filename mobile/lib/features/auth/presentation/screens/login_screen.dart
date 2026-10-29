@@ -23,8 +23,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _registerFormKey = GlobalKey<FormState>();
 
   // Sign In Controllers
-  final _loginEmailController = TextEditingController(text: 'teacher.demo@pindofuture.com');
-  final _loginPasswordController = TextEditingController(text: 'TeacherPassword123!');
+  final _loginEmailController = TextEditingController(text: 'amine@pindofuture.com');
+  final _loginPasswordController = TextEditingController(text: 'password123');
   bool _loginObscurePassword = true;
 
   // Register Controllers
@@ -233,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Populated credentials for ${role.name.toUpperCase()} ($email)'),
+        content: Text('تم إدخال بيانات الدخول لحساب ($email) بنجاح'),
         backgroundColor: const Color(0xFF0D9488),
         duration: const Duration(seconds: 2),
       ),
@@ -1420,7 +1420,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  'One-Tap Demo Credentials (Instant Access):',
+                  'الدخول المباشر إلى المنظومة الرسمية (حسابات مفعلة):',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -1435,10 +1435,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             spacing: 8,
             runSpacing: 6,
             children: [
-              _demoPill('👨‍🏫 Teacher', 'teacher.demo@pindofuture.com', 'TeacherPassword123!', UserRole.teacher),
-              _demoPill('👩‍🎓 Student', 'student.demo@pindofuture.com', 'StudentPassword123!', UserRole.student),
-              _demoPill('👩‍👧 Parent', 'parent.demo@pindofuture.com', 'ParentPassword123!', UserRole.parent),
-              _demoPill('🛡️ Admin', 'admin@pindofuture.com', 'AdminPassword123!', UserRole.admin),
+              _demoPill('👨‍🏫 أستاذ معتمد (الأستاذ أمين)', 'amine@pindofuture.com', 'password123', UserRole.teacher),
+              _demoPill('👩‍🎓 تلميذ مشترك (أحمد)', 'student.amine@pindofuture.com', 'password123', UserRole.student),
+              _demoPill('👩‍👧 ولي أمر (سليم)', 'parent@pindofuture.com', 'password123', UserRole.parent),
+              _demoPill('🛡️ إدارة المنصة', 'admin@pindofuture.com', 'password123', UserRole.admin),
             ],
           ),
         ],

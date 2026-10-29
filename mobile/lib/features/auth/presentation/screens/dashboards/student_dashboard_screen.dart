@@ -253,72 +253,82 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          IndexedStack(
-            index: _currentTabIndex,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Stack(
             children: [
-              // Tab 0: الرئيسية (Home)
-              StudentHomeTab(
-                dashboardData: _dashboardData,
-                onRefresh: _loadDashboardData,
-                onJoinLiveClassroom: _joinClassroom,
-                onOpenRecording: _openProtectedRecording,
-                onOpenExamBank: _navigateToExamBank,
-                onOpenWeeklySchedule: () => setState(() => _currentTabIndex = 2),
-                onManageSubscriptions: () => setState(() => _currentTabIndex = 4),
-                onOpenAccountSettings: () => UserAccountSettingsModal.show(
-                  context,
-                  user: widget.user,
-                  authController: widget.authController,
+              IndexedStack(
+                index: _currentTabIndex,
+                children: [
+                  // Tab 0: الرئيسية (Home)
+                  StudentHomeTab(
+                    dashboardData: _dashboardData,
+                    onRefresh: _loadDashboardData,
+                    onJoinLiveClassroom: _joinClassroom,
+                    onOpenRecording: _openProtectedRecording,
+                    onOpenExamBank: _navigateToExamBank,
+                    onOpenWeeklySchedule: () => setState(() => _currentTabIndex = 2),
+                    onManageSubscriptions: () => setState(() => _currentTabIndex = 4),
+                    onOpenAccountSettings: () => UserAccountSettingsModal.show(
+                      context,
+                      user: widget.user,
+                      authController: widget.authController,
+                    ),
+                  ),
+
+                  // Tab 1: اكتشف (Explore)
+                  StudentExploreTab(
+                    onOpenTeacherShowcase: _navigateToTeacherShowcase,
+                    onJoinLiveClassroom: _joinClassroom,
+                    onOpenCohortsExplorer: _navigateToCohortExplorer,
+                  ),
+
+                  // Tab 2: حصصي (My Classes)
+                  StudentMyClassesTab(
+                    dashboardData: _dashboardData,
+                    onJoinLiveClassroom: _joinClassroom,
+                    onOpenCohortsExplorer: _navigateToCohortExplorer,
+                  ),
+
+                  // Tab 3: مكتبتي (My Library)
+                  StudentLibraryTab(
+                    dashboardData: _dashboardData,
+                    onOpenRecording: _openProtectedRecording,
+                  ),
+
+                  // Tab 4: حسابي (My Account)
+                  StudentMyAccountTab(
+                    dashboardData: _dashboardData,
+                    onOpenAccountSettings: () => UserAccountSettingsModal.show(
+                      context,
+                      user: widget.user,
+                      authController: widget.authController,
+                    ),
+                    onLogout: () => widget.authController.logout(),
+                  ),
+                ],
+              ),
+
+              // Floating 5-Tab Bottom Navigation Bar
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: StudentBottomNavBar(
+                      currentIndex: _currentTabIndex,
+                      onTap: (index) => setState(() => _currentTabIndex = index),
+                      unreadNotificationsCount: _dashboardData.notifications.where((n) => !n.isRead).length,
+                    ),
+                  ),
                 ),
-              ),
-
-              // Tab 1: اكتشف (Explore)
-              StudentExploreTab(
-                onOpenTeacherShowcase: _navigateToTeacherShowcase,
-                onJoinLiveClassroom: _joinClassroom,
-                onOpenCohortsExplorer: _navigateToCohortExplorer,
-              ),
-
-              // Tab 2: حصصي (My Classes)
-              StudentMyClassesTab(
-                dashboardData: _dashboardData,
-                onJoinLiveClassroom: _joinClassroom,
-                onOpenCohortsExplorer: _navigateToCohortExplorer,
-              ),
-
-              // Tab 3: مكتبتي (My Library)
-              StudentLibraryTab(
-                dashboardData: _dashboardData,
-                onOpenRecording: _openProtectedRecording,
-              ),
-
-              // Tab 4: حسابي (My Account)
-              StudentMyAccountTab(
-                dashboardData: _dashboardData,
-                onOpenAccountSettings: () => UserAccountSettingsModal.show(
-                  context,
-                  user: widget.user,
-                  authController: widget.authController,
-                ),
-                onLogout: () => widget.authController.logout(),
               ),
             ],
           ),
-
-          // Floating 5-Tab Bottom Navigation Bar
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: StudentBottomNavBar(
-              currentIndex: _currentTabIndex,
-              onTap: (index) => setState(() => _currentTabIndex = index),
-              unreadNotificationsCount: _dashboardData.notifications.where((n) => !n.isRead).length,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

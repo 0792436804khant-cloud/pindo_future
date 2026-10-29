@@ -49,19 +49,19 @@ class TeacherDashboardModel {
   }
 
   factory TeacherDashboardModel.mockFallback({
-    String teacherName = 'الأستاذ أحمد بوضياف',
+    String teacherName = 'الأستاذ محمد أمين بن عيسى',
     String teacherId = 'TCH_DZ_2027',
   }) {
     return TeacherDashboardModel(
       teacherProfile: TeacherProfileInfo(
         id: 1,
         name: teacherName,
-        email: 'teacher@pindofuture.com',
+        email: 'amine@pindofuture.com',
         teacherId: teacherId,
         avatarUrl: null,
         isVerified: true,
-        yearsOfExperience: 8,
-        headline: 'أستاذ متميز لمادة الرياضيات — بكالوريا وتعليم ثانوي',
+        yearsOfExperience: 10,
+        headline: 'أستاذ رئيسي للتعليم الثانوي ومعد دورات المتفوقين في الرياضيات',
         subjects: const ['الرياضيات', 'الفيزياء'],
         levels: const ['ثالثة ثانوي', 'ثانية ثانوي', 'أولى ثانوي'],
       ),
@@ -79,9 +79,9 @@ class TeacherDashboardModel {
       upcomingSession: const TeacherUpcomingSession(
         id: 101,
         sessionId: 'SES_MATH_BAC_01',
-        title: 'المتتاليات العددية ودراسة الدوال الأسية الشاملة',
+        title: 'دورة المراجعة الشاملة لمادة الرياضيات — التحضير للبكالوريا',
         cohortId: 1,
-        cohortName: 'فوج الرياضيات — بكالوريا 2027',
+        cohortName: 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
         subject: 'الرياضيات',
         scheduledAt: 'اليوم، 18:00',
         status: 'scheduled',
@@ -93,8 +93,8 @@ class TeacherDashboardModel {
         TeacherScheduleItem(
           id: 101,
           sessionId: 'SES_MATH_BAC_01',
-          title: 'المتتاليات العددية ودراسة الدوال الأسية',
-          cohortName: 'رياضيات — بكالوريا 2027',
+          title: 'الحصة التفاعلية المباشرة: حل المسائل النموذجية والامتحانات الرسمية',
+          cohortName: 'فوج النخبة للبكالوريا',
           subject: 'الرياضيات',
           timeFormatted: '18:00',
           status: 'scheduled',
@@ -102,7 +102,7 @@ class TeacherDashboardModel {
         TeacherScheduleItem(
           id: 102,
           sessionId: 'SES_PHYS_2AS_02',
-          title: 'الناقلية والمحاليل الشاردية المعمقة',
+          title: 'الفيزياء: المتابعة الزمنية لتحول كيميائي وتطبيقات التمارين',
           cohortName: 'فيزياء — ثانية ثانوي علوم',
           subject: 'الفيزياء',
           timeFormatted: '20:15',
@@ -113,7 +113,7 @@ class TeacherDashboardModel {
         TeacherNotificationItem(
           id: 'n1',
           title: 'انضمام طالب جديد إلى الفوج',
-          body: 'انضم الطالب «محمد أمين» إلى فوج رياضيات بكالوريا 2027.',
+          body: 'انضم الطالب «كريم بلقاسم» إلى فوج رياضيات بكالوريا 2027.',
           type: 'student',
           time: 'منذ 15 دقيقة',
           isRead: false,
@@ -121,23 +121,23 @@ class TeacherDashboardModel {
         TeacherNotificationItem(
           id: 'n2',
           title: 'تأكيد عملية دفع بنجاح',
-          body: 'تم استلام وتأكيد دفع اشتراك شهري (3,500 دج) عبر بريدي موب.',
+          body: 'تم استلام وتأكيد دفع اشتراك شهري رسمي (3,500 دج) عبر بريدي موب.',
           type: 'payment',
           time: 'منذ ساعة',
           isRead: false,
         ),
         TeacherNotificationItem(
           id: 'n3',
-          title: 'تنبيه: اقتراب موعد حصة المتتاليات',
-          body: 'تبدأ الحصة المباشرة اليوم عند الساعة 18:00 (بقي ساعتان).',
+          title: 'تنبيه: اقتراب موعد الحصة المباشرة الرسمية',
+          body: 'تبدأ الحصة المباشرة الرسمية اليوم عند الساعة 18:00 عبر الغرفة التفاعلية.',
           type: 'session',
           time: 'منذ ساعتين',
           isRead: true,
         ),
         TeacherNotificationItem(
           id: 'n4',
-          title: 'معالجة التسجيل اكتملت',
-          body: 'تسجيل حصة الأعداد المركبة أصبح متاحاً الآن في مكتبة الفوج.',
+          title: 'معالجة التسجيل اكتملت بنجاح',
+          body: 'تسجيل الحصة الرسمية أصبح متوفراً الآن في مكتبة الفوج بجودة عالية وعلامة مائية رقمية.',
           type: 'library',
           time: 'أمس',
           isRead: true,
@@ -147,7 +147,7 @@ class TeacherDashboardModel {
         TeacherCohortItem(
           id: 1,
           cohortCode: 'COHORT_BAC27_MATH',
-          name: 'رياضيات — بكالوريا 2027 (علوم تجريبية)',
+          name: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
           subject: 'الرياضيات',
           academicLevel: 'ثالثة ثانوي',
           stream: 'علوم تجريبية + تقني رياضي',
@@ -160,7 +160,7 @@ class TeacherDashboardModel {
         TeacherCohortItem(
           id: 2,
           cohortCode: 'COHORT_1AS_SCI',
-          name: 'رياضيات — أولى ثانوي جذع مشترك علوم',
+          name: 'الفوج النموذجي — أولى ثانوي جذع مشترك علوم',
           subject: 'الرياضيات',
           academicLevel: 'أولى ثانوي',
           stream: 'جذع مشترك علوم وتكنولوجيا',

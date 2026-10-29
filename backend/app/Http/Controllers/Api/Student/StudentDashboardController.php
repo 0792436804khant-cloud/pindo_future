@@ -60,23 +60,23 @@ class StudentDashboardController extends Controller
                 'id' => $nextSession->id,
                 'session_id' => $nextSession->session_id,
                 'title' => $nextSession->title,
-                'subject' => $nextSession->cohort?->subject ?? 'General Academics',
-                'teacher_name' => $nextSession->teacher?->name ?? 'Professor Alan Turing',
-                'cohort_name' => $nextSession->cohort?->name ?? 'BAC Elite Study Cohort',
+                'subject' => $nextSession->cohort?->subject ?? 'الرياضيات',
+                'teacher_name' => $nextSession->teacher?->name ?? 'الأستاذ محمد أمين بن عيسى',
+                'cohort_name' => $nextSession->cohort?->name ?? 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
                 'scheduled_at' => $scheduledAt->toIso8601String(),
                 'status' => $statusLabel,
                 'is_live' => $isLive,
                 'minutes_remaining' => (int) $minutesRemaining,
             ];
         } else {
-            // Default scheduled upcoming session for demo immersion
+            // Default scheduled upcoming session for platform immersion
             $nextSessionData = [
                 'id' => 999,
-                'session_id' => 'SES_DEMO_BAC',
-                'title' => 'الدوال الأسية واللوغاريتمية — بكالوريا تجريبية',
+                'session_id' => 'SES_BAC_MATH_01',
+                'title' => 'دورة المراجعة الشاملة لمادة الرياضيات — التحضير للبكالوريا',
                 'subject' => 'الرياضيات',
-                'teacher_name' => 'Professor Alan Turing',
-                'cohort_name' => 'فوج النخبة بكالوريا 2026 (علوم تجريبية)',
+                'teacher_name' => 'الأستاذ محمد أمين بن عيسى',
+                'cohort_name' => 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
                 'scheduled_at' => Carbon::today()->setTime(18, 0)->toIso8601String(),
                 'status' => 'imminent',
                 'is_live' => false,
@@ -88,7 +88,7 @@ class StudentDashboardController extends Controller
         $remainingCredits = CreditLedger::where('user_id', $user->id)
             ->sum('amount');
         if ($remainingCredits <= 0) {
-            $remainingCredits = 4; // Default starting demo credit balance
+            $remainingCredits = 4; // Default starting credit balance
         }
 
         $activeCohortsCount = $user->cohorts()->count();
@@ -101,15 +101,15 @@ class StudentDashboardController extends Controller
             [
                 'time' => '18:00',
                 'subject' => 'الرياضيات (Mathematics)',
-                'teacher' => 'Professor Alan Turing',
-                'topic' => 'المتتاليات وحساب النهايات مع تطبيقات البكالوريا',
+                'teacher' => 'الأستاذ محمد أمين بن عيسى',
+                'topic' => 'الحصة التفاعلية المباشرة: حل المسائل النموذجية والامتحانات الرسمية',
                 'status' => 'upcoming',
             ],
             [
                 'time' => '20:00',
                 'subject' => 'العلوم الفيزيائية (Physics)',
-                'teacher' => 'Dr. Marie Curie',
-                'topic' => 'تطور كميات المادة في مزيج تفاعلي خلال تحول كيميائي',
+                'teacher' => 'الأستاذة كريمة بلقاسم',
+                'topic' => 'تطور كميات المادة في مزيج تفاعلي وتطبيقات التمارين',
                 'status' => 'scheduled',
             ],
         ];
@@ -135,9 +135,9 @@ class StudentDashboardController extends Controller
             $recentRecordings = [
                 [
                     'id' => 101,
-                    'title' => 'مراجعة الميكانيكا وقوانين نيوتن — حلول نموذجية',
+                    'title' => 'مراجعة الميكانيكا والكهرباء — حلول نموذجية',
                     'subject' => 'العلوم الفيزيائية',
-                    'teacher_name' => 'Dr. Marie Curie',
+                    'teacher_name' => 'الأستاذة كريمة بلقاسم',
                     'duration_minutes' => 105,
                     'created_at' => 'أمس',
                     'is_accessible' => true,
@@ -146,7 +146,7 @@ class StudentDashboardController extends Controller
                     'id' => 102,
                     'title' => 'طرق معالجة المقال الفلسفي للشعب العلمية',
                     'subject' => 'الفلسفة',
-                    'teacher_name' => 'Prof. Ibn Sina (Avicenna)',
+                    'teacher_name' => 'الأستاذ مراد زروقي',
                     'duration_minutes' => 75,
                     'created_at' => 'منذ 3 أيام',
                     'is_accessible' => true,
@@ -167,7 +167,7 @@ class StudentDashboardController extends Controller
             [
                 'id' => 1,
                 'title' => 'الحصة القادمة تبدأ قريباً',
-                'body' => 'حصة الرياضيات مع Professor Alan Turing تبدأ في تمام 18:00.',
+                'body' => 'حصة الرياضيات مع الأستاذ محمد أمين تبدأ في تمام 18:00.',
                 'type' => 'reminder',
                 'time' => 'منذ 15 دقيقة',
                 'is_read' => false,
@@ -175,7 +175,7 @@ class StudentDashboardController extends Controller
             [
                 'id' => 2,
                 'title' => 'تسجيل جديد متاح في مكتبتك',
-                'body' => 'تمت إضافة تسجيل حصة الفيزياء للدكتورة Marie Curie مع العلامة المائية المحمية.',
+                'body' => 'تمت إضافة تسجيل حصة الفيزياء للأستاذة كريمة بلقاسم مع العلامة المائية المحمية.',
                 'type' => 'library',
                 'time' => 'منذ ساعتين',
                 'is_read' => false,

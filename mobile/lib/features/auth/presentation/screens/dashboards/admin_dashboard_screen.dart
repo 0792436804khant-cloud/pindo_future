@@ -214,27 +214,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Executive Admin Profile Banner
-              _buildAdminProfileBanner(),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Executive Admin Profile Banner
+                  _buildAdminProfileBanner(),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // 2. Navigation Segments (Tabs)
-              _buildSegmentTabs(),
+                  // 2. Navigation Segments (Tabs)
+                  _buildSegmentTabs(),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // 3. Tab Body
-              if (_selectedTab == 0) _buildOverviewTab(),
-              if (_selectedTab == 1) _buildVerificationsTab(),
-              if (_selectedTab == 2) _buildPayoutsTab(),
-              if (_selectedTab == 3) _buildClusterMonitoringTab(),
+                  // 3. Tab Body
+                  if (_selectedTab == 0) _buildOverviewTab(),
+                  if (_selectedTab == 1) _buildVerificationsTab(),
+                  if (_selectedTab == 2) _buildPayoutsTab(),
+                  if (_selectedTab == 3) _buildClusterMonitoringTab(),
 
-              const SizedBox(height: 40),
-            ],
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ),
         ),
       ),

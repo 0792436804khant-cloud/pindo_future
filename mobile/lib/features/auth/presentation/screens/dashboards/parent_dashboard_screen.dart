@@ -229,48 +229,53 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         child: SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildParentHeader(ctrl)
-                                  .animate()
-                                  .fadeIn(duration: 400.ms)
-                                  .slideY(begin: -0.06, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
-                              const SizedBox(height: 18),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1100),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildParentHeader(ctrl)
+                                      .animate()
+                                      .fadeIn(duration: 400.ms)
+                                      .slideY(begin: -0.06, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
+                                  const SizedBox(height: 18),
 
-                              _buildChildSelectorBar(ctrl)
-                                  .animate()
-                                  .fadeIn(duration: 350.ms, delay: 60.ms),
-                              const SizedBox(height: 18),
+                                  _buildChildSelectorBar(ctrl)
+                                      .animate()
+                                      .fadeIn(duration: 350.ms, delay: 60.ms),
+                                  const SizedBox(height: 18),
 
-                              if (ctrl.errorMessage != null) ...[
-                                _buildAlertBanner(ctrl.errorMessage!, isError: true, onDismiss: ctrl.clearMessages),
-                                const SizedBox(height: 12),
-                              ],
-                              if (ctrl.successMessage != null) ...[
-                                _buildAlertBanner(ctrl.successMessage!, isError: false, onDismiss: ctrl.clearMessages),
-                                const SizedBox(height: 12),
-                              ],
+                                  if (ctrl.errorMessage != null) ...[
+                                    _buildAlertBanner(ctrl.errorMessage!, isError: true, onDismiss: ctrl.clearMessages),
+                                    const SizedBox(height: 12),
+                                  ],
+                                  if (ctrl.successMessage != null) ...[
+                                    _buildAlertBanner(ctrl.successMessage!, isError: false, onDismiss: ctrl.clearMessages),
+                                    const SizedBox(height: 12),
+                                  ],
 
-                              if (selectedChild == null) ...[
-                                _buildEmptyChildrenState(ctrl),
-                              ] else ...[
-                                _buildKpiOverview(selectedChild)
-                                    .animate()
-                                    .fadeIn(duration: 450.ms, delay: 100.ms)
-                                    .slideY(begin: 0.05, end: 0, duration: 450.ms, curve: Curves.easeOutCubic),
-                                const SizedBox(height: 22),
+                                  if (selectedChild == null) ...[
+                                    _buildEmptyChildrenState(ctrl),
+                                  ] else ...[
+                                    _buildKpiOverview(selectedChild)
+                                        .animate()
+                                        .fadeIn(duration: 450.ms, delay: 100.ms)
+                                        .slideY(begin: 0.05, end: 0, duration: 450.ms, curve: Curves.easeOutCubic),
+                                    const SizedBox(height: 22),
 
-                                _buildTabBar(ctrl)
-                                    .animate()
-                                    .fadeIn(duration: 350.ms, delay: 160.ms),
-                                const SizedBox(height: 16),
+                                    _buildTabBar(ctrl)
+                                        .animate()
+                                        .fadeIn(duration: 350.ms, delay: 160.ms),
+                                    const SizedBox(height: 16),
 
-                                _buildTabContent(ctrl, selectedChild),
-                              ],
+                                    _buildTabContent(ctrl, selectedChild),
+                                  ],
 
-                              const SizedBox(height: 40),
-                            ],
+                                  const SizedBox(height: 40),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
