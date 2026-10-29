@@ -109,13 +109,12 @@ class SessionController extends Controller
 
         $session->start();
 
-        // Broadcast real-time live alert to all cohort/course students and guardians
-        $notifiedRecipients = app(\App\Services\NotificationService::class)->notifySessionLive($session);
+        // Dispatch asynchronous broadcast job to background queue workers
+        \App\Jobs\BroadcastLiveSessionJob::dispatch($session);
 
         return response()->json([
             'status' => 'success',
             'message' => "Classroom session '{$sessionId}' is now LIVE.",
-            'recipients_notified' => $notifiedRecipients,
             'session' => new ClassroomSessionResource($session->fresh()->load('teacher')),
         ]);
     }

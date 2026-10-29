@@ -23,8 +23,12 @@ class StudentDashboardController extends Controller
     {
         $user = $request->user();
 
-        // 1. Next Upcoming or Active Classroom Session
-        $now = Carbon::now();
+        $data = \Illuminate\Support\Facades\Cache::remember(
+            "student:dashboard:{$user->id}",
+            \App\Services\CacheManagerService::TTL_STUDENT_DASHBOARD,
+            function () use ($user) {
+                // 1. Next Upcoming or Active Classroom Session
+                $now = Carbon::now();
         $nextSession = ClassroomSession::with(['teacher:id,name', 'cohort:id,name,stream,subject'])
             ->where(function ($q) {
                 $q->where('status', 'active')
@@ -186,33 +190,37 @@ class StudentDashboardController extends Controller
             ],
         ];
 
+                return [
+                    'student' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role ?? 'student',
+                    ],
+                    'next_session' => $nextSessionData,
+                    'subscriptions' => [
+                        'package_name' => 'باقة التميز (دروس مباشرة + المكتبة المحمية)',
+                        'remaining_credits' => (int) $remainingCredits,
+                        'active_cohorts_count' => (int) $activeCohortsCount,
+                        'library_access' => true,
+                        'status' => 'active',
+                        'expires_at' => Carbon::now()->addDays(24)->toDateString(),
+                    ],
+                    'today_schedule' => $todaySchedule,
+                    'recent_recordings' => $recentRecordings,
+                    'attendance' => [
+                        'attendance_rate' => $attendanceRate,
+                        'attended_sessions' => max($attendanceCount, 11),
+                        'total_sessions' => $totalSessions,
+                    ],
+                    'notifications' => $notifications,
+                ];
+            }
+        );
+
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'student' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role ?? 'student',
-                ],
-                'next_session' => $nextSessionData,
-                'subscriptions' => [
-                    'package_name' => 'باقة التميز (دروس مباشرة + المكتبة المحمية)',
-                    'remaining_credits' => (int) $remainingCredits,
-                    'active_cohorts_count' => (int) $activeCohortsCount,
-                    'library_access' => true,
-                    'status' => 'active',
-                    'expires_at' => Carbon::now()->addDays(24)->toDateString(),
-                ],
-                'today_schedule' => $todaySchedule,
-                'recent_recordings' => $recentRecordings,
-                'attendance' => [
-                    'attendance_rate' => $attendanceRate,
-                    'attended_sessions' => max($attendanceCount, 11),
-                    'total_sessions' => $totalSessions,
-                ],
-                'notifications' => $notifications,
-            ],
+            'data' => $data,
         ]);
     }
 }

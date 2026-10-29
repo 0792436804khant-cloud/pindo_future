@@ -25,8 +25,12 @@ class TeacherDashboardController extends Controller
     {
         $teacher = $request->user();
 
-        // 1. Cohorts and Students Metrics
-        $cohorts = StudyCohort::where('teacher_id', $teacher->id)->get();
+        $data = \Illuminate\Support\Facades\Cache::remember(
+            "teacher:dashboard:{$teacher->id}",
+            \App\Services\CacheManagerService::TTL_TEACHER_DASHBOARD,
+            function () use ($teacher) {
+                // 1. Cohorts and Students Metrics
+                $cohorts = StudyCohort::where('teacher_id', $teacher->id)->get();
         $cohortIds = $cohorts->pluck('id')->toArray();
 
         $enrolledStudentsCount = CohortMember::whereIn('cohort_id', $cohortIds)
@@ -183,38 +187,42 @@ class TeacherDashboardController extends Controller
                 ];
             });
 
+                return [
+                    'teacher' => [
+                        'id' => $teacher->id,
+                        'name' => $teacher->name,
+                        'email' => $teacher->email,
+                        'teacher_id' => $teacher->teacherId ?? 'TCH_' . $teacher->id,
+                        'avatar_url' => $teacher->avatarUrl,
+                        'is_verified' => (bool) $teacher->isTeacherVerified,
+                        'years_of_experience' => $teacher->yearsOfExperience ?? 5,
+                        'headline' => $teacher->headline ?? 'أستاذ معتمد في المنصة',
+                        'subjects' => $teacher->teachingSubjects ?? ['الرياضيات'],
+                        'levels' => $teacher->teachingLevels ?? ['ثانوي'],
+                    ],
+                    'stats' => [
+                        'enrolled_students_count' => $enrolledStudentsCount,
+                        'active_cohorts_count' => $activeCohortsCount,
+                        'scheduled_sessions_count' => $scheduledSessionsCount,
+                        'completed_sessions_count' => $completedSessionsCount,
+                        'expired_credits_students_count' => $expiredCreditsCount,
+                        'total_earnings' => $totalEarnings,
+                        'gross_sales' => $grossSales,
+                        'pending_earnings' => $pendingEarnings,
+                        'library_recordings_count' => $libraryRecordingsCount,
+                    ],
+                    'upcoming_session' => $upcomingSessionData,
+                    'today_schedule' => $todaySessions,
+                    'notifications' => $notifications,
+                    'cohorts' => $cohortsList,
+                    'recent_transactions' => $recentTransactions,
+                ];
+            }
+        );
+
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'teacher' => [
-                    'id' => $teacher->id,
-                    'name' => $teacher->name,
-                    'email' => $teacher->email,
-                    'teacher_id' => $teacher->teacherId ?? 'TCH_' . $teacher->id,
-                    'avatar_url' => $teacher->avatarUrl,
-                    'is_verified' => (bool) $teacher->isTeacherVerified,
-                    'years_of_experience' => $teacher->yearsOfExperience ?? 5,
-                    'headline' => $teacher->headline ?? 'أستاذ معتمد في المنصة',
-                    'subjects' => $teacher->teachingSubjects ?? ['الرياضيات'],
-                    'levels' => $teacher->teachingLevels ?? ['ثانوي'],
-                ],
-                'stats' => [
-                    'enrolled_students_count' => $enrolledStudentsCount,
-                    'active_cohorts_count' => $activeCohortsCount,
-                    'scheduled_sessions_count' => $scheduledSessionsCount,
-                    'completed_sessions_count' => $completedSessionsCount,
-                    'expired_credits_students_count' => $expiredCreditsCount,
-                    'total_earnings' => $totalEarnings,
-                    'gross_sales' => $grossSales,
-                    'pending_earnings' => $pendingEarnings,
-                    'library_recordings_count' => $libraryRecordingsCount,
-                ],
-                'upcoming_session' => $upcomingSessionData,
-                'today_schedule' => $todaySessions,
-                'notifications' => $notifications,
-                'cohorts' => $cohortsList,
-                'recent_transactions' => $recentTransactions,
-            ],
+            'data' => $data,
         ]);
     }
 }
