@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
+import 'package:pindo_future_mobile/features/teachers/presentation/widgets/modals/live_camera_capture_modal.dart';
 
 class AddTeacherStoryModal extends StatefulWidget {
   final Function(TeacherStoryItem newStory) onStoryAdded;
@@ -149,28 +150,22 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
     }
   }
 
-  // --- Real Camera Photo Capture ---
+  // --- Real Camera Photo Capture (Live Viewfinder + Shutter) ---
   Future<void> _takeRealPhotoWithCamera() async {
     try {
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 88,
-      );
-      if (photo != null) {
-        final bytes = await photo.readAsBytes();
+      final captureResult = await LiveCameraCaptureModal.show(context);
+      if (captureResult != null) {
         setState(() {
-          _pickedImageBytes = bytes;
-          _pickedImageName = photo.name;
+          _pickedImageBytes = captureResult.bytes;
+          _pickedImageName = captureResult.name;
           _pickedVideoName = null;
           _activeMode = _StoryMode.camera;
           _isEditingText = true;
         });
         _textFocusNode.requestFocus();
-        return;
       }
-    } catch (_) {
-      // Fallback to gallery / file picker if camera is unavailable on device/browser
-      await _pickRealImageFromGallery();
+    } catch (e) {
+      _showErrorSnackBar('تعذر تشغيل الكاميرا: $e');
     }
   }
 
