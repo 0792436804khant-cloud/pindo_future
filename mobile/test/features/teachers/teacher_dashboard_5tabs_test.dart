@@ -197,5 +197,56 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
     });
+
+    testWidgets('Opening AddTeacherStoryModal presents Instagram-style camera/video/text studio', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: Scaffold(
+            body: TeacherAccountTab(
+              dashboard: mockDashboard,
+              onEditProfile: () {},
+              onOpenAccountSettings: () {},
+              onSignOut: () {},
+              onPreviewShowcase: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Tap on "نشر ستوري" button
+      expect(find.text('نشر ستوري'), findsOneWidget);
+      await tester.tap(find.text('نشر ستوري'));
+      await tester.pumpAndSettle();
+
+      // Verify Instagram-style modes
+      expect(find.text('✍️ كتابة'), findsOneWidget);
+      expect(find.text('📸 صورة'), findsOneWidget);
+      expect(find.text('🎥 فيديو'), findsOneWidget);
+      expect(find.text('🖼️ المعرض'), findsOneWidget);
+
+      // Verify Instagram-style share buttons
+      expect(find.text('قصتك'), findsOneWidget);
+      expect(find.text('مشاركة في الستوري'), findsOneWidget);
+
+      // Switch to Video mode
+      await tester.tap(find.text('🎥 فيديو'));
+      await tester.pump();
+      expect(find.byIcon(Icons.videocam_rounded), findsOneWidget);
+
+      // Switch to Camera mode
+      await tester.tap(find.text('📸 صورة'));
+      await tester.pump();
+      expect(find.byIcon(Icons.camera_alt_rounded), findsOneWidget);
+
+      // Tap "قصتك" to publish
+      await tester.tap(find.text('قصتك'));
+      await tester.pumpAndSettle();
+
+      // Verify returned to account tab and snackbar feedback shown
+      expect(find.textContaining('تمت مشاركة الستوري في قصتك بنجاح'), findsOneWidget);
+    });
   });
 }

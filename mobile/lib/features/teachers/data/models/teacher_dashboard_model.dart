@@ -71,6 +71,8 @@ class TeacherDashboardModel {
           TeacherStoryItem(
             id: 's1',
             text: '🔴 تنبيه هام لجميع طلاب فوج النخبة:\nالحصة التفاعلية المباشرة لمراجعة الدوال الأسية وحل المسائل الشاملة تبدأ اليوم عند الساعة 18:00 مساءً. يرجى تحميل ملف التمارين المرفق في الفوج والاستعداد!',
+            imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80',
+            mediaType: 'video',
             timeAgo: 'منذ ساعتين',
             viewsCount: 238,
             isLiveAlert: true,
@@ -80,6 +82,8 @@ class TeacherDashboardModel {
           TeacherStoryItem(
             id: 's2',
             text: '💡 نصيحة ذهبية لطلاب البكالوريا دورة 2025:\nفي مسائل المتتاليات وحساب النهايات، ركزوا دائماً على كتابة الخطوات والتعليلات المنهجية (الاستدلال بالتراجع، التقارب...). المصحح يمنح العلامات على المنهجية خطوة بخطوة!',
+            imageUrl: 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&q=80',
+            mediaType: 'image',
             timeAgo: 'منذ 5 ساعات',
             viewsCount: 412,
             tag: '💡 نصيحة منهجية',
@@ -87,6 +91,8 @@ class TeacherDashboardModel {
           TeacherStoryItem(
             id: 's3',
             text: '🏆 فخور بتألق تلاميذنا في بكالوريا 2024:\nأكثر من 45 طالباً في أفواجنا نالوا علامة 19/20 فما فوق في الرياضيات بمعدلات عامة تجاوزت 18/20. العاقبة لدفعة 2025 لمواصلة مسيرة التميز!',
+            imageUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80',
+            mediaType: 'image',
             timeAgo: 'أمس',
             viewsCount: 560,
             tag: '🏆 فخر ونتائج',
@@ -453,6 +459,8 @@ class TeacherStoryItem {
   final String id;
   final String text;
   final String? imageUrl;
+  final String? videoUrl;
+  final String mediaType; // 'text', 'image', 'video'
   final String timeAgo;
   final int viewsCount;
   final bool isLiveAlert;
@@ -464,6 +472,8 @@ class TeacherStoryItem {
     required this.id,
     required this.text,
     this.imageUrl,
+    this.videoUrl,
+    this.mediaType = 'text',
     required this.timeAgo,
     this.viewsCount = 0,
     this.isLiveAlert = false,
@@ -477,6 +487,8 @@ class TeacherStoryItem {
       id: json['id']?.toString() ?? '',
       text: json['text']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
+      videoUrl: json['video_url']?.toString(),
+      mediaType: json['media_type']?.toString() ?? (json['video_url'] != null ? 'video' : (json['image_url'] != null ? 'image' : 'text')),
       timeAgo: json['time_ago']?.toString() ?? 'الآن',
       viewsCount: json['views_count'] is num ? (json['views_count'] as num).toInt() : 0,
       isLiveAlert: json['is_live_alert'] == true,
