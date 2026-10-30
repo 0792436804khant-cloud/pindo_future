@@ -118,8 +118,33 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
           _isEditingText = true;
         });
         _textFocusNode.requestFocus();
+        return;
       }
     } catch (e) {
+      // Fallback to FilePicker if image_picker channel fails
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
+          withData: true,
+        );
+        if (result != null && result.files.isNotEmpty) {
+          final file = result.files.first;
+          if (file.bytes != null) {
+            setState(() {
+              _pickedImageBytes = file.bytes;
+              _pickedImageName = file.name;
+              _pickedVideoName = null;
+              _activeMode = _StoryMode.gallery;
+              _isEditingText = true;
+            });
+            _textFocusNode.requestFocus();
+            return;
+          }
+        }
+      } catch (inner) {
+        _showErrorSnackBar('تعذر فتح معرض الصور: $inner');
+        return;
+      }
       _showErrorSnackBar('تعذر فتح المعرض: $e');
     }
   }
@@ -141,9 +166,10 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
           _isEditingText = true;
         });
         _textFocusNode.requestFocus();
+        return;
       }
     } catch (_) {
-      // Fallback to gallery if camera is unavailable on device/browser
+      // Fallback to gallery / file picker if camera is unavailable on device/browser
       await _pickRealImageFromGallery();
     }
   }
@@ -163,8 +189,30 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
           _isEditingText = true;
         });
         _textFocusNode.requestFocus();
+        return;
       }
     } catch (e) {
+      // Fallback to FilePicker if video picker channel fails
+      try {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.video,
+          withData: true,
+        );
+        if (result != null && result.files.isNotEmpty) {
+          final file = result.files.first;
+          setState(() {
+            _pickedVideoName = file.name;
+            _pickedImageBytes = null;
+            _activeMode = _StoryMode.video;
+            _isEditingText = true;
+          });
+          _textFocusNode.requestFocus();
+          return;
+        }
+      } catch (inner) {
+        _showErrorSnackBar('تعذر اختيار الفيديو: $inner');
+        return;
+      }
       _showErrorSnackBar('تعذر اختيار الفيديو: $e');
     }
   }
