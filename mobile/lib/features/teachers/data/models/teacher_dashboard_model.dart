@@ -59,11 +59,168 @@ class TeacherDashboardModel {
         email: 'amine@pindofuture.com',
         teacherId: teacherId,
         avatarUrl: null,
+        coverImageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&q=80',
         isVerified: true,
         yearsOfExperience: 10,
         headline: 'أستاذ رئيسي للتعليم الثانوي ومعد دورات المتفوقين في الرياضيات',
+        wilaya: 'الجزائر العاصمة (القبة)',
+        bio: 'أستاذ رئيسي للتعليم الثانوي، مؤلف سلاسل النخبة في الرياضيات، ومشرف على دورات تأهيل المتفوقين في شهادة البكالوريا منذ 10 سنوات بأعلى معدلات وطنية.',
         subjects: const ['الرياضيات', 'الفيزياء'],
         levels: const ['ثالثة ثانوي', 'ثانية ثانوي', 'أولى ثانوي'],
+        stories: const [
+          TeacherStoryItem(
+            id: 's1',
+            text: '🔴 تنبيه هام لجميع طلاب فوج النخبة:\nالحصة التفاعلية المباشرة لمراجعة الدوال الأسية وحل المسائل الشاملة تبدأ اليوم عند الساعة 18:00 مساءً. يرجى تحميل ملف التمارين المرفق في الفوج والاستعداد!',
+            timeAgo: 'منذ ساعتين',
+            viewsCount: 238,
+            isLiveAlert: true,
+            tag: '🔴 بث مباشر اليوم',
+            actionButtonText: 'الانتقال لقاعة البث المباشر',
+          ),
+          TeacherStoryItem(
+            id: 's2',
+            text: '💡 نصيحة ذهبية لطلاب البكالوريا دورة 2025:\nفي مسائل المتتاليات وحساب النهايات، ركزوا دائماً على كتابة الخطوات والتعليلات المنهجية (الاستدلال بالتراجع، التقارب...). المصحح يمنح العلامات على المنهجية خطوة بخطوة!',
+            timeAgo: 'منذ 5 ساعات',
+            viewsCount: 412,
+            tag: '💡 نصيحة منهجية',
+          ),
+          TeacherStoryItem(
+            id: 's3',
+            text: '🏆 فخور بتألق تلاميذنا في بكالوريا 2024:\nأكثر من 45 طالباً في أفواجنا نالوا علامة 19/20 فما فوق في الرياضيات بمعدلات عامة تجاوزت 18/20. العاقبة لدفعة 2025 لمواصلة مسيرة التميز!',
+            timeAgo: 'أمس',
+            viewsCount: 560,
+            tag: '🏆 فخر ونتائج',
+          ),
+        ],
+        workplaces: const [
+          TeacherWorkplaceItem(
+            id: 'w1',
+            name: 'ثانوية حسيبة بن بوعلي — القبة',
+            type: 'ثانوية عمومية',
+            wilaya: 'الجزائر العاصمة',
+            role: 'أستاذ رئيسي لمادة الرياضيات (أقسام البكالوريا)',
+            period: '2016 — حتى الآن',
+            isCurrent: true,
+          ),
+          TeacherWorkplaceItem(
+            id: 'w2',
+            name: 'أكاديمية النجاح لدروس الدعم والتفوق',
+            type: 'أكاديمية تدريب ودعم مدرسي',
+            wilaya: 'الجزائر العاصمة / القبة والرويبة',
+            role: 'مشرف ومؤطر مادة الرياضيات للأفواج النموذجية',
+            period: '2019 — حتى الآن',
+            isCurrent: true,
+          ),
+          TeacherWorkplaceItem(
+            id: 'w3',
+            name: 'مدرسة الفتح الخاصة المعتمدة',
+            type: 'مدرسة خاصة معتمدة',
+            wilaya: 'الجزائر العاصمة / الدار البيضاء',
+            role: 'أستاذ زائر ومحاضر للأقسام النهائية',
+            period: '2021 — حتى الآن',
+            isCurrent: true,
+          ),
+          TeacherWorkplaceItem(
+            id: 'w4',
+            name: 'استوديو بيندو للتعليم الرقمي التفاعلي',
+            type: 'منصة رقمية وطنية',
+            wilaya: 'عن بُعد (58 ولاية)',
+            role: 'أستاذ معتمد ومؤطر دورات البكالوريا المباشرة',
+            period: '2023 — حتى الآن',
+            isCurrent: true,
+          ),
+        ],
+        cohortSchedules: const [
+          TeacherCohortScheduleItem(
+            id: 'cs1',
+            cohortName: 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
+            subject: 'الرياضيات',
+            levelAndStream: '3 ثانوي • علوم تجريبية + رياضيات',
+            daysAndTimes: 'الجمعة 15:00 - 17:30 | السبت 18:00 - 20:30',
+            location: 'أكاديمية النجاح (القبة) + بث مباشر بيندو',
+            enrolledCount: 42,
+            maxCapacity: 50,
+            monthlyPrice: 3500.0,
+            status: 'مفتوح للتسجيل',
+          ),
+          TeacherCohortScheduleItem(
+            id: 'cs2',
+            cohortName: 'الفوج النموذجي للتميز — ثانية ثانوي',
+            subject: 'الرياضيات',
+            levelAndStream: '2 ثانوي • شعبة علوم تجريبية',
+            daysAndTimes: 'الثلاثاء 17:30 - 19:30 | الجمعة 09:00 - 11:00',
+            location: 'مدرسة الفتح الخاصة + بث مباشر بيندو',
+            enrolledCount: 23,
+            maxCapacity: 35,
+            monthlyPrice: 2800.0,
+            status: 'مفتوح للتسجيل',
+          ),
+          TeacherCohortScheduleItem(
+            id: 'cs3',
+            cohortName: 'دورة المراجعة الشاملة وحل البكالوريات السابقة',
+            subject: 'الرياضيات',
+            levelAndStream: '3 ثانوي • جميع الشعب العلمية',
+            daysAndTimes: 'السبت 14:00 - 17:30 (أسبوعياً)',
+            location: 'عبر منصة بيندو التفاعلية مباشرة',
+            enrolledCount: 56,
+            maxCapacity: 60,
+            monthlyPrice: 2000.0,
+            status: 'آخر المقاعد المتبقية',
+          ),
+        ],
+        studentResults: const [
+          TeacherStudentResultItem(
+            id: 'sr1',
+            studentName: 'سارة مهدي',
+            exam: 'بكالوريا 2024',
+            stream: 'شعبة علوم تجريبية',
+            mark: 19.5,
+            generalAverage: 18.72,
+            appreciation: 'مرتبة الشرف الأولى ولاية الجزائر 🏆',
+            wilaya: 'الجزائر العاصمة',
+            school: 'ثانوية الرياضيات بالقبة',
+            testimonial: 'منهجية الأستاذ بن عيسى في تفكيك الدوال المركبة والمسائل الشاملة كانت السر الأكبر في حصولي على 19.5 في الرياضيات وبمعدل عام 18.72.',
+          ),
+          TeacherStudentResultItem(
+            id: 'sr2',
+            studentName: 'كريم بلقاسم',
+            exam: 'بكالوريا 2024',
+            stream: 'شعبة تقني رياضي (هندسة ميكانيكية)',
+            mark: 20.0,
+            generalAverage: 18.45,
+            appreciation: 'العلامة الكاملة في الرياضيات 🌟',
+            wilaya: 'وهران',
+            school: 'ثانوية العقيد لطفي',
+            testimonial: 'الحصص التفاعلية وسلاسل التمارين النموذجية جعلت امتحان الرياضيات الرسمي يبدو أسهل بكثير مما توقعت. شكراً أستاذنا الفاضل!',
+          ),
+          TeacherStudentResultItem(
+            id: 'sr3',
+            studentName: 'مريم بن زينة',
+            exam: 'بكالوريا 2024',
+            stream: 'شعبة رياضيات',
+            mark: 19.0,
+            generalAverage: 17.90,
+            appreciation: 'تفوق واقتدار في شعبة الرياضيات 🎯',
+            wilaya: 'قسنطينة',
+            school: 'ثانوية يوغرطة',
+            testimonial: 'كنت أواجه صعوبة في الهندسة الفضائية والاحتمالات، ولكن بعد الدورة المكثفة أصبحت النقطة المفضلة لدي في الامتحان.',
+          ),
+          TeacherStudentResultItem(
+            id: 'sr4',
+            studentName: 'ياسين حماوي',
+            exam: 'بكالوريا 2024',
+            stream: 'شعبة علوم تجريبية',
+            mark: 18.5,
+            generalAverage: 17.35,
+            appreciation: 'امتياز وتألق في البكالوريا 🎖️',
+            wilaya: 'سطيف',
+            school: 'ثانوية مالك بن نبي',
+            testimonial: 'الدورات المباشرة والتسجيلات عالية الجودة في منصة بيندو مكنتني من المراجعة في أي وقت ومن أي مكان.',
+          ),
+        ],
+        facebookUrl: 'https://facebook.com/prof.amine.math',
+        telegramUrl: 'https://t.me/prof_amine_math',
+        youtubeUrl: 'https://youtube.com/@prof_amine_math',
       ),
       stats: const TeacherStats(
         enrolledStudentsCount: 65,
@@ -208,11 +365,21 @@ class TeacherProfileInfo {
   final String email;
   final String teacherId;
   final String? avatarUrl;
+  final String? coverImageUrl;
   final bool isVerified;
   final int yearsOfExperience;
   final String headline;
+  final String wilaya;
+  final String bio;
   final List<String> subjects;
   final List<String> levels;
+  final List<TeacherStoryItem> stories;
+  final List<TeacherWorkplaceItem> workplaces;
+  final List<TeacherCohortScheduleItem> cohortSchedules;
+  final List<TeacherStudentResultItem> studentResults;
+  final String? facebookUrl;
+  final String? telegramUrl;
+  final String? youtubeUrl;
 
   const TeacherProfileInfo({
     required this.id,
@@ -220,11 +387,21 @@ class TeacherProfileInfo {
     required this.email,
     required this.teacherId,
     this.avatarUrl,
+    this.coverImageUrl,
     required this.isVerified,
     required this.yearsOfExperience,
     required this.headline,
+    this.wilaya = 'الجزائر العاصمة',
+    this.bio = 'أستاذ متميز في المنهاج الجزائري ومؤطر دورات التفوق للبكالوريا.',
     required this.subjects,
     required this.levels,
+    this.stories = const [],
+    this.workplaces = const [],
+    this.cohortSchedules = const [],
+    this.studentResults = const [],
+    this.facebookUrl = 'https://facebook.com',
+    this.telegramUrl = 'https://t.me',
+    this.youtubeUrl = 'https://youtube.com',
   });
 
   factory TeacherProfileInfo.fromJson(Map<String, dynamic> json) {
@@ -234,17 +411,195 @@ class TeacherProfileInfo {
       email: json['email']?.toString() ?? '',
       teacherId: json['teacher_id']?.toString() ?? 'TEACHER',
       avatarUrl: json['avatar_url']?.toString(),
+      coverImageUrl: json['cover_image_url']?.toString(),
       isVerified: json['is_verified'] == true,
       yearsOfExperience: json['years_of_experience'] is num
           ? (json['years_of_experience'] as num).toInt()
           : 5,
       headline: json['headline']?.toString() ?? 'أستاذ معتمد في المنصة',
+      wilaya: json['wilaya']?.toString() ?? 'الجزائر العاصمة',
+      bio: json['bio']?.toString() ?? 'أستاذ متميز في المنهاج الجزائري ومؤطر دورات التفوق للبكالوريا.',
       subjects: (json['subjects'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList(),
       levels: (json['levels'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList(),
+      stories: (json['stories'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TeacherStoryItem.fromJson(e))
+          .toList(),
+      workplaces: (json['workplaces'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TeacherWorkplaceItem.fromJson(e))
+          .toList(),
+      cohortSchedules: (json['cohort_schedules'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TeacherCohortScheduleItem.fromJson(e))
+          .toList(),
+      studentResults: (json['student_results'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TeacherStudentResultItem.fromJson(e))
+          .toList(),
+      facebookUrl: json['facebook_url']?.toString(),
+      telegramUrl: json['telegram_url']?.toString(),
+      youtubeUrl: json['youtube_url']?.toString(),
+    );
+  }
+}
+
+@immutable
+class TeacherStoryItem {
+  final String id;
+  final String text;
+  final String? imageUrl;
+  final String timeAgo;
+  final int viewsCount;
+  final bool isLiveAlert;
+  final String? tag;
+  final String? actionButtonText;
+  final String? actionLink;
+
+  const TeacherStoryItem({
+    required this.id,
+    required this.text,
+    this.imageUrl,
+    required this.timeAgo,
+    this.viewsCount = 0,
+    this.isLiveAlert = false,
+    this.tag,
+    this.actionButtonText,
+    this.actionLink,
+  });
+
+  factory TeacherStoryItem.fromJson(Map<String, dynamic> json) {
+    return TeacherStoryItem(
+      id: json['id']?.toString() ?? '',
+      text: json['text']?.toString() ?? '',
+      imageUrl: json['image_url']?.toString(),
+      timeAgo: json['time_ago']?.toString() ?? 'الآن',
+      viewsCount: json['views_count'] is num ? (json['views_count'] as num).toInt() : 0,
+      isLiveAlert: json['is_live_alert'] == true,
+      tag: json['tag']?.toString(),
+      actionButtonText: json['action_button_text']?.toString(),
+      actionLink: json['action_link']?.toString(),
+    );
+  }
+}
+
+@immutable
+class TeacherWorkplaceItem {
+  final String id;
+  final String name;
+  final String type;
+  final String wilaya;
+  final String role;
+  final String period;
+  final bool isCurrent;
+
+  const TeacherWorkplaceItem({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.wilaya,
+    required this.role,
+    required this.period,
+    this.isCurrent = true,
+  });
+
+  factory TeacherWorkplaceItem.fromJson(Map<String, dynamic> json) {
+    return TeacherWorkplaceItem(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'مؤسسة تعليمية',
+      wilaya: json['wilaya']?.toString() ?? 'الجزائر',
+      role: json['role']?.toString() ?? 'أستاذ',
+      period: json['period']?.toString() ?? 'حالياً',
+      isCurrent: json['is_current'] != false,
+    );
+  }
+}
+
+@immutable
+class TeacherCohortScheduleItem {
+  final String id;
+  final String cohortName;
+  final String subject;
+  final String levelAndStream;
+  final String daysAndTimes;
+  final String location;
+  final int enrolledCount;
+  final int maxCapacity;
+  final double monthlyPrice;
+  final String status;
+
+  const TeacherCohortScheduleItem({
+    required this.id,
+    required this.cohortName,
+    required this.subject,
+    required this.levelAndStream,
+    required this.daysAndTimes,
+    required this.location,
+    required this.enrolledCount,
+    required this.maxCapacity,
+    required this.monthlyPrice,
+    required this.status,
+  });
+
+  factory TeacherCohortScheduleItem.fromJson(Map<String, dynamic> json) {
+    return TeacherCohortScheduleItem(
+      id: json['id']?.toString() ?? '',
+      cohortName: json['cohort_name']?.toString() ?? '',
+      subject: json['subject']?.toString() ?? 'الرياضيات',
+      levelAndStream: json['level_and_stream']?.toString() ?? '',
+      daysAndTimes: json['days_and_times']?.toString() ?? '',
+      location: json['location']?.toString() ?? 'حضوري + عن بعد',
+      enrolledCount: json['enrolled_count'] is num ? (json['enrolled_count'] as num).toInt() : 0,
+      maxCapacity: json['max_capacity'] is num ? (json['max_capacity'] as num).toInt() : 50,
+      monthlyPrice: json['monthly_price'] is num ? (json['monthly_price'] as num).toDouble() : 3500.0,
+      status: json['status']?.toString() ?? 'مفتوح للتسجيل',
+    );
+  }
+}
+
+@immutable
+class TeacherStudentResultItem {
+  final String id;
+  final String studentName;
+  final String exam;
+  final String stream;
+  final double mark;
+  final double? generalAverage;
+  final String appreciation;
+  final String wilaya;
+  final String? school;
+  final String testimonial;
+
+  const TeacherStudentResultItem({
+    required this.id,
+    required this.studentName,
+    required this.exam,
+    required this.stream,
+    required this.mark,
+    this.generalAverage,
+    required this.appreciation,
+    required this.wilaya,
+    this.school,
+    required this.testimonial,
+  });
+
+  factory TeacherStudentResultItem.fromJson(Map<String, dynamic> json) {
+    return TeacherStudentResultItem(
+      id: json['id']?.toString() ?? '',
+      studentName: json['student_name']?.toString() ?? '',
+      exam: json['exam']?.toString() ?? 'بكالوريا',
+      stream: json['stream']?.toString() ?? 'علوم تجريبية',
+      mark: json['mark'] is num ? (json['mark'] as num).toDouble() : 18.0,
+      generalAverage: json['general_average'] is num ? (json['general_average'] as num).toDouble() : null,
+      appreciation: json['appreciation']?.toString() ?? 'امتياز',
+      wilaya: json['wilaya']?.toString() ?? 'الجزائر العاصمة',
+      school: json['school']?.toString(),
+      testimonial: json['testimonial']?.toString() ?? '',
     );
   }
 }

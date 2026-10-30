@@ -129,6 +129,73 @@ void main() {
       expect(find.text('الرابط الذكي لموقعك وعروضك الخارجية'), findsOneWidget);
       expect(find.text('تعديل الملف والشهادات'), findsOneWidget);
       expect(find.text('تسجيل الخروج'), findsOneWidget);
+
+      // Verify Stories System
+      expect(find.text('السطوريات والتحديثات الحية (Stories)'), findsOneWidget);
+      expect(find.text('ستوري جديدة'), findsOneWidget);
+      expect(find.text('نشر ستوري'), findsOneWidget);
+
+      // Verify Workplaces Section
+      expect(find.text('🏢 أماكن العمل والمراكز التعليمية'), findsOneWidget);
+      expect(find.text('ثانوية حسيبة بن بوعلي — القبة'), findsOneWidget);
+      expect(find.text('أكاديمية النجاح لدروس الدعم والتفوق'), findsOneWidget);
+
+      // Verify Cohorts Schedule & Timings Section
+      expect(find.text('📅 مواقيت وأجندة الأفواج الدراسية'), findsOneWidget);
+      expect(find.text('فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)'), findsOneWidget);
+      expect(find.textContaining('3500 دج'), findsOneWidget);
+
+      // Verify Students' BAC Marks Hall of Fame Section
+      expect(find.text('🏆 لوحة الشرف ونقاط المتفوقين في البكالوريا'), findsOneWidget);
+      expect(find.text('سارة مهدي'), findsOneWidget);
+      expect(find.text('19.5'), findsOneWidget);
+      expect(find.text('كريم بلقاسم'), findsOneWidget);
+      expect(find.text('20'), findsOneWidget);
+
+      // Verify Social Channels
+      expect(find.text('فيسبوك'), findsOneWidget);
+      expect(find.text('تيليغرام'), findsOneWidget);
+      expect(find.text('يوتيوب'), findsOneWidget);
+    });
+
+    testWidgets('Tapping a story opens the interactive TeacherStoryViewerModal', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: Scaffold(
+            body: TeacherAccountTab(
+              dashboard: mockDashboard,
+              onEditProfile: () {},
+              onOpenAccountSettings: () {},
+              onSignOut: () {},
+              onPreviewShowcase: () {},
+            ),
+          ),
+        ),
+      );
+
+      // Scroll to story if needed and tap
+      await tester.ensureVisible(find.byIcon(Icons.sensors_rounded));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byIcon(Icons.sensors_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify story modal elements
+      expect(find.text('🔴 بث مباشر اليوم'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('الحصة التفاعلية المباشرة'), findsOneWidget);
+      expect(find.text('الانتقال لقاعة البث المباشر'), findsOneWidget);
+      expect(find.text('❤️'), findsOneWidget);
+      expect(find.text('🔥'), findsOneWidget);
+
+      // Send a reaction
+      await tester.tap(find.text('🔥'));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Close modal
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
     });
   });
 }
