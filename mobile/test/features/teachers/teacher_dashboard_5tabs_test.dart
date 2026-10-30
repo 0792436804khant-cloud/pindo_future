@@ -227,19 +227,17 @@ void main() {
       expect(find.text('🎥 فيديو'), findsOneWidget);
       expect(find.text('🖼️ المعرض'), findsOneWidget);
 
+      // Verify real media action buttons & tools
+      expect(find.text('صورة من المعرض'), findsOneWidget);
+      expect(find.text('التقاط صورة'), findsOneWidget);
+      expect(find.text('فيديو من جهازك'), findsOneWidget);
+      expect(find.text('رابط خارجي'), findsOneWidget);
+      expect(find.byIcon(Icons.attach_file_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.link_rounded), findsAtLeastNWidgets(1));
+
       // Verify Instagram-style share buttons
       expect(find.text('قصتك'), findsOneWidget);
       expect(find.text('مشاركة في الستوري'), findsOneWidget);
-
-      // Switch to Video mode
-      await tester.tap(find.text('🎥 فيديو'));
-      await tester.pump();
-      expect(find.byIcon(Icons.videocam_rounded), findsOneWidget);
-
-      // Switch to Camera mode
-      await tester.tap(find.text('📸 صورة'));
-      await tester.pump();
-      expect(find.byIcon(Icons.camera_alt_rounded), findsOneWidget);
 
       // Tap "قصتك" to publish
       await tester.tap(find.text('قصتك'));

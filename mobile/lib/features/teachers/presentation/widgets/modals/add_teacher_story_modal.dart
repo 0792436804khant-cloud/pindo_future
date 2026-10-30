@@ -1,5 +1,7 @@
-import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 
 class AddTeacherStoryModal extends StatefulWidget {
@@ -38,6 +40,24 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
 
   final TextEditingController _textController = TextEditingController();
   final FocusNode _textFocusNode = FocusNode();
+  final ImagePicker _picker = ImagePicker();
+
+  // Real local media state
+  Uint8List? _pickedImageBytes;
+  String? _pickedImageName;
+  String? _pickedVideoName;
+  String? _pickedFileName;
+  int? _pickedFileSize;
+
+  // Real Link Sticker (Instagram style)
+  String? _customLinkUrl;
+  String? _customLinkTitle;
+
+  // Text Styling Overlay
+  bool _isEditingText = false;
+  Color _selectedTextColor = Colors.white;
+  bool _textHighlightPill = true;
+  String? _selectedSticker;
 
   // Instagram-style gradient presets
   static const List<List<Color>> _gradientPresets = [
@@ -49,41 +69,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
     [Color(0xFF0D1B2A), Color(0xFF1B263B), Color(0xFF415A77)], // Deep Cosmic
   ];
 
-  // Gallery template presets for educational stories
-  static const List<Map<String, String>> _galleryPresets = [
-    {
-      'title': 'حل مسألة البكالوريا',
-      'url': 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=900&q=80',
-      'tag': '📝 حل نموذجي',
-    },
-    {
-      'title': 'بث مباشر من الاستوديو',
-      'url': 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=900&q=80',
-      'tag': '🔴 بث مباشر',
-    },
-    {
-      'title': 'لوحة شرف المتفوقين',
-      'url': 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=900&q=80',
-      'tag': '🏆 تفوق ونتائج',
-    },
-    {
-      'title': 'مدرج وثانوية البكالوريا',
-      'url': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80',
-      'tag': '📢 إعلان الفوج',
-    },
-  ];
-
   int _selectedGradientIndex = 0;
-  String? _selectedImageUrl;
-  bool _isVideoRecording = false;
-  int _recordingSeconds = 0;
-  bool _hasRecordedVideo = false;
-
-  // Text Styling Overlay
-  bool _isEditingText = false;
-  Color _selectedTextColor = Colors.white;
-  bool _textHighlightPill = true;
-  String? _selectedSticker = '💡 نصيحة بكالوريا';
 
   final List<Color> _textColors = const [
     Colors.white,
@@ -94,13 +80,12 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
     Color(0xFFE040FB), // Magenta
   ];
 
-  final List<String> _stickers = const [
-    '💡 نصيحة بكالوريا',
+  final List<String> _quickStickers = const [
     '🔴 بث مباشر اليوم',
-    '📝 حل تمرين ومسألة',
+    '💡 نصيحة بكالوريا',
+    '📝 حل مسألة وتمرين',
     '🏆 تهنئة وتفوق 20/20',
-    '⚡ سؤال تحدي',
-    '📢 إعلان هام',
+    '📢 إعلان هام للفوج',
   ];
 
   @override
@@ -113,70 +98,206 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
   void _cycleGradient() {
     setState(() {
       _selectedGradientIndex = (_selectedGradientIndex + 1) % _gradientPresets.length;
-      _selectedImageUrl = null;
     });
   }
 
-  void _capturePhoto() {
-    // Instant camera capture simulation
-    setState(() {
-      _selectedImageUrl = _galleryPresets[Random().nextInt(_galleryPresets.length)]['url'];
-      _activeMode = _StoryMode.camera;
-      _isEditingText = true;
-    });
-    _textFocusNode.requestFocus();
-  }
-
-  void _toggleVideoRecording() {
-    if (!_isVideoRecording) {
-      setState(() {
-        _isVideoRecording = true;
-        _recordingSeconds = 0;
-        _hasRecordedVideo = false;
-      });
-      Future.delayed(const Duration(seconds: 1), _tickRecording);
-    } else {
-      setState(() {
-        _isVideoRecording = false;
-        _hasRecordedVideo = true;
-        _isEditingText = true;
-      });
-      _textFocusNode.requestFocus();
+  // --- Real Image Picker from Gallery / Files ---
+  Future<void> _pickRealImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 88,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _pickedImageBytes = bytes;
+          _pickedImageName = image.name;
+          _pickedVideoName = null;
+          _activeMode = _StoryMode.gallery;
+          _isEditingText = true;
+        });
+        _textFocusNode.requestFocus();
+      }
+    } catch (e) {
+      _showErrorSnackBar('تعذر فتح المعرض: $e');
     }
   }
 
-  void _tickRecording() {
-    if (!mounted || !_isVideoRecording) return;
-    if (_recordingSeconds < 15) {
-      setState(() => _recordingSeconds++);
-      Future.delayed(const Duration(seconds: 1), _tickRecording);
-    } else {
-      setState(() {
-        _isVideoRecording = false;
-        _hasRecordedVideo = true;
-        _isEditingText = true;
-      });
+  // --- Real Camera Photo Capture ---
+  Future<void> _takeRealPhotoWithCamera() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 88,
+      );
+      if (photo != null) {
+        final bytes = await photo.readAsBytes();
+        setState(() {
+          _pickedImageBytes = bytes;
+          _pickedImageName = photo.name;
+          _pickedVideoName = null;
+          _activeMode = _StoryMode.camera;
+          _isEditingText = true;
+        });
+        _textFocusNode.requestFocus();
+      }
+    } catch (_) {
+      // Fallback to gallery if camera is unavailable on device/browser
+      await _pickRealImageFromGallery();
     }
   }
 
-  void _selectGalleryItem(Map<String, String> item) {
-    setState(() {
-      _selectedImageUrl = item['url'];
-      _selectedSticker = item['tag'];
-      _activeMode = _StoryMode.gallery;
-      _isEditingText = true;
-    });
-    _textFocusNode.requestFocus();
+  // --- Real Video Picker ---
+  Future<void> _pickRealVideo() async {
+    try {
+      final XFile? video = await _picker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(seconds: 60),
+      );
+      if (video != null) {
+        setState(() {
+          _pickedVideoName = video.name;
+          _pickedImageBytes = null;
+          _activeMode = _StoryMode.video;
+          _isEditingText = true;
+        });
+        _textFocusNode.requestFocus();
+      }
+    } catch (e) {
+      _showErrorSnackBar('تعذر اختيار الفيديو: $e');
+    }
+  }
+
+  // --- Real Document / PDF Picker ---
+  Future<void> _pickRealDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'png', 'jpg', 'zip'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _pickedFileName = file.name;
+          _pickedFileSize = file.size;
+          if (file.bytes != null && (file.extension == 'jpg' || file.extension == 'png')) {
+            _pickedImageBytes = file.bytes;
+          }
+          _selectedSticker = '📄 ملحق ملف: ${file.name}';
+          _isEditingText = true;
+        });
+        _textFocusNode.requestFocus();
+      }
+    } catch (e) {
+      _showErrorSnackBar('تعذر اختيار الملف: $e');
+    }
+  }
+
+  // --- Real Link Sticker Dialog (مثل ستيكر رابط إنستغرام) ---
+  void _openAddLinkDialog() {
+    final urlController = TextEditingController(text: _customLinkUrl ?? 'https://');
+    final titleController = TextEditingController(text: _customLinkTitle ?? 'تحميل السلسلة PDF');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF00E5FF), width: 1.2),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.link_rounded, color: Color(0xFF00E5FF), size: 24),
+            SizedBox(width: 8),
+            Text('إضافة ستيكر رابط (Link Sticker)', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'أدخل الرابط الحقيقي الذي سينتقل إليه الطلاب عند النقر على الستوري:',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 13),
+              decoration: InputDecoration(
+                labelText: 'عنوان الرابط (URL)',
+                labelStyle: const TextStyle(color: Colors.white60, fontSize: 12),
+                hintText: 'https://t.me/... أو https://drive.google.com/...',
+                hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: titleController,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                labelText: 'النص الظاهر على الملصق',
+                labelStyle: const TextStyle(color: Colors.white60, fontSize: 12),
+                hintText: 'مثال: تحميل سلسلة التمارين PDF، انضم لقناة التيليغرام...',
+                hintStyle: const TextStyle(color: Colors.white30, fontSize: 11),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('إلغاء', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final url = urlController.text.trim();
+              final title = titleController.text.trim();
+              if (url.isNotEmpty) {
+                setState(() {
+                  _customLinkUrl = url;
+                  _customLinkTitle = title.isNotEmpty ? title : 'زيارة الرابط 🔗';
+                });
+              }
+              Navigator.of(ctx).pop();
+            },
+            icon: const Icon(Icons.check, size: 16),
+            label: const Text('إضافة الملصق', style: TextStyle(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E5FF),
+              foregroundColor: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+    );
   }
 
   void _publishStory() {
     final text = _textController.text.trim();
 
     String defaultText = 'ستوري جديدة للأستاذ';
-    if (_hasRecordedVideo) {
-      defaultText = text.isNotEmpty ? text : '🎥 تسجيل فيديو مباشر من الأستاذ لطلابه';
-    } else if (_selectedImageUrl != null) {
-      defaultText = text.isNotEmpty ? text : '📸 صورة وملاحظة هامة من الأستاذ';
+    if (_pickedVideoName != null) {
+      defaultText = text.isNotEmpty ? text : '🎥 تسجيل فيديو: $_pickedVideoName';
+    } else if (_pickedFileName != null) {
+      defaultText = text.isNotEmpty ? text : '📄 ملف مرفق: $_pickedFileName';
+    } else if (_pickedImageName != null) {
+      defaultText = text.isNotEmpty ? text : '📸 صورة وملاحظة: $_pickedImageName';
     } else if (text.isNotEmpty) {
       defaultText = text;
     }
@@ -184,16 +305,26 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
     final newStory = TeacherStoryItem(
       id: 'story_${DateTime.now().millisecondsSinceEpoch}',
       text: defaultText,
-      imageUrl: _selectedImageUrl,
-      videoUrl: _hasRecordedVideo ? 'mock_video_recording.mp4' : null,
-      mediaType: _hasRecordedVideo ? 'video' : (_selectedImageUrl != null ? 'image' : 'text'),
+      imageBytes: _pickedImageBytes,
+      videoUrl: _pickedVideoName,
+      fileName: _pickedFileName,
+      fileSizeBytes: _pickedFileSize,
+      customLinkUrl: _customLinkUrl,
+      customLinkTitle: _customLinkTitle,
+      mediaType: _pickedVideoName != null
+          ? 'video'
+          : (_pickedFileName != null
+              ? 'file'
+              : (_pickedImageBytes != null ? 'image' : 'text')),
       timeAgo: 'الآن',
       viewsCount: 1,
       isLiveAlert: (_selectedSticker != null && _selectedSticker!.contains('مباشر')),
-      tag: _selectedSticker,
-      actionButtonText: (_selectedSticker != null && _selectedSticker!.contains('مباشر'))
-          ? 'الانتقال للبث المباشر'
-          : null,
+      tag: _selectedSticker ?? (_customLinkTitle != null ? '🔗 $_customLinkTitle' : null),
+      actionButtonText: _customLinkTitle ??
+          ((_selectedSticker != null && _selectedSticker!.contains('مباشر'))
+              ? 'الانتقال للبث المباشر'
+              : null),
+      actionLink: _customLinkUrl,
     );
 
     widget.onStoryAdded(newStory);
@@ -211,7 +342,6 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -220,7 +350,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
         top: false,
         child: Stack(
           children: [
-            // 1. Full Screen Story Canvas (Background Gradient, Image, or Video Simulation)
+            // 1. Full Screen Story Canvas (Real Image, Video preview, or Vibrant Instagram Gradient)
             Positioned.fill(
               child: GestureDetector(
                 onTap: () {
@@ -243,18 +373,17 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Photo background if selected
-                      if (_selectedImageUrl != null)
-                        Image.network(
-                          _selectedImageUrl!,
+                      // Real Image Bytes preview (From device gallery/camera/files)
+                      if (_pickedImageBytes != null)
+                        Image.memory(
+                          _pickedImageBytes!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
                         ),
 
-                      // Video recording preview overlay
-                      if (_hasRecordedVideo)
+                      // Real Video Preview Simulation
+                      if (_pickedVideoName != null)
                         Container(
-                          color: Colors.black45,
+                          color: Colors.black54,
                           child: Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -272,12 +401,13 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black54,
+                                    color: Colors.black87,
                                     borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6)),
                                   ),
-                                  child: const Text(
-                                    '🎥 معاينة مقطع الفيديو المسجل (15s)',
-                                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  child: Text(
+                                    '🎥 فيديو: $_pickedVideoName',
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -285,12 +415,111 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                           ),
                         ),
 
-                      // Dimming gradient for legibility
+                      // Real Document / PDF File Sticker
+                      if (_pickedFileName != null)
+                        Positioned(
+                          top: 140,
+                          left: 20,
+                          right: 20,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F172A).withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 16,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF00E5FF), size: 28),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _pickedFileName!,
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _pickedFileSize != null
+                                            ? '${(_pickedFileSize! / 1024).toStringAsFixed(1)} KB • ملف جاهز للمعاينة والتحميل'
+                                            : 'ملف جاهز للتحميل',
+                                        style: const TextStyle(color: Colors.white60, fontSize: 11),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                      // Real Instagram Link Sticker (🔗)
+                      if (_customLinkUrl != null)
+                        Positioned(
+                          top: _pickedFileName != null ? 220 : 150,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: _openAddLinkDialog,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(22),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.link_rounded, color: Color(0xFF0F172A), size: 18),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _customLinkTitle ?? 'رابط خارجي',
+                                      style: const TextStyle(
+                                        color: Color(0xFF0F172A),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_outward_rounded, color: Color(0xFF0F172A), size: 14),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Dimming gradient for text legibility
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withValues(alpha: 0.55),
+                              Colors.black.withValues(alpha: 0.5),
                               Colors.transparent,
                               Colors.black.withValues(alpha: 0.65),
                             ],
@@ -301,41 +530,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                         ),
                       ),
 
-                      // Active Sticker on Canvas
-                      if (_selectedSticker != null)
-                        Positioned(
-                          top: 100,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedSticker!.contains('مباشر')
-                                    ? Colors.red.withValues(alpha: 0.85)
-                                    : Colors.black.withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: Colors.white30, width: 1.2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 10,
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                _selectedSticker!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      // Live Text on Canvas
+                      // Text on Canvas
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -356,15 +551,15 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                                         : Colors.transparent,
                                   ),
                                   decoration: const InputDecoration(
-                                    hintText: 'اكتب على الستوري...\n(انقر في أي مكان)',
-                                    hintStyle: TextStyle(color: Colors.white54, fontSize: 20),
+                                    hintText: 'اكتب على الصورة أو الملف...\n(انقر في أي مكان للكتابة)',
+                                    hintStyle: TextStyle(color: Colors.white54, fontSize: 18),
                                     border: InputBorder.none,
                                   ),
                                 )
                               : Text(
                                   _textController.text.isNotEmpty
                                       ? _textController.text
-                                      : 'انقر للكتابة على الصورة أو الفيديو ✨',
+                                      : 'انقر للكتابة أو أرفق صورة/فيديو/رابط ✨',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: _selectedTextColor,
@@ -391,12 +586,47 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
               right: 12,
               child: Row(
                 children: [
-                  // Close button (X)
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
                   ),
                   const Spacer(),
+
+                  // Real Link Sticker Tool 🔗
+                  IconButton(
+                    onPressed: _openAddLinkDialog,
+                    tooltip: 'إضافة ستيكر رابط حقيقي',
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _customLinkUrl != null ? const Color(0xFF00E5FF) : Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.link_rounded,
+                        color: _customLinkUrl != null ? Colors.black : Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+
+                  // Real Document Picker Button 📄
+                  IconButton(
+                    onPressed: _pickRealDocument,
+                    tooltip: 'إرفاق ملف حقيقي (PDF / سلاسل)',
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _pickedFileName != null ? const Color(0xFF00E5FF) : Colors.white24,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.attach_file_rounded,
+                        color: _pickedFileName != null ? Colors.black : Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
 
                   // Text tool 'Aa'
                   IconButton(
@@ -423,7 +653,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                     ),
                   ),
 
-                  // Background Gradient / Palette Tool
+                  // Background Gradient Palette Tool
                   IconButton(
                     onPressed: _cycleGradient,
                     icon: Container(
@@ -444,7 +674,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                     color: const Color(0xFF1E293B),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     onSelected: (sticker) => setState(() => _selectedSticker = sticker),
-                    itemBuilder: (_) => _stickers
+                    itemBuilder: (_) => _quickStickers
                         .map(
                           (s) => PopupMenuItem(
                             value: s,
@@ -466,7 +696,6 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Toggle background highlight
                     InkWell(
                       onTap: () => setState(() => _textHighlightPill = !_textHighlightPill),
                       child: Container(
@@ -486,7 +715,6 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                         ),
                       ),
                     ),
-                    // Color bubbles
                     ..._textColors.map(
                       (c) => GestureDetector(
                         onTap: () => setState(() => _selectedTextColor = c),
@@ -509,7 +737,7 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                 ),
               ),
 
-            // 4. Bottom Controls: Gallery Carousel / Camera Shutter / Video Record / Share Bar
+            // 4. Bottom Controls: Real Pickers + Mode Selector + Instagram Share Footer
             Positioned(
               bottom: 16 + bottomInset,
               left: 0,
@@ -517,101 +745,47 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Mode: Gallery Presets preview
-                  if (_activeMode == _StoryMode.gallery)
-                    Container(
-                      height: 84,
-                      margin: const EdgeInsets.only(bottom: 14),
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: _galleryPresets.map((preset) {
-                          final isSelected = _selectedImageUrl == preset['url'];
-                          return GestureDetector(
-                            onTap: () => _selectGalleryItem(preset),
-                            child: Container(
-                              width: 70,
-                              margin: const EdgeInsets.only(left: 10),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFF00E5FF) : Colors.white30,
-                                  width: isSelected ? 2.5 : 1,
-                                ),
-                                image: DecorationImage(
-                                  image: NetworkImage(preset['url']!),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
+                  // Real Media Action Buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Pick Real Image from Device Gallery
+                        _buildActionPill(
+                          icon: Icons.photo_library_rounded,
+                          label: 'صورة من المعرض',
+                          onTap: _pickRealImageFromGallery,
+                        ),
 
-                  // Camera / Video Shutter Controls (Instagram Style)
-                  if (_activeMode == _StoryMode.camera || _activeMode == _StoryMode.video)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_activeMode == _StoryMode.video)
-                            // Video Record Button (Red circle)
-                            GestureDetector(
-                              onTap: _toggleVideoRecording,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 4),
-                                ),
-                                child: Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    color: Colors.redAccent,
-                                    borderRadius: BorderRadius.circular(_isVideoRecording ? 14 : 32),
-                                  ),
-                                  child: Center(
-                                    child: _isVideoRecording
-                                        ? Text(
-                                            '${15 - _recordingSeconds}s',
-                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                          )
-                                        : const Icon(Icons.videocam_rounded, color: Colors.white, size: 30),
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            // Camera Photo Shutter Button (White ring with inner circle)
-                            GestureDetector(
-                              onTap: _capturePhoto,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 4),
-                                ),
-                                child: Container(
-                                  width: 64,
-                                  height: 64,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.camera_alt_rounded, color: Colors.black, size: 28),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                        // Take Real Photo with Camera
+                        _buildActionPill(
+                          icon: Icons.camera_alt_rounded,
+                          label: 'التقاط صورة',
+                          onTap: _takeRealPhotoWithCamera,
+                        ),
 
-                  // Bottom Mode Selector: [ صورة | فيديو | كتابة | المعرض ]
+                        // Pick Real Video from Device
+                        _buildActionPill(
+                          icon: Icons.video_library_rounded,
+                          label: 'فيديو من جهازك',
+                          onTap: _pickRealVideo,
+                        ),
+
+                        // Add Real Link
+                        _buildActionPill(
+                          icon: Icons.add_link_rounded,
+                          label: 'رابط خارجي',
+                          onTap: _openAddLinkDialog,
+                          isHighlight: _customLinkUrl != null,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Bottom Mode Selector: [ ✍️ كتابة | 📸 صورة | 🎥 فيديو | 🖼️ المعرض ]
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black54,
@@ -629,12 +803,11 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                     ),
                   ),
 
-                  // Instagram Bottom Footer: "قصتك (Your Story)" + Share Button
+                  // Instagram Bottom Footer: "قصتك" + "مشاركة في الستوري"
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
                     child: Row(
                       children: [
-                        // "قصتك" (Your Story) button
                         InkWell(
                           onTap: _publishStory,
                           borderRadius: BorderRadius.circular(24),
@@ -663,7 +836,6 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
                         ),
                         const Spacer(),
 
-                        // Prominent Share to Story Button
                         ElevatedButton.icon(
                           onPressed: _publishStory,
                           icon: const Icon(Icons.send_rounded, size: 16),
@@ -691,16 +863,58 @@ class _AddTeacherStoryModalState extends State<AddTeacherStoryModal> {
     );
   }
 
+  Widget _buildActionPill({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isHighlight = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: isHighlight
+              ? const Color(0xFF00E5FF).withValues(alpha: 0.25)
+              : Colors.black54,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isHighlight ? const Color(0xFF00E5FF) : Colors.white24,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: isHighlight ? const Color(0xFF00E5FF) : Colors.white, size: 15),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isHighlight ? const Color(0xFF00E5FF) : Colors.white,
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildModeTab(String label, _StoryMode mode) {
     final isSelected = _activeMode == mode;
     return GestureDetector(
       onTap: () {
         setState(() {
           _activeMode = mode;
-          if (mode == _StoryMode.gallery && _selectedImageUrl == null) {
-            _selectedImageUrl = _galleryPresets[0]['url'];
-          }
-          if (mode == _StoryMode.text) {
+          if (mode == _StoryMode.gallery) {
+            _pickRealImageFromGallery();
+          } else if (mode == _StoryMode.camera) {
+            _takeRealPhotoWithCamera();
+          } else if (mode == _StoryMode.video) {
+            _pickRealVideo();
+          } else if (mode == _StoryMode.text) {
             _isEditingText = true;
           }
         });

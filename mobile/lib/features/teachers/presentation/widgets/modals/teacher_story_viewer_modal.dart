@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 
 class TeacherStoryViewerModal extends StatefulWidget {
@@ -161,8 +163,26 @@ class _TeacherStoryViewerModalState extends State<TeacherStoryViewerModal>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Full Story Image if present
-                      if (story.imageUrl != null) ...[
+                      // Full Story Image if present (from local bytes or network)
+                      if (story.imageBytes != null) ...[
+                        Image.memory(
+                          story.imageBytes!,
+                          fit: BoxFit.cover,
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black.withValues(alpha: 0.65),
+                                Colors.black.withValues(alpha: 0.25),
+                                Colors.black.withValues(alpha: 0.75),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
+                      ] else if (story.imageUrl != null) ...[
                         Image.network(
                           story.imageUrl!,
                           fit: BoxFit.cover,
@@ -271,17 +291,117 @@ class _TeacherStoryViewerModalState extends State<TeacherStoryViewerModal>
                                 ),
                               ),
 
+                              // Real Instagram Link Sticker (🔗)
+                              if (story.customLinkUrl != null) ...[
+                                const SizedBox(height: 20),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final urlString = story.customLinkUrl!;
+                                    try {
+                                      final uri = Uri.parse(urlString);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                      } else {
+                                        Clipboard.setData(ClipboardData(text: urlString));
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('تم نسخ الرابط للحافظة: $urlString')),
+                                          );
+                                        }
+                                      }
+                                    } catch (_) {
+                                      Clipboard.setData(ClipboardData(text: urlString));
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('تم نسخ الرابط للحافظة: $urlString')),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.4),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.link_rounded, color: Color(0xFF0F172A), size: 20),
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          child: Text(
+                                            story.customLinkTitle ?? 'زيارة الرابط 🔗',
+                                            style: const TextStyle(
+                                              color: Color(0xFF0F172A),
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Icon(Icons.arrow_outward_rounded, color: Color(0xFF0F172A), size: 16),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              // Real Attached File Badge
+                              if (story.fileName != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: _brightCyan.withValues(alpha: 0.6)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.picture_as_pdf_rounded, color: _brightCyan, size: 22),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          story.fileName!,
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
                               if (story.actionButtonText != null) ...[
                                 const SizedBox(height: 28),
                                 ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('جارٍ الانتقال: ${story.actionButtonText}'),
-                                        backgroundColor: _electricPurple,
-                                      ),
-                                    );
+                                  onPressed: () async {
+                                    if (story.customLinkUrl != null) {
+                                      final uri = Uri.parse(story.customLinkUrl!);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        return;
+                                      }
+                                    }
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('جارٍ الانتقال: ${story.actionButtonText}'),
+                                          backgroundColor: _electricPurple,
+                                        ),
+                                      );
+                                    }
                                   },
                                   icon: const Icon(Icons.arrow_forward_rounded, size: 18),
                                   label: Text(

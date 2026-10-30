@@ -460,7 +460,12 @@ class TeacherStoryItem {
   final String text;
   final String? imageUrl;
   final String? videoUrl;
-  final String mediaType; // 'text', 'image', 'video'
+  final Uint8List? imageBytes;
+  final String? fileName;
+  final int? fileSizeBytes;
+  final String? customLinkUrl;
+  final String? customLinkTitle;
+  final String mediaType; // 'text', 'image', 'video', 'file'
   final String timeAgo;
   final int viewsCount;
   final bool isLiveAlert;
@@ -473,6 +478,11 @@ class TeacherStoryItem {
     required this.text,
     this.imageUrl,
     this.videoUrl,
+    this.imageBytes,
+    this.fileName,
+    this.fileSizeBytes,
+    this.customLinkUrl,
+    this.customLinkTitle,
     this.mediaType = 'text',
     required this.timeAgo,
     this.viewsCount = 0,
@@ -488,7 +498,16 @@ class TeacherStoryItem {
       text: json['text']?.toString() ?? '',
       imageUrl: json['image_url']?.toString(),
       videoUrl: json['video_url']?.toString(),
-      mediaType: json['media_type']?.toString() ?? (json['video_url'] != null ? 'video' : (json['image_url'] != null ? 'image' : 'text')),
+      fileName: json['file_name']?.toString(),
+      fileSizeBytes: json['file_size_bytes'] is num ? (json['file_size_bytes'] as num).toInt() : null,
+      customLinkUrl: json['custom_link_url']?.toString(),
+      customLinkTitle: json['custom_link_title']?.toString(),
+      mediaType: json['media_type']?.toString() ??
+          (json['video_url'] != null
+              ? 'video'
+              : (json['file_name'] != null
+                  ? 'file'
+                  : (json['image_url'] != null ? 'image' : 'text'))),
       timeAgo: json['time_ago']?.toString() ?? 'الآن',
       viewsCount: json['views_count'] is num ? (json['views_count'] as num).toInt() : 0,
       isLiveAlert: json['is_live_alert'] == true,
