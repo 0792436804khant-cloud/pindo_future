@@ -1,11 +1,17 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 import '../modals/teacher_support_modal.dart';
 import '../modals/teacher_story_viewer_modal.dart';
 import '../modals/add_teacher_story_modal.dart';
 import '../modals/add_workplace_modal.dart';
 import '../modals/add_student_result_modal.dart';
+import '../modals/add_cohort_schedule_modal.dart';
+import '../modals/edit_teacher_profile_modal.dart';
+import '../modals/live_camera_capture_modal.dart';
 
 class TeacherAccountTab extends StatefulWidget {
   final TeacherDashboardModel dashboard;
@@ -33,20 +39,26 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
   static const Color _deepIndigo = Color(0xFF311B92);
   static const Color _gold = Color(0xFFFFD700);
 
+  late TeacherProfileInfo _currentProfile;
   late List<TeacherStoryItem> _stories;
   late List<TeacherWorkplaceItem> _workplaces;
   late List<TeacherCohortScheduleItem> _cohortSchedules;
   late List<TeacherStudentResultItem> _studentResults;
+  Uint8List? _customCoverBytes;
   String? _customCoverUrl;
+  Uint8List? _customAvatarBytes;
+  String? _customAvatarUrl;
 
   @override
   void initState() {
     super.initState();
-    _stories = List.from(widget.dashboard.teacherProfile.stories);
-    _workplaces = List.from(widget.dashboard.teacherProfile.workplaces);
-    _cohortSchedules = List.from(widget.dashboard.teacherProfile.cohortSchedules);
-    _studentResults = List.from(widget.dashboard.teacherProfile.studentResults);
-    _customCoverUrl = widget.dashboard.teacherProfile.coverImageUrl;
+    _currentProfile = widget.dashboard.teacherProfile;
+    _stories = List.from(_currentProfile.stories);
+    _workplaces = List.from(_currentProfile.workplaces);
+    _cohortSchedules = List.from(_currentProfile.cohortSchedules);
+    _studentResults = List.from(_currentProfile.studentResults);
+    _customCoverUrl = _currentProfile.coverImageUrl;
+    _customAvatarUrl = _currentProfile.avatarUrl;
   }
 
   void _openStoryViewer({int initialIndex = 0}) {
@@ -57,7 +69,7 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
     TeacherStoryViewerModal.show(
       context,
       stories: _stories,
-      teacherProfile: widget.dashboard.teacherProfile,
+      teacherProfile: _currentProfile,
       initialIndex: initialIndex,
     );
   }
@@ -84,6 +96,41 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
     );
   }
 
+  void _deleteWorkplace(String id) {
+    setState(() {
+      _workplaces.removeWhere((wp) => wp.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تم حذف مكان العمل من ملفك بنجاح.'),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+  }
+
+  void _openAddCohortScheduleModal() {
+    AddCohortScheduleModal.show(
+      context,
+      onCohortScheduleAdded: (newCs) {
+        setState(() {
+          _cohortSchedules.add(newCs);
+        });
+      },
+    );
+  }
+
+  void _deleteCohortSchedule(String id) {
+    setState(() {
+      _cohortSchedules.removeWhere((cs) => cs.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تم حذف موعد الفوج من جدولك بنجاح.'),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+  }
+
   void _openAddStudentResultModal() {
     AddStudentResultModal.show(
       context,
@@ -95,7 +142,31 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
     );
   }
 
-  void _changeCoverPhoto() {
+  void _deleteStudentResult(String id) {
+    setState(() {
+      _studentResults.removeWhere((sr) => sr.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تمت إزالة النتيجة من لوحة الشرف.'),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+  }
+
+  void _openEditProfileModal() {
+    EditTeacherProfileModal.show(
+      context,
+      currentProfile: _currentProfile,
+      onProfileSaved: (updated) {
+        setState(() {
+          _currentProfile = updated;
+        });
+      },
+    );
+  }
+
+  Future<void> _changeAvatarPhoto() async {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0F172A),
@@ -107,41 +178,61 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'تغيير صورة الغلاف للواجهة الشخصية',
+              'تحديث الصورة الشخصية للأستاذ',
               style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 14),
             ListTile(
-              leading: const Icon(Icons.palette_outlined, color: _brightCyan),
-              title: const Text('غلاف الاستوديو الأكاديمي الرقمي', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-              onTap: () {
-                setState(() {
-                  _customCoverUrl = 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&q=80';
-                });
+              leading: const Icon(Icons.camera_alt_rounded, color: _brightCyan),
+              title: const Text('التقاط صورة سيلفي بالكاميرا الحية 📷', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              onTap: () async {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
+                final result = await LiveCameraCaptureModal.show(context);
+                if (result != null) {
+                  setState(() {
+                    _customAvatarBytes = result.bytes;
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                    );
+                  }
+                }
               },
             ),
             ListTile(
-              leading: const Icon(Icons.school_outlined, color: _electricPurple),
-              title: const Text('غلاف المدرج وقاعة المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-              onTap: () {
-                setState(() {
-                  _customCoverUrl = 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&q=80';
-                });
+              leading: const Icon(Icons.photo_library_rounded, color: _electricPurple),
+              title: const Text('اختيار صورة من المعرض أو الملفات 🖼️', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              onTap: () async {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.science_outlined, color: _gold),
-              title: const Text('غلاف المختبر والعلوم الطبيعية', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-              onTap: () {
-                setState(() {
-                  _customCoverUrl = 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1200&q=80';
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
+                try {
+                  final picker = ImagePicker();
+                  final picked = await picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    final bytes = await picked.readAsBytes();
+                    setState(() {
+                      _customAvatarBytes = bytes;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                      );
+                    }
+                    return;
+                  }
+                } catch (_) {
+                  final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+                  if (res != null && res.files.isNotEmpty && res.files.first.bytes != null) {
+                    setState(() {
+                      _customAvatarBytes = res.files.first.bytes;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                      );
+                    }
+                  }
+                }
               },
             ),
           ],
@@ -150,9 +241,123 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
     );
   }
 
+  void _changeCoverPhoto() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تغيير صورة الغلاف للواجهة الشخصية',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 14),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded, color: _brightCyan),
+                title: const Text('التقاط صورة للغلاف بالكاميرا الحية 📷', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  final result = await LiveCameraCaptureModal.show(context);
+                  if (result != null) {
+                    setState(() {
+                      _customCoverBytes = result.bytes;
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                      );
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded, color: _electricPurple),
+                title: const Text('اختيار غلاف من جهازك 🖼️', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  try {
+                    final picker = ImagePicker();
+                    final picked = await picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null) {
+                      final bytes = await picked.readAsBytes();
+                      setState(() {
+                        _customCoverBytes = bytes;
+                      });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                        );
+                      }
+                      return;
+                    }
+                  } catch (_) {
+                    final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+                    if (res != null && res.files.isNotEmpty && res.files.first.bytes != null) {
+                      setState(() {
+                        _customCoverBytes = res.files.first.bytes;
+                      });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              const Divider(color: Colors.white12),
+              ListTile(
+                leading: const Icon(Icons.palette_outlined, color: _brightCyan),
+                title: const Text('غلاف الاستوديو الأكاديمي الرقمي', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                onTap: () {
+                  setState(() {
+                    _customCoverBytes = null;
+                    _customCoverUrl = 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&q=80';
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.school_outlined, color: _electricPurple),
+                title: const Text('غلاف المدرج وقاعة المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                onTap: () {
+                  setState(() {
+                    _customCoverBytes = null;
+                    _customCoverUrl = 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&q=80';
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.science_outlined, color: _gold),
+                title: const Text('غلاف المختبر والعلوم الطبيعية', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                onTap: () {
+                  setState(() {
+                    _customCoverBytes = null;
+                    _customCoverUrl = 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=1200&q=80';
+                  });
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم تحديث صورة الغلاف بنجاح!'), backgroundColor: Color(0xFF10B981)));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final profile = widget.dashboard.teacherProfile;
+    final profile = _currentProfile;
     final deepLink = 'https://pindofuture.com/teacher/${profile.teacherId}';
 
     return SingleChildScrollView(
@@ -276,15 +481,22 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: _customCoverUrl != null
-                    ? Image.network(
-                        _customCoverUrl!,
+                child: _customCoverBytes != null
+                    ? Image.memory(
+                        _customCoverBytes!,
                         fit: BoxFit.cover,
-                        color: Colors.black.withValues(alpha: 0.35),
+                        color: Colors.black.withValues(alpha: 0.25),
                         colorBlendMode: BlendMode.darken,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox(),
                       )
-                    : null,
+                    : (_customCoverUrl != null
+                        ? Image.network(
+                            _customCoverUrl!,
+                            fit: BoxFit.cover,
+                            color: Colors.black.withValues(alpha: 0.35),
+                            colorBlendMode: BlendMode.darken,
+                            errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                          )
+                        : null),
               ),
               Positioned(
                 top: 10,
@@ -346,7 +558,7 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   )
-                                : LinearGradient(
+                                : const LinearGradient(
                                     colors: [_brightCyan, _electricPurple],
                                   ),
                             boxShadow: hasStories
@@ -359,16 +571,37 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                                   ]
                                 : null,
                           ),
-                          child: CircleAvatar(
-                            radius: 36,
-                            backgroundColor: _deepIndigo,
-                            backgroundImage: profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
-                            child: profile.avatarUrl == null
-                                ? Text(
-                                    profile.name.isNotEmpty ? profile.name[0] : 'أ',
-                                    style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
-                                  )
-                                : null,
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 36,
+                                backgroundColor: _deepIndigo,
+                                backgroundImage: _customAvatarBytes != null
+                                    ? MemoryImage(_customAvatarBytes!)
+                                    : (_customAvatarUrl != null
+                                        ? NetworkImage(_customAvatarUrl!)
+                                        : (profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null)) as ImageProvider<Object>?,
+                                child: (_customAvatarBytes == null && _customAvatarUrl == null && profile.avatarUrl == null)
+                                    ? Text(
+                                        profile.name.isNotEmpty ? profile.name[0] : 'أ',
+                                        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                                      )
+                                    : null,
+                              ),
+                              GestureDetector(
+                                onTap: _changeAvatarPhoto,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: _brightCyan,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.black, width: 1.5),
+                                  ),
+                                  child: const Icon(Icons.camera_alt_rounded, size: 12, color: Colors.black),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -471,7 +704,7 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: widget.onEditProfile,
+                              onPressed: _openEditProfileModal,
                               icon: const Icon(Icons.edit_rounded, size: 16, color: _brightCyan),
                               label: const Text('تعديل الملف والشهادات', style: TextStyle(color: Colors.white, fontSize: 12)),
                               style: OutlinedButton.styleFrom(
@@ -758,6 +991,14 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                                   style: const TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
                               ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => _deleteWorkplace(wp.id),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4.0),
+                                  child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 16),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -800,13 +1041,42 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.calendar_month_rounded, color: _electricPurple, size: 20),
-              SizedBox(width: 8),
-              Text(
-                '📅 مواقيت وأجندة الأفواج الدراسية',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5),
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month_rounded, color: _electricPurple, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '📅 مواقيت وأجندة الأفواج الدراسية',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: _openAddCohortScheduleModal,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _electricPurple.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _electricPurple.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.add, color: _brightCyan, size: 14),
+                      SizedBox(width: 2),
+                      Text('إضافة موعد وفوج', style: TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -857,6 +1127,14 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                               fontSize: 10.5,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        InkWell(
+                          onTap: () => _deleteCohortSchedule(cs.id),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 16),
                           ),
                         ),
                       ],
@@ -1008,14 +1286,30 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    sr.studentName,
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            sr.studentName,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '(${sr.exam})',
+                                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '(${sr.exam})',
-                                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                  InkWell(
+                                    onTap: () => _deleteStudentResult(sr.id),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(4.0),
+                                      child: Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 16),
+                                    ),
                                   ),
                                 ],
                               ),

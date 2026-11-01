@@ -246,5 +246,63 @@ void main() {
       // Verify returned to account tab and snackbar feedback shown
       expect(find.textContaining('تمت مشاركة الستوري في قصتك بنجاح'), findsOneWidget);
     });
+
+    testWidgets('TeacherAccountTab opens AddWorkplace, AddCohortSchedule, AddStudentResult, and EditProfile modals', (tester) async {
+      tester.view.physicalSize = const Size(1000, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: Scaffold(
+            body: TeacherAccountTab(
+              dashboard: mockDashboard,
+              onEditProfile: () {},
+              onOpenAccountSettings: () {},
+              onSignOut: () {},
+              onPreviewShowcase: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 1. Verify and tap "إضافة مؤسسة"
+      expect(find.text('إضافة مؤسسة'), findsOneWidget);
+      await tester.tap(find.text('إضافة مؤسسة'));
+      await tester.pumpAndSettle();
+      expect(find.text('إضافة مؤسسة / مكان عمل جديد'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // 2. Verify and tap "إضافة موعد وفوج"
+      expect(find.text('إضافة موعد وفوج'), findsOneWidget);
+      await tester.tap(find.text('إضافة موعد وفوج'));
+      await tester.pumpAndSettle();
+      expect(find.text('إضافة موعد وفوج جديد'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // 3. Verify and tap "إضافة نتيجة"
+      expect(find.text('إضافة نتيجة'), findsOneWidget);
+      await tester.tap(find.text('إضافة نتيجة'));
+      await tester.pumpAndSettle();
+      expect(find.text('إضافة نتيجة تلميذ إلى لوحة الشرف'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // 4. Verify and tap "تعديل الملف والشهادات"
+      expect(find.text('تعديل الملف والشهادات'), findsOneWidget);
+      await tester.tap(find.text('تعديل الملف والشهادات'));
+      await tester.pumpAndSettle();
+      expect(find.text('تعديل واجهة وملف الأستاذ'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+    });
   });
 }

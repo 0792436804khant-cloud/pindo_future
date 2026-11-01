@@ -168,6 +168,10 @@ class _AddStudentResultModalState extends State<AddStudentResultModal> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
             ),
 
