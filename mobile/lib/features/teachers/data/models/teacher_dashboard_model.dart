@@ -371,6 +371,7 @@ class TeacherProfileInfo {
   final String email;
   final String teacherId;
   final String? avatarUrl;
+  final Uint8List? avatarBytes;
   final String? coverImageUrl;
   final bool isVerified;
   final int yearsOfExperience;
@@ -393,6 +394,7 @@ class TeacherProfileInfo {
     required this.email,
     required this.teacherId,
     this.avatarUrl,
+    this.avatarBytes,
     this.coverImageUrl,
     required this.isVerified,
     required this.yearsOfExperience,
@@ -409,6 +411,54 @@ class TeacherProfileInfo {
     this.telegramUrl = 'https://t.me',
     this.youtubeUrl = 'https://youtube.com',
   });
+
+  TeacherProfileInfo copyWith({
+    int? id,
+    String? name,
+    String? email,
+    String? teacherId,
+    String? avatarUrl,
+    Uint8List? avatarBytes,
+    String? coverImageUrl,
+    bool? isVerified,
+    int? yearsOfExperience,
+    String? headline,
+    String? wilaya,
+    String? bio,
+    List<String>? subjects,
+    List<String>? levels,
+    List<TeacherStoryItem>? stories,
+    List<TeacherWorkplaceItem>? workplaces,
+    List<TeacherCohortScheduleItem>? cohortSchedules,
+    List<TeacherStudentResultItem>? studentResults,
+    String? facebookUrl,
+    String? telegramUrl,
+    String? youtubeUrl,
+  }) {
+    return TeacherProfileInfo(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      teacherId: teacherId ?? this.teacherId,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      avatarBytes: avatarBytes ?? this.avatarBytes,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      isVerified: isVerified ?? this.isVerified,
+      yearsOfExperience: yearsOfExperience ?? this.yearsOfExperience,
+      headline: headline ?? this.headline,
+      wilaya: wilaya ?? this.wilaya,
+      bio: bio ?? this.bio,
+      subjects: subjects ?? this.subjects,
+      levels: levels ?? this.levels,
+      stories: stories ?? this.stories,
+      workplaces: workplaces ?? this.workplaces,
+      cohortSchedules: cohortSchedules ?? this.cohortSchedules,
+      studentResults: studentResults ?? this.studentResults,
+      facebookUrl: facebookUrl ?? this.facebookUrl,
+      telegramUrl: telegramUrl ?? this.telegramUrl,
+      youtubeUrl: youtubeUrl ?? this.youtubeUrl,
+    );
+  }
 
   factory TeacherProfileInfo.fromJson(Map<String, dynamic> json) {
     return TeacherProfileInfo(

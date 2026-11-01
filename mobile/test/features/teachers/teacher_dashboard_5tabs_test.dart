@@ -301,8 +301,45 @@ void main() {
       await tester.tap(find.text('تعديل الملف والشهادات'));
       await tester.pumpAndSettle();
       expect(find.text('تعديل واجهة وملف الأستاذ'), findsOneWidget);
+      expect(find.text('تعيين / تغيير الصورة الشخصية (Photo de profil)'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('TeacherAccountTab allows setting and managing photo de profil via options sheet', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: NoSplash.splashFactory),
+          home: Scaffold(
+            body: TeacherAccountTab(
+              dashboard: mockDashboard,
+              onEditProfile: () {},
+              onOpenAccountSettings: () {},
+              onSignOut: () {},
+              onPreviewShowcase: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify the explicit Photo de profil button exists
+      expect(find.text('الصورة الشخصية (Photo de profil)'), findsOneWidget);
+
+      // Tap the Photo de profil button
+      await tester.tap(find.text('الصورة الشخصية (Photo de profil)'));
+      await tester.pumpAndSettle();
+
+      // Verify options sheet opened with all key actions
+      expect(find.text('الصورة الشخصية (Photo de Profil)'), findsOneWidget);
+      expect(find.text('التقاط صورة سيلفي بالكاميرا الحية 📷'), findsOneWidget);
+      expect(find.text('اختيار صورة من المعرض أو الملفات 🖼️'), findsOneWidget);
+
+      // Close the sheet
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('التقاط صورة سيلفي بالكاميرا الحية 📷'), findsNothing);
     });
   });
 }

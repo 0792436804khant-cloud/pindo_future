@@ -1,5 +1,9 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
+import 'live_camera_capture_modal.dart';
 
 class EditTeacherProfileModal extends StatefulWidget {
   final TeacherProfileInfo currentProfile;
@@ -44,10 +48,13 @@ class _EditTeacherProfileModalState extends State<EditTeacherProfileModal> {
   static const Color _brightCyan = Color(0xFF00E5FF);
   static const Color _electricPurple = Color(0xFF7C4DFF);
 
+  Uint8List? _avatarBytes;
+
   @override
   void initState() {
     super.initState();
     final p = widget.currentProfile;
+    _avatarBytes = p.avatarBytes;
     _nameController = TextEditingController(text: p.name);
     _headlineController = TextEditingController(text: p.headline);
     _bioController = TextEditingController(text: p.bio);
@@ -71,6 +78,79 @@ class _EditTeacherProfileModalState extends State<EditTeacherProfileModal> {
     super.dispose();
   }
 
+  Future<void> _pickAvatar() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'تعيين الصورة الشخصية (Photo de profil)',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: _brightCyan),
+              title: const Text('التقاط صورة سيلفي بالكاميرا الحية 📷', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              subtitle: const Text('فتح كاميرا الجهاز والتقاط صورة مباشرة', style: TextStyle(color: Colors.white60, fontSize: 11)),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final result = await LiveCameraCaptureModal.show(context);
+                if (result != null) {
+                  setState(() {
+                    _avatarBytes = result.bytes;
+                  });
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded, color: _electricPurple),
+              title: const Text('اختيار صورة من المعرض أو الملفات 🖼️', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              subtitle: const Text('رفع صورة من جهازك', style: TextStyle(color: Colors.white60, fontSize: 11)),
+              onTap: () async {
+                Navigator.of(context).pop();
+                try {
+                  final picker = ImagePicker();
+                  final picked = await picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    final bytes = await picked.readAsBytes();
+                    setState(() {
+                      _avatarBytes = bytes;
+                    });
+                    return;
+                  }
+                } catch (_) {
+                  final res = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+                  if (res != null && res.files.isNotEmpty && res.files.first.bytes != null) {
+                    setState(() {
+                      _avatarBytes = res.files.first.bytes;
+                    });
+                  }
+                }
+              },
+            ),
+            if (_avatarBytes != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: const Text('إزالة الصورة الحالية', style: TextStyle(color: Colors.redAccent, fontSize: 13.5)),
+                onTap: () {
+                  setState(() {
+                    _avatarBytes = null;
+                  });
+                  Navigator.of(context).pop();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _submit() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
@@ -91,6 +171,7 @@ class _EditTeacherProfileModalState extends State<EditTeacherProfileModal> {
       email: widget.currentProfile.email,
       teacherId: widget.currentProfile.teacherId,
       avatarUrl: widget.currentProfile.avatarUrl,
+      avatarBytes: _avatarBytes,
       coverImageUrl: widget.currentProfile.coverImageUrl,
       isVerified: widget.currentProfile.isVerified,
       yearsOfExperience: exp,
@@ -196,7 +277,70 @@ class _EditTeacherProfileModalState extends State<EditTeacherProfileModal> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
+            // Profile Photo (Photo de Profil) Studio
+            Center(
+              child: Column(
+                children: [
+                  Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(3.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(colors: [_brightCyan, _electricPurple]),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _brightCyan.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 42,
+                          backgroundColor: const Color(0xFF311B92),
+                          backgroundImage: _avatarBytes != null
+                              ? MemoryImage(_avatarBytes!)
+                              : (widget.currentProfile.avatarUrl != null
+                                  ? NetworkImage(widget.currentProfile.avatarUrl!)
+                                  : null) as ImageProvider<Object>?,
+                          child: (_avatarBytes == null && widget.currentProfile.avatarUrl == null)
+                              ? Text(
+                                  _nameController.text.isNotEmpty ? _nameController.text[0] : 'أ',
+                                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
+                                )
+                              : null,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _pickAvatar,
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: _brightCyan,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF0F172A), width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.black),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: _pickAvatar,
+                    icon: const Icon(Icons.add_a_photo_rounded, size: 16, color: _brightCyan),
+                    label: const Text(
+                      'تعيين / تغيير الصورة الشخصية (Photo de profil)',
+                      style: TextStyle(color: _brightCyan, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Name Field
             _buildField(

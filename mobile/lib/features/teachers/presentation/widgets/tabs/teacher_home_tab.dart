@@ -94,8 +94,10 @@ class TeacherHomeTab extends StatelessWidget {
           child: CircleAvatar(
             radius: 26,
             backgroundColor: _deepIndigo,
-            backgroundImage: profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
-            child: profile.avatarUrl == null
+            backgroundImage: (profile.avatarBytes != null
+                ? MemoryImage(profile.avatarBytes!)
+                : (profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null)) as ImageProvider<Object>?,
+            child: (profile.avatarBytes == null && profile.avatarUrl == null)
                 ? Text(
                     profile.name.isNotEmpty ? profile.name[0] : 'أ',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),

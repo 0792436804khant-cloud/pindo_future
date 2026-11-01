@@ -157,54 +157,163 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
   void _openEditProfileModal() {
     EditTeacherProfileModal.show(
       context,
-      currentProfile: _currentProfile,
+      currentProfile: _currentProfile.copyWith(
+        avatarBytes: _customAvatarBytes ?? _currentProfile.avatarBytes,
+      ),
       onProfileSaved: (updated) {
         setState(() {
           _currentProfile = updated;
+          if (updated.avatarBytes != null) {
+            _customAvatarBytes = updated.avatarBytes;
+          }
         });
       },
     );
   }
 
-  Future<void> _changeAvatarPhoto() async {
+  void _changeAvatarPhoto() => _showProfilePhotoOptions();
+
+  void _showProfilePhotoOptions() {
+    final hasStories = _stories.isNotEmpty;
+    final hasCustomPhoto = _customAvatarBytes != null ||
+        _customAvatarUrl != null ||
+        _currentProfile.avatarUrl != null ||
+        _currentProfile.avatarBytes != null;
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF0F172A),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'تحديث الصورة الشخصية للأستاذ',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2.5),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: [_brightCyan, _electricPurple]),
+                  ),
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: _deepIndigo,
+                    backgroundImage: _customAvatarBytes != null
+                        ? MemoryImage(_customAvatarBytes!)
+                        : (_customAvatarUrl != null
+                            ? NetworkImage(_customAvatarUrl!)
+                            : (_currentProfile.avatarBytes != null
+                                ? MemoryImage(_currentProfile.avatarBytes!)
+                                : (_currentProfile.avatarUrl != null
+                                    ? NetworkImage(_currentProfile.avatarUrl!)
+                                    : null))) as ImageProvider<Object>?,
+                    child: (_customAvatarBytes == null &&
+                            _customAvatarUrl == null &&
+                            _currentProfile.avatarBytes == null &&
+                            _currentProfile.avatarUrl == null)
+                        ? Text(
+                            _currentProfile.name.isNotEmpty ? _currentProfile.name[0] : 'أ',
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'الصورة الشخصية (Photo de Profil)',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'اختر صورة سيلفي حية أو من جهازك لتعيينها كصورة رسمية لملفك',
+                        style: TextStyle(color: Colors.white60, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Option 1: Live Camera Selfie
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: _brightCyan),
-              title: const Text('التقاط صورة سيلفي بالكاميرا الحية 📷', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: _brightCyan.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: _brightCyan, size: 22),
+              ),
+              title: const Text('التقاط صورة سيلفي بالكاميرا الحية 📷',
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('فتح كاميرا الجهاز والتقاط صورة شخصية مباشرة',
+                  style: TextStyle(color: Colors.white60, fontSize: 11.5)),
               onTap: () async {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
                 final result = await LiveCameraCaptureModal.show(context);
                 if (result != null) {
                   setState(() {
                     _customAvatarBytes = result.bytes;
+                    _currentProfile = _currentProfile.copyWith(avatarBytes: result.bytes);
                   });
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                      const SnackBar(
+                        content: Text('تم تعيين صورتك كصورة للملف الشخصي (Photo de profil) بنجاح! 📸'),
+                        backgroundColor: Color(0xFF10B981),
+                      ),
                     );
                   }
                 }
               },
             ),
+            const SizedBox(height: 4),
+
+            // Option 2: Pick from Gallery or Files
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: _electricPurple),
-              title: const Text('اختيار صورة من المعرض أو الملفات 🖼️', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: _electricPurple.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _electricPurple.withValues(alpha: 0.3)),
+                ),
+                child: const Icon(Icons.photo_library_rounded, color: _electricPurple, size: 22),
+              ),
+              title: const Text('اختيار صورة من المعرض أو الملفات 🖼️',
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              subtitle: const Text('رفع صورة شخصية من ألبوم الهاتف أو جهاز الكمبيوتر',
+                  style: TextStyle(color: Colors.white60, fontSize: 11.5)),
               onTap: () async {
-                Navigator.of(context).pop();
+                Navigator.of(ctx).pop();
                 try {
                   final picker = ImagePicker();
                   final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -212,10 +321,14 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                     final bytes = await picked.readAsBytes();
                     setState(() {
                       _customAvatarBytes = bytes;
+                      _currentProfile = _currentProfile.copyWith(avatarBytes: bytes);
                     });
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                        const SnackBar(
+                          content: Text('تم تعيين صورتك كصورة للملف الشخصي (Photo de profil) بنجاح! 🖼️'),
+                          backgroundColor: Color(0xFF10B981),
+                        ),
                       );
                     }
                     return;
@@ -225,17 +338,203 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                   if (res != null && res.files.isNotEmpty && res.files.first.bytes != null) {
                     setState(() {
                       _customAvatarBytes = res.files.first.bytes;
+                      _currentProfile = _currentProfile.copyWith(avatarBytes: res.files.first.bytes);
                     });
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('تم تحديث الصورة الشخصية بنجاح! 🎉'), backgroundColor: Color(0xFF10B981)),
+                        const SnackBar(
+                          content: Text('تم تعيين صورتك كصورة للملف الشخصي (Photo de profil) بنجاح! 🖼️'),
+                          backgroundColor: Color(0xFF10B981),
+                        ),
                       );
                     }
                   }
                 }
               },
             ),
+
+            // Option 3: View Full Screen Photo
+            if (hasCustomPhoto) ...[
+              const SizedBox(height: 4),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  ),
+                  child: const Icon(Icons.fullscreen_rounded, color: Colors.amber, size: 22),
+                ),
+                title: const Text('معاينة الصورة بالحجم الكامل 🔍',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                subtitle: const Text('عرض صورة الملف الشخصي بوضوح وتفاصيل كاملة',
+                    style: TextStyle(color: Colors.white60, fontSize: 11.5)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _showFullScreenAvatarDialog();
+                },
+              ),
+            ],
+
+            // Option 4: View Stories (if available)
+            if (hasStories) ...[
+              const SizedBox(height: 4),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF007A).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFF007A).withValues(alpha: 0.3)),
+                  ),
+                  child: const Icon(Icons.motion_photos_on_rounded, color: Color(0xFFFF007A), size: 22),
+                ),
+                title: const Text('مشاهدة الستوري المنشور ⭕',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                subtitle: const Text('عرض القصص والسطوريات النشطة في حسابك',
+                    style: TextStyle(color: Colors.white60, fontSize: 11.5)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _openStoryViewer();
+                },
+              ),
+            ],
+
+            // Option 5: Remove Custom Photo
+            if (_customAvatarBytes != null || _customAvatarUrl != null) ...[
+              const SizedBox(height: 4),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 22),
+                ),
+                title: const Text('إزالة الصورة والرجوع للحرف الافتراضي 🗑️',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  setState(() {
+                    _customAvatarBytes = null;
+                    _customAvatarUrl = null;
+                    _currentProfile = _currentProfile.copyWith(avatarBytes: null, avatarUrl: null);
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تمت إزالة الصورة الشخصية بنجاح.'), backgroundColor: Colors.orangeAccent),
+                  );
+                },
+              ),
+            ],
           ],
+        ),
+      ),
+    ),
+  );
+}
+
+  void _showFullScreenAvatarDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: _brightCyan, width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'معاينة صورة الملف الشخصي',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _brightCyan, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _brightCyan.withValues(alpha: 0.35),
+                      blurRadius: 20,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _customAvatarBytes != null
+                      ? Image.memory(_customAvatarBytes!, fit: BoxFit.cover)
+                      : (_customAvatarUrl != null
+                          ? Image.network(_customAvatarUrl!, fit: BoxFit.cover)
+                          : (_currentProfile.avatarBytes != null
+                              ? Image.memory(_currentProfile.avatarBytes!, fit: BoxFit.cover)
+                              : (_currentProfile.avatarUrl != null
+                                  ? Image.network(_currentProfile.avatarUrl!, fit: BoxFit.cover)
+                                  : Container(
+                                      color: _deepIndigo,
+                                      child: Center(
+                                        child: Text(
+                                          _currentProfile.name.isNotEmpty ? _currentProfile.name[0] : 'أ',
+                                          style: const TextStyle(color: Colors.white, fontSize: 72, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    )))),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _showProfilePhotoOptions();
+                      },
+                      icon: const Icon(Icons.camera_alt_rounded, size: 16),
+                      label: const Text('تغيير الصورة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _brightCyan,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white24),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('إغلاق'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -542,7 +841,7 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                     children: [
                       // Avatar with glowing story ring
                       GestureDetector(
-                        onTap: () => _openStoryViewer(),
+                        onTap: _showProfilePhotoOptions,
                         child: Container(
                           padding: const EdgeInsets.all(3.5),
                           decoration: BoxDecoration(
@@ -575,14 +874,19 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                             alignment: Alignment.bottomRight,
                             children: [
                               CircleAvatar(
-                                radius: 36,
+                                radius: 38,
                                 backgroundColor: _deepIndigo,
                                 backgroundImage: _customAvatarBytes != null
                                     ? MemoryImage(_customAvatarBytes!)
                                     : (_customAvatarUrl != null
                                         ? NetworkImage(_customAvatarUrl!)
-                                        : (profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null)) as ImageProvider<Object>?,
-                                child: (_customAvatarBytes == null && _customAvatarUrl == null && profile.avatarUrl == null)
+                                        : (profile.avatarBytes != null
+                                            ? MemoryImage(profile.avatarBytes!)
+                                            : (profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null))) as ImageProvider<Object>?,
+                                child: (_customAvatarBytes == null &&
+                                        _customAvatarUrl == null &&
+                                        profile.avatarBytes == null &&
+                                        profile.avatarUrl == null)
                                     ? Text(
                                         profile.name.isNotEmpty ? profile.name[0] : 'أ',
                                         style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
@@ -590,15 +894,21 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                                     : null,
                               ),
                               GestureDetector(
-                                onTap: _changeAvatarPhoto,
+                                onTap: _showProfilePhotoOptions,
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.all(5.5),
                                   decoration: BoxDecoration(
                                     color: _brightCyan,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.black, width: 1.5),
+                                    border: Border.all(color: Colors.black, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
                                   ),
-                                  child: const Icon(Icons.camera_alt_rounded, size: 12, color: Colors.black),
+                                  child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.black),
                                 ),
                               ),
                             ],
@@ -644,6 +954,29 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                                       style: const TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
                                     ),
                                   ],
+                                ),
+                              ),
+                              InkWell(
+                                onTap: _showProfilePhotoOptions,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: _brightCyan.withValues(alpha: 0.16),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: _brightCyan.withValues(alpha: 0.4)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add_a_photo_rounded, color: _brightCyan, size: 12),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'الصورة الشخصية (Photo de profil)',
+                                        style: TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -804,8 +1137,17 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                             CircleAvatar(
                               radius: 26,
                               backgroundColor: Colors.white12,
-                              backgroundImage: profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null,
-                              child: profile.avatarUrl == null
+                              backgroundImage: _customAvatarBytes != null
+                                  ? MemoryImage(_customAvatarBytes!)
+                                  : (_customAvatarUrl != null
+                                      ? NetworkImage(_customAvatarUrl!)
+                                      : (profile.avatarBytes != null
+                                          ? MemoryImage(profile.avatarBytes!)
+                                          : (profile.avatarUrl != null ? NetworkImage(profile.avatarUrl!) : null))) as ImageProvider<Object>?,
+                              child: (_customAvatarBytes == null &&
+                                      _customAvatarUrl == null &&
+                                      profile.avatarBytes == null &&
+                                      profile.avatarUrl == null)
                                   ? Text(profile.name.isNotEmpty ? profile.name[0] : 'أ', style: const TextStyle(color: Colors.white))
                                   : null,
                             ),
