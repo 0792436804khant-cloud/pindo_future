@@ -31,6 +31,8 @@ import 'package:pindo_future_mobile/features/teachers/presentation/widgets/tabs/
 import 'package:pindo_future_mobile/features/teachers/presentation/widgets/tabs/teacher_home_tab.dart';
 import 'package:pindo_future_mobile/features/teachers/presentation/widgets/tabs/teacher_schedule_tab.dart';
 import 'package:pindo_future_mobile/features/teachers/presentation/widgets/teacher_bottom_nav_bar.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
+import 'package:pindo_future_mobile/features/chat/services/cohort_chat_service.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   final User user;
@@ -226,6 +228,54 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 ),
               ),
             ),
+
+          // Cohort Chats Button
+          Padding(
+            padding: const EdgeInsets.only(right: 6.0),
+            child: GlassmorphicScaleButton(
+              tooltip: 'محادثات الأفواج والرسائل',
+              onPressed: () => CohortChatsHubModal.show(
+                context,
+                currentUserName: _currentUser.name,
+                currentUserRole: 'teacher',
+              ),
+              child: Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.08),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+                    ),
+                    child: const Icon(Icons.forum_outlined, color: Colors.white70, size: 19),
+                  ),
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: _brightCyan,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text(
+                        '${CohortChatService().getTotalUnreadCount()}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF070B14),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           // Notifications Bell Button
           Padding(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 import '../modals/create_cohort_modal.dart';
 import '../modals/create_session_modal.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
 
 class TeacherHomeTab extends StatelessWidget {
   final TeacherDashboardModel dashboard;
@@ -296,6 +297,31 @@ class TeacherHomeTab extends StatelessWidget {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 4,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: OutlinedButton.icon(
+              onPressed: () => CohortChatRoomModal.show(
+                context,
+                cohortId: session.sessionId,
+                cohortName: session.cohortName,
+                academicLevel: 'ثالثة ثانوي',
+                currentUserName: dashboard.teacherProfile.name,
+                currentUserRole: 'teacher',
+              ),
+              icon: const Icon(Icons.forum_outlined, size: 17, color: _brightCyan),
+              label: const Text(
+                'محادثة هذا الفوج والطلبة 💬',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                backgroundColor: Colors.white.withValues(alpha: 0.05),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),

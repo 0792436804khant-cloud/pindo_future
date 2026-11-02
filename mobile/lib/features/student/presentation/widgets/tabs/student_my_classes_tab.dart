@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
 
 class StudentMyClassesTab extends StatefulWidget {
   final StudentDashboardData dashboardData;
@@ -242,7 +243,29 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.sensors_rounded, size: 16),
-                  label: const Text('دخول الحصة المباشرة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  label: const Text('دخول الحصة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => CohortChatRoomModal.show(
+                    context,
+                    cohortId: sessionId,
+                    cohortName: title,
+                    academicLevel: 'ثالثة ثانوي',
+                    currentUserName: widget.dashboardData.student.name,
+                    currentUserRole: 'student',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.forum_outlined, size: 16, color: _brightCyan),
+                  label: const Text('محادثة الفوج 💬', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ),
             ],

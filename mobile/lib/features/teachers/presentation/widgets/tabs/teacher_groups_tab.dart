@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 import '../modals/create_cohort_modal.dart';
 import '../modals/attendance_excel_sheet_modal.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
 
 class TeacherGroupsTab extends StatefulWidget {
   final List<TeacherCohortItem> cohorts;
@@ -18,7 +20,7 @@ class TeacherGroupsTab extends StatefulWidget {
 class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedFilter = 'الكل';
+  final String _selectedFilter = 'الكل';
 
   static const Color _brightCyan = Color(0xFF00E5FF);
   static const Color _electricPurple = Color(0xFF7C4DFF);
@@ -45,8 +47,11 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header & Create Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,16 +71,32 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () => CreateCohortModal.show(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('فوج جديد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => CohortChatsHubModal.show(context),
+                    icon: const Icon(Icons.forum_outlined, size: 16, color: _brightCyan),
+                    label: const Text('المحادثات 💬', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _brightCyan),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => CreateCohortModal.show(context),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('فوج جديد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -244,6 +265,41 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
           ),
 
           const SizedBox(height: 14),
+
+          // 1. Official Primary Cohort Chat Button (محادثة الفوج الرسمية)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => CohortChatRoomModal.show(
+                context,
+                cohortId: cohort.cohortCode.isNotEmpty ? cohort.cohortCode : cohort.id.toString(),
+                cohortName: cohort.name,
+                academicLevel: cohort.academicLevel,
+                currentUserName: 'الأستاذ محمد أمين بن عيسى',
+                currentUserRole: 'teacher',
+              ),
+              icon: const Icon(Icons.forum_rounded, size: 17),
+              label: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'محادثة الفوج والدردشة 💬',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios_rounded, size: 12),
+                ],
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _brightCyan,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
 
           // Action buttons for cohort
           Row(

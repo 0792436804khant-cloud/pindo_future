@@ -3,6 +3,9 @@ import 'package:pindo_future_mobile/core/widgets/glassmorphism.dart';
 import 'package:pindo_future_mobile/core/widgets/bento_card.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/student_notifications_sheet.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
+import 'package:pindo_future_mobile/features/chat/services/cohort_chat_service.dart';
 
 class StudentHomeTab extends StatelessWidget {
   final StudentDashboardData dashboardData;
@@ -139,6 +142,43 @@ class StudentHomeTab extends StatelessWidget {
         ),
         Row(
           children: [
+            // Cohort Chats Icon
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  tooltip: 'محادثات الأفواج والرسائل',
+                  icon: const Icon(Icons.forum_outlined, color: Colors.white, size: 21),
+                  onPressed: () => CohortChatsHubModal.show(
+                    context,
+                    currentUserName: student.name,
+                    currentUserRole: 'student',
+                  ),
+                ),
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: _brightCyan,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                    child: Text(
+                      '${CohortChatService().getTotalUnreadCount()}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF070B14),
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
             // Notifications Bell
             Stack(
               clipBehavior: Clip.none,
@@ -317,6 +357,28 @@ class StudentHomeTab extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => CohortChatRoomModal.show(
+              context,
+              cohortId: session.sessionId,
+              cohortName: session.cohortName,
+              academicLevel: 'ثالثة ثانوي',
+              currentUserName: dashboardData.student.name,
+              currentUserRole: 'student',
+            ),
+            icon: const Icon(Icons.forum_outlined, size: 16, color: _brightCyan),
+            label: const Text(
+              'محادثة ودردشة هذا الفوج 💬',
+              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],

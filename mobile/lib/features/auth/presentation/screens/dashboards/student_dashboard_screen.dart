@@ -35,6 +35,8 @@ import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/s
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_library_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_my_account_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/student_notifications_sheet.dart';
+import '../../../../chat/presentation/widgets/cohort_chats_hub_modal.dart';
+import '../../../../chat/services/cohort_chat_service.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   final User user;
@@ -232,6 +234,41 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'محادثات الأفواج والرسائل',
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.forum_outlined, color: Colors.white70, size: 21),
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF00E5FF),
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 13, minHeight: 13),
+                    child: Text(
+                      '${CohortChatService().getTotalUnreadCount()}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF070B14),
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            onPressed: () => CohortChatsHubModal.show(
+              context,
+              currentUserName: widget.user.name,
+              currentUserRole: 'student',
+            ),
+          ),
           IconButton(
             tooltip: 'الإشعارات والتنبيهات',
             icon: const Icon(Icons.notifications_outlined, color: Colors.white70, size: 21),
