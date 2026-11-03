@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/core/widgets/glassmorphism.dart';
 import 'package:pindo_future_mobile/core/widgets/bento_card.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
-import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/student_notifications_sheet.dart';
 import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
 import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
 import 'package:pindo_future_mobile/features/chat/services/cohort_chat_service.dart';
+import 'package:pindo_future_mobile/features/teachers/presentation/widgets/modals/teacher_story_viewer_modal.dart';
+import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 
-class StudentHomeTab extends StatelessWidget {
+class StudentHomeTab extends StatefulWidget {
   final StudentDashboardData dashboardData;
   final VoidCallback onRefresh;
   final Function(String sessionId) onJoinLiveClassroom;
@@ -16,6 +18,7 @@ class StudentHomeTab extends StatelessWidget {
   final VoidCallback onOpenWeeklySchedule;
   final VoidCallback onManageSubscriptions;
   final VoidCallback onOpenAccountSettings;
+  final Function(String teacherId)? onOpenTeacherShowcase;
 
   const StudentHomeTab({
     super.key,
@@ -27,20 +30,197 @@ class StudentHomeTab extends StatelessWidget {
     required this.onOpenWeeklySchedule,
     required this.onManageSubscriptions,
     required this.onOpenAccountSettings,
+    this.onOpenTeacherShowcase,
   });
 
+  @override
+  State<StudentHomeTab> createState() => _StudentHomeTabState();
+}
+
+class _StudentHomeTabState extends State<StudentHomeTab> {
   static const Color _brightCyan = Color(0xFF00E5FF);
   static const Color _electricPurple = Color(0xFF7C4DFF);
   static const Color _deepIndigo = Color(0xFF311B92);
 
+  // Quick live join controller
+  final TextEditingController _quickJoinController = TextEditingController();
+
+  // Teacher Search state
+  final TextEditingController _searchTeacherController = TextEditingController();
+  int _selectedSearchChip = 0; // 0: الكل, 1: الرياضيات, 2: الفيزياء, 3: العلوم, 4: الفلسفة, 5: اللغات
+  String _searchQuery = '';
+
+  // Cycle marquee banner state
+  int _activeCycleIndex = 0;
+  Timer? _cycleTimer;
+
+  // Today Schedule Alarm toggles
+  final Set<String> _enabledScheduleAlarms = {'18:00'};
+
+  final List<Map<String, dynamic>> _educationalCycles = [
+    {
+      'id': 'primary',
+      'title': 'الطور الابتدائي (1AP - 5AP)',
+      'subtitle': 'تأسيس متين وقواعد اللغة والحساب بأسلوب تفاعلي مشوّق',
+      'badge': 'الابتدائي 1AP-5AP',
+      'color': const Color(0xFF10B981),
+      'icon': Icons.child_care_rounded,
+      'stats': 'مرافقة يومية • معلمين أكفاء',
+    },
+    {
+      'id': 'middle',
+      'title': 'الطور المتوسط (BEM 1AM - 4AM)',
+      'subtitle': 'تحضير مكثف لشهادة التعليم المتوسط مع بنك مواضيع BEM الرسمية',
+      'badge': 'شهادة BEM 2025',
+      'color': const Color(0xFF00E5FF),
+      'icon': Icons.backpack_rounded,
+      'stats': 'نسبة نجاح 98% • حلول نموذجية',
+    },
+    {
+      'id': 'high',
+      'title': 'الطور الثانوي (1AS - 3AS BAC)',
+      'subtitle': 'دورات البكالوريا التخصصية مع نخبة أساتذة الجزائر ومعدي الامتحانات',
+      'badge': 'بكالوريا BAC 2025',
+      'color': const Color(0xFF7C4DFF),
+      'icon': Icons.school_rounded,
+      'stats': 'أعلى معدلات وطنية • 19+/20',
+    },
+    {
+      'id': 'university',
+      'title': 'الطور الجامعي (University & Grandes Écoles)',
+      'subtitle': 'الرياضيات الجامعية، الفيزياء، الخوارزميات، واللغات الأكاديمية',
+      'badge': 'الجامعي University',
+      'color': const Color(0xFFF59E0B),
+      'icon': Icons.account_balance_rounded,
+      'stats': 'أساتذة دكاترة • بحوث ومشاريع',
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _cycleTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          _activeCycleIndex = (_activeCycleIndex + 1) % _educationalCycles.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _cycleTimer?.cancel();
+    _quickJoinController.dispose();
+    _searchTeacherController.dispose();
+    super.dispose();
+  }
+
+  void _submitQuickLiveJoin() {
+    final code = _quickJoinController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى إدخال رمز حصة صالح أو رابط مباشر (مثال: SES_8PP4LVG1).'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    // Extract code if user pasted a full URL
+    String cleanCode = code;
+    if (code.contains('/')) {
+      cleanCode = code.split('/').last.trim();
+    }
+
+    widget.onJoinLiveClassroom(cleanCode);
+  }
+
+  void _openTeacherStory(String teacherName, String subject) {
+    final mockProfile = TeacherProfileInfo(
+      id: 1,
+      name: teacherName,
+      email: 'teacher@pindofuture.com',
+      teacherId: 'TCH_DZ_STORY',
+      avatarUrl: null,
+      coverImageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1200&q=80',
+      isVerified: true,
+      yearsOfExperience: 10,
+      headline: 'أستاذ رئيسي لمادة $subject ومعد دورات المتفوقين',
+      wilaya: 'الجزائر العاصمة',
+      bio: 'أستاذ معتمد في منصة Pindo Future للتعليم التفاعلي عن بعد.',
+      subjects: [subject],
+      levels: const ['ثالثة ثانوي', 'ثانية ثانوي'],
+      stories: [
+        TeacherStoryItem(
+          id: 'story_1',
+          text: '🔴 تنبيه هام لجميع طلاب فوج $subject:\nالحصة التفاعلية المباشرة لمراجعة حل المسائل النموذجية تبدأ اليوم عند الساعة 18:00 مساءً. يرجى الاستعداد وتحضير كراس التمارين!',
+          imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80',
+          mediaType: 'video',
+          timeAgo: 'منذ ساعتين',
+          viewsCount: 310,
+          isLiveAlert: true,
+          tag: '🔴 بث مباشر اليوم',
+          actionButtonText: 'الانتقال لقاعة البث المباشر',
+        ),
+        TeacherStoryItem(
+          id: 'story_2',
+          text: '💡 نصيحة منهجية لطلاب البكالوريا:\nفي مسائل $subject، احرصوا على تدوين الخطوات المنهجية بدقة لأن سلم التنقيط الوزاري يمنح درجات تفصيلية لكل مرحلة!',
+          imageUrl: 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800&q=80',
+          mediaType: 'image',
+          timeAgo: 'منذ 4 ساعات',
+          viewsCount: 450,
+          tag: '💡 نصيحة تفوق',
+        ),
+      ],
+    );
+
+    TeacherStoryViewerModal.show(
+      context,
+      stories: mockProfile.stories,
+      teacherProfile: mockProfile,
+    );
+  }
+
+  void _toggleScheduleAlarm(String time) {
+    setState(() {
+      if (_enabledScheduleAlarms.contains(time)) {
+        _enabledScheduleAlarms.remove(time);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم إلغاء التنبيه لحصة الساعة $time.'),
+            backgroundColor: const Color(0xFF0F172A),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _enabledScheduleAlarms.add(time);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.alarm_on, color: Color(0xFF34D399), size: 18),
+                const SizedBox(width: 8),
+                Text('تم ضبط التنبيه لحصة الساعة $time! ستتلقى إشعاراً قبل 15 دقيقة ⏰'),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final student = dashboardData.student;
-    final nextSession = dashboardData.nextSession;
-    final subscriptions = dashboardData.subscriptions;
+    final student = widget.dashboardData.student;
+    final nextSession = widget.dashboardData.nextSession;
+    final subscriptions = widget.dashboardData.subscriptions;
 
     return RefreshIndicator(
-      onRefresh: () async => onRefresh(),
+      onRefresh: () async => widget.onRefresh(),
       color: _brightCyan,
       backgroundColor: const Color(0xFF0F172A),
       child: SingleChildScrollView(
@@ -51,27 +231,43 @@ class StudentHomeTab extends StatelessWidget {
           children: [
             // 1. Welcome & Greeting Bar
             _buildWelcomeBar(context, student),
+            const SizedBox(height: 16),
+
+            // 2. Teacher Stories Tray (شريط القصص المنشورة من طرف الأساتذة)
+            _buildTeacherStoriesTray(),
+            const SizedBox(height: 18),
+
+            // 3. Quick Live Join Bar for New & Enrolled Students (خانة وضع رابط اللايف)
+            _buildQuickLiveJoinBar(),
+            const SizedBox(height: 18),
+
+            // 4. Smart Teacher Search Bar (شريط البحث عن الأساتذة)
+            _buildTeacherSearchBar(),
+            const SizedBox(height: 18),
+
+            // 5. Animated Educational Cycles Promotional Marquee (شريط ترويجي متحرك للأطوار)
+            _buildAnimatedCyclesMarqueeBanner(),
             const SizedBox(height: 20),
 
-            // 2. Next Session Hero Card (بطاقة الحصة القادمة)
+            // 6. Next Session Hero Card (بطاقة الحصة القادمة)
             if (nextSession != null) ...[
               _buildNextSessionHeroCard(context, nextSession),
               const SizedBox(height: 20),
             ],
 
-            // 3. Subscriptions & Credit Ledger Summary (اشتراكاتي ورصيدي)
-            _buildSubscriptionsSummary(subscriptions),
-            const SizedBox(height: 20),
-
-            // 4. Today's Schedule (جدول اليوم)
+            // 7. Today's Master Schedule with Alarms & Notifications (جدول اليوم مع التنبيهات)
             _buildTodayScheduleCard(context),
             const SizedBox(height: 20),
 
-            // 5. Algerian National Exam Bank & Timed Simulations
+            // 8. Subscriptions & Credit Ledger Summary (اشتراكاتي ورصيدي)
+            _buildSubscriptionsSummary(subscriptions),
+            const SizedBox(height: 20),
+
+            // 9. Algerian National Exam Bank & Timed Simulations
             _buildExamBankBento(),
             const SizedBox(height: 20),
 
-            // 6. Recent Protected Recordings (آخر التسجيلات)
+            // 10. Recent Protected Recordings (آخر التسجيلات)
             _buildRecentRecordingsSection(),
           ],
         ),
@@ -118,18 +314,14 @@ class StudentHomeTab extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'مرحباً، ${student.name.split(' ').first} 👋',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'مرحباً، ${student.name.split(' ').first} 👋',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 const Text(
@@ -178,33 +370,9 @@ class StudentHomeTab extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Notifications Bell
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
-                  onPressed: () => StudentNotificationsSheet.show(context, dashboardData.notifications),
-                ),
-                if (dashboardData.notifications.any((n) => !n.isRead))
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
             IconButton(
               icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 20),
-              onPressed: onOpenAccountSettings,
+              onPressed: widget.onOpenAccountSettings,
             ),
           ],
         ),
@@ -212,6 +380,494 @@ class StudentHomeTab extends StatelessWidget {
     );
   }
 
+  // 1. Teacher Stories Tray (شريط القصص المنشورة من طرف الأساتذة)
+  Widget _buildTeacherStoriesTray() {
+    final teachersWithStories = [
+      {'name': 'الأستاذ محمد أمين بن عيسى', 'shortName': 'بن عيسى', 'subject': 'الرياضيات', 'avatar': 'ع', 'hasLive': true},
+      {'name': 'الأستاذة كريمة بلقاسم', 'shortName': 'بلقاسم', 'subject': 'الفيزياء', 'avatar': 'ك', 'hasLive': false},
+      {'name': 'الأستاذ عبد الرحمن دحمان', 'shortName': 'دحمان', 'subject': 'العلوم', 'avatar': 'د', 'hasLive': false},
+      {'name': 'الأستاذ مراد زروقي', 'shortName': 'زروقي', 'subject': 'الأدب العربي', 'avatar': 'ز', 'hasLive': false},
+      {'name': 'منصة Pindo Future', 'shortName': 'إعلانات المنصة', 'subject': 'رسمي', 'avatar': 'P', 'hasLive': false},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.auto_stories_rounded, color: _brightCyan, size: 16),
+            SizedBox(width: 6),
+            Text(
+              'قصص ومستجدات الأساتذة (Teacher Stories)',
+              style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 94,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: teachersWithStories.length,
+            itemBuilder: (context, index) {
+              final t = teachersWithStories[index];
+              final hasLive = t['hasLive'] as bool;
+
+              return Padding(
+                padding: const EdgeInsets.only(left: 14),
+                child: InkWell(
+                  onTap: () => _openTeacherStory(t['name'] as String, t['subject'] as String),
+                  borderRadius: BorderRadius.circular(36),
+                  child: Column(
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: hasLive
+                                    ? [const Color(0xFFEF4444), const Color(0xFFF59E0B)]
+                                    : [_brightCyan, _electricPurple],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (hasLive ? const Color(0xFFEF4444) : _brightCyan).withValues(alpha: 0.40),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 26,
+                              backgroundColor: const Color(0xFF0F172A),
+                              child: Text(
+                                t['avatar'] as String,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (hasLive)
+                            Positioned(
+                              bottom: -2,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF4444),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'LIVE 🔴',
+                                    style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        width: 68,
+                        child: Text(
+                          t['shortName'] as String,
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 2. Quick Live Join Bar (خانة وضع رابط اللايف للطلبة الجدد)
+  Widget _buildQuickLiveJoinBar() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF7F1D1D).withValues(alpha: 0.35),
+            const Color(0xFF0F172A).withValues(alpha: 0.85),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.sensors, color: Color(0xFFEF4444), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'الانضمام السريع لحصة تفاعلية مباشرة 🔴',
+                style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'للطلبة الجدد: ضع رابط الحصة أو رمز الدخول (SES_XXXX) للانضمام فوراً للبث.',
+            style: TextStyle(color: Colors.white60, fontSize: 11),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 42,
+                  child: TextField(
+                    controller: _quickJoinController,
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                    decoration: InputDecoration(
+                      hintText: 'SES_8PP4LVG1 أو رابط الحصة...',
+                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 11.5),
+                      prefixIcon: const Icon(Icons.link_rounded, color: Colors.white54, size: 18),
+                      filled: true,
+                      fillColor: const Color(0xFF070B14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 42,
+                child: ElevatedButton.icon(
+                  onPressed: _submitQuickLiveJoin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  icon: const Icon(Icons.play_arrow, size: 16),
+                  label: const Text('دخول الحصة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11.5)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 3. Smart Teacher Search Bar (شريط البحث عن الأساتذة)
+  Widget _buildTeacherSearchBar() {
+    final chips = ['الكل 🌐', 'الرياضيات 📐', 'الفيزياء ⚡', 'العلوم 🔬', 'الفلسفة 📖', 'اللغات 🌍'];
+
+    final teachersDirectory = [
+      {'id': 'TCH_01', 'name': 'الأستاذ محمد أمين بن عيسى', 'subject': 'الرياضيات', 'exp': '10 سنوات', 'rating': '4.9 ★'},
+      {'id': 'TCH_02', 'name': 'الأستاذة كريمة بلقاسم', 'subject': 'الفيزياء', 'exp': '8 سنوات', 'rating': '4.8 ★'},
+      {'id': 'TCH_03', 'name': 'الأستاذ عبد الرحمن دحمان', 'subject': 'العلوم', 'exp': '12 سنة', 'rating': '4.9 ★'},
+      {'id': 'TCH_04', 'name': 'الأستاذ مراد زروقي', 'subject': 'الفلسفة', 'exp': '7 سنوات', 'rating': '4.7 ★'},
+    ];
+
+    final matchingTeachers = teachersDirectory.where((t) {
+      if (_selectedSearchChip == 1 && !t['subject']!.contains('الرياضيات')) return false;
+      if (_selectedSearchChip == 2 && !t['subject']!.contains('الفيزياء')) return false;
+      if (_selectedSearchChip == 3 && !t['subject']!.contains('العلوم')) return false;
+      if (_selectedSearchChip == 4 && !t['subject']!.contains('الفلسفة')) return false;
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final nameMatches = t['name']!.toLowerCase().contains(q);
+        final subjectMatches = t['subject']!.toLowerCase().contains(q);
+        return nameMatches || subjectMatches;
+      }
+      return true;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.search_rounded, color: _brightCyan, size: 16),
+            SizedBox(width: 6),
+            Text(
+              'البحث عن الأساتذة والمواد الدراسية',
+              style: TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 42,
+          child: TextField(
+            controller: _searchTeacherController,
+            onChanged: (val) => setState(() => _searchQuery = val.trim()),
+            style: const TextStyle(color: Colors.white, fontSize: 12.5),
+            decoration: InputDecoration(
+              hintText: 'ابحث عن أستاذ (بن عيسى، بلقاسم...)، مادة، أو شعبة...',
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 11.5),
+              prefixIcon: const Icon(Icons.search, color: _brightCyan, size: 18),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.white54, size: 16),
+                      onPressed: () {
+                        _searchTeacherController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: const Color(0xFF0F172A).withValues(alpha: 0.8),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Filter chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: List.generate(chips.length, (idx) {
+              final isSelected = _selectedSearchChip == idx;
+              return Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: FilterChip(
+                  label: Text(
+                    chips[idx],
+                    style: TextStyle(
+                      color: isSelected ? const Color(0xFF070B14) : Colors.white70,
+                      fontSize: 10.5,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => _selectedSearchChip = idx),
+                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  selectedColor: _brightCyan,
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: BorderSide(
+                    color: isSelected ? _brightCyan : Colors.white.withValues(alpha: 0.10),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+
+        // If searching or filtering, show quick results
+        if (_searchQuery.isNotEmpty || _selectedSearchChip != 0) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _brightCyan.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'نتائج البحث المطابقة (${matchingTeachers.length} أستاذ):',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+                const SizedBox(height: 6),
+                ...matchingTeachers.map((t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: _electricPurple.withValues(alpha: 0.3),
+                                child: Text(t['name']![7], style: const TextStyle(color: Colors.white, fontSize: 11)),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(t['name']!, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  Text('${t['subject']} • خبرة ${t['exp']}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          OutlinedButton(
+                            onPressed: () {
+                              if (widget.onOpenTeacherShowcase != null) {
+                                widget.onOpenTeacherShowcase!(t['id']!);
+                              } else {
+                                _openTeacherStory(t['name']!, t['subject']!);
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _brightCyan,
+                              side: const BorderSide(color: _brightCyan),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            child: const Text('الملف والأفواج', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // 4. Animated Educational Cycles Promotional Marquee Banner (شريط ترويجي متحرك للأطوار)
+  Widget _buildAnimatedCyclesMarqueeBanner() {
+    final cycle = _educationalCycles[_activeCycleIndex];
+    final color = cycle['color'] as Color;
+
+    return InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم اختيار: ${cycle['title']}. يتم عرض البرامج المخصصة لهذا الطور.'),
+            backgroundColor: const Color(0xFF0F172A),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.22),
+              const Color(0xFF0F172A).withValues(alpha: 0.85),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: 0.45), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(cycle['icon'] as IconData, color: color, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      cycle['title'] as String,
+                      style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color, width: 0.8),
+                  ),
+                  child: Text(
+                    cycle['badge'] as String,
+                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              cycle['subtitle'] as String,
+              style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.35),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  cycle['stats'] as String,
+                  style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: List.generate(_educationalCycles.length, (i) {
+                    final isCurrent = i == _activeCycleIndex;
+                    return Container(
+                      margin: const EdgeInsets.only(left: 4),
+                      width: isCurrent ? 16 : 6,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: isCurrent ? color : Colors.white24,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 5. Next Session Hero Card
   Widget _buildNextSessionHeroCard(BuildContext context, StudentNextSession session) {
     final bool isLive = session.isLive;
 
@@ -242,7 +898,6 @@ class StudentHomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Status Badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -293,7 +948,6 @@ class StudentHomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Title & Subject
           Text(
             session.title,
             style: const TextStyle(
@@ -330,9 +984,8 @@ class StudentHomeTab extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          // Action Button
           ElevatedButton(
-            onPressed: () => onJoinLiveClassroom(session.sessionId),
+            onPressed: () => widget.onJoinLiveClassroom(session.sessionId),
             style: ElevatedButton.styleFrom(
               backgroundColor: isLive ? const Color(0xFFEF4444) : _brightCyan,
               foregroundColor: isLive ? Colors.white : const Color(0xFF070B14),
@@ -366,7 +1019,7 @@ class StudentHomeTab extends StatelessWidget {
               cohortId: session.sessionId,
               cohortName: session.cohortName,
               academicLevel: 'ثالثة ثانوي',
-              currentUserName: dashboardData.student.name,
+              currentUserName: widget.dashboardData.student.name,
               currentUserRole: 'student',
             ),
             icon: const Icon(Icons.forum_outlined, size: 16, color: _brightCyan),
@@ -386,6 +1039,7 @@ class StudentHomeTab extends StatelessWidget {
     );
   }
 
+  // 6. Subscriptions & Credit Ledger Summary
   Widget _buildSubscriptionsSummary(StudentSubscriptionSummary subs) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,7 +1056,7 @@ class StudentHomeTab extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: onManageSubscriptions,
+              onPressed: widget.onManageSubscriptions,
               style: TextButton.styleFrom(
                 foregroundColor: _brightCyan,
                 padding: EdgeInsets.zero,
@@ -518,6 +1172,7 @@ class StudentHomeTab extends StatelessWidget {
     );
   }
 
+  // 7. Today's Master Schedule with Alarms & Notifications (جدول اليوم مع التنبيهات)
   Widget _buildTodayScheduleCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -537,13 +1192,13 @@ class StudentHomeTab extends StatelessWidget {
                   Icon(Icons.calendar_today_rounded, color: _electricPurple, size: 18),
                   SizedBox(width: 8),
                   Text(
-                    'جدول اليوم',
+                    'جدول اليوم والرزنامة الأساسية',
                     style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               TextButton(
-                onPressed: onOpenWeeklySchedule,
+                onPressed: widget.onOpenWeeklySchedule,
                 style: TextButton.styleFrom(
                   foregroundColor: _brightCyan,
                   padding: EdgeInsets.zero,
@@ -555,8 +1210,10 @@ class StudentHomeTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          ...dashboardData.todaySchedule.map((item) {
+          ...widget.dashboardData.todaySchedule.map((item) {
             final isLive = item.status == 'live';
+            final hasAlarm = _enabledScheduleAlarms.contains(item.time);
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Container(
@@ -592,24 +1249,34 @@ class StudentHomeTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            item.teacher,
+                            '${item.teacher} • ${item.time}',
                             style: const TextStyle(color: Colors.white60, fontSize: 11),
                           ),
                         ],
                       ),
                     ),
                     if (isLive)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.20),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFEF4444)),
+                      ElevatedButton(
+                        onPressed: () => widget.onJoinLiveClassroom(widget.dashboardData.nextSession?.sessionId ?? 'SES_LIVE'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEF4444),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                         ),
-                        child: const Text(
-                          'جارٍ الآن',
-                          style: TextStyle(color: Color(0xFFFCA5A5), fontSize: 10, fontWeight: FontWeight.bold),
+                        child: const Text('دخول الآن 🔴', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      )
+                    else
+                      IconButton(
+                        tooltip: hasAlarm ? 'التنبيه مفعّل' : 'تفعيل التنبيه',
+                        icon: Icon(
+                          hasAlarm ? Icons.alarm_on : Icons.alarm_add_outlined,
+                          color: hasAlarm ? const Color(0xFF34D399) : Colors.white60,
+                          size: 20,
                         ),
+                        onPressed: () => _toggleScheduleAlarm(item.time),
                       ),
                   ],
                 ),
@@ -621,6 +1288,7 @@ class StudentHomeTab extends StatelessWidget {
     );
   }
 
+  // 8. Algerian National Exam Bank & Timed Simulations
   Widget _buildExamBankBento() {
     return BentoCard(
       isHero: true,
@@ -631,10 +1299,11 @@ class StudentHomeTab extends StatelessWidget {
       secondaryAccent: const Color(0xFF10B981),
       badgeText: 'BEM & BAC 2008-2025',
       badgeColor: const Color(0xFFF59E0B),
-      onTap: onOpenExamBank,
+      onTap: widget.onOpenExamBank,
     );
   }
 
+  // 9. Recent Protected Recordings
   Widget _buildRecentRecordingsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,11 +1319,11 @@ class StudentHomeTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        ...dashboardData.recentRecordings.map((rec) {
+        ...widget.dashboardData.recentRecordings.map((rec) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: InkWell(
-              onTap: () => onOpenRecording(rec.id),
+              onTap: () => widget.onOpenRecording(rec.id),
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.all(12),

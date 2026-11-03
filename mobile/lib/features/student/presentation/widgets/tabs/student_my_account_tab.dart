@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/support_ticket_modal.dart';
+import '../modals/subscription_package_modal.dart';
+import '../modals/algerian_payment_sheet_modal.dart';
 
 class StudentMyAccountTab extends StatelessWidget {
   final StudentDashboardData dashboardData;
@@ -141,23 +143,49 @@ class StudentMyAccountTab extends StatelessWidget {
                 _specRow('المكتبة والتسجيلات:', 'متاحة بدون قيود ✓'),
                 _specRow('الأفواج النشطة:', '${subs.activeCohortsCount} أفواج دراسية'),
                 const SizedBox(height: 14),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('طلب تجديد الباقة: تم توجيهك لنظام الدفع عبر بريدي موب / CCP.'),
-                        backgroundColor: _deepIndigo,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => SubscriptionPackageModal.show(
+                        context,
+                        cohortName: 'فوج النخبة للبكالوريا — الرياضيات',
+                        teacherName: 'الأستاذ محمد أمين بن عيسى',
+                        subject: 'الرياضيات',
+                        currentPackageName: subs.packageName,
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _electricPurple,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(42),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  icon: const Icon(Icons.refresh_rounded, size: 16),
-                  label: const Text('تجديد الاشتراك وشحن الحصص', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: _brightCyan, width: 1.2),
+                        backgroundColor: _brightCyan.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(Icons.credit_card_outlined, size: 15, color: _brightCyan),
+                      label: const Text('دفع الاشتراك / تغيير الباقة', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => AlgerianPaymentSheetModal.show(
+                        context,
+                        cohortName: 'فوج النخبة للبكالوريا — الرياضيات',
+                        teacherName: 'الأستاذ محمد أمين بن عيسى',
+                        subject: 'الرياضيات',
+                        packageName: subs.packageName,
+                        priceDzd: subs.packageName.contains('المكتبة') ? 3800 : 2500,
+                        isQuickRenewal: true,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _electricPurple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 3,
+                      ),
+                      icon: const Icon(Icons.bolt, size: 16),
+                      label: const Text('تجديد الاشتراك ⚡', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
               ],
             ),

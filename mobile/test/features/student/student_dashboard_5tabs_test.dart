@@ -5,6 +5,9 @@ import 'package:pindo_future_mobile/features/auth/presentation/controllers/auth_
 import 'package:pindo_future_mobile/features/auth/presentation/screens/dashboards/student_dashboard_screen.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/student_bottom_nav_bar.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/subscription_package_modal.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/algerian_payment_sheet_modal.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/views/cohort_session_history_view.dart';
 
 // Mock minimal AuthController for widget tests
 class _MockAuthController extends ChangeNotifier implements AuthController {
@@ -33,7 +36,7 @@ class _MockAuthController extends ChangeNotifier implements AuthController {
 }
 
 void main() {
-  group('Phase 9: Student Module 5-Tab Architecture Tests', () {
+  group('Student Experience 3 Pillars Architecture Tests', () {
     test('StudentDashboardData DTO correctly falls back and parses mock payload', () {
       final fallback = StudentDashboardData.fallback('Ada Lovelace', 'ada@pindofuture.com');
 
@@ -66,23 +69,23 @@ void main() {
       );
 
       expect(find.text('الرئيسية'), findsOneWidget);
-      expect(find.text('اكتشف'), findsOneWidget);
       expect(find.text('حصصي'), findsOneWidget);
+      expect(find.text('الاشتراكات'), findsOneWidget);
       expect(find.text('مكتبتي'), findsOneWidget);
       expect(find.text('حسابي'), findsOneWidget);
 
-      // Tap on Tab 1 (اكتشف)
-      await tester.tap(find.text('اكتشف'));
+      // Tap on Tab 1 (حصصي)
+      await tester.tap(find.text('حصصي'));
       await tester.pump();
       expect(selectedTab, 1);
 
-      // Tap on Tab 2 (حصصي)
-      await tester.tap(find.text('حصصي'));
+      // Tap on Tab 2 (الاشتراكات)
+      await tester.tap(find.text('الاشتراكات'));
       await tester.pump();
       expect(selectedTab, 2);
     });
 
-    testWidgets('StudentDashboardScreen renders 5 tabs and allows tab navigation', (tester) async {
+    testWidgets('StudentDashboardScreen renders 5 tabs and allows tab navigation across the 3 pillars', (tester) async {
       tester.view.physicalSize = const Size(1200, 1800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -111,21 +114,38 @@ void main() {
       // Verify Header & Bottom Nav
       expect(find.byType(StudentBottomNavBar), findsOneWidget);
       expect(find.text('الرئيسية'), findsOneWidget);
-      expect(find.text('اكتشف'), findsOneWidget);
       expect(find.text('حصصي'), findsOneWidget);
+      expect(find.text('الاشتراكات'), findsOneWidget);
       expect(find.text('مكتبتي'), findsOneWidget);
       expect(find.text('حسابي'), findsOneWidget);
 
-      // Verify Tab 0 (Home): Welcome greeting & Next session hero card
-      expect(find.textContaining('مرحباً، Ada'), findsOneWidget);
-      expect(find.textContaining('الحصة'), findsWidgets);
-      expect(find.text('اشتراكاتي ورصيدي'), findsOneWidget);
+      // Verify Pillar 3 on Tab 0 (Home):
+      // - Teacher Stories Tray
+      expect(find.textContaining('قصص ومستجدات الأساتذة'), findsOneWidget);
+      // - Quick Live Join Bar
+      expect(find.textContaining('الانضمام السريع لحصة تفاعلية مباشرة'), findsOneWidget);
+      // - Smart Teacher Search Bar
+      expect(find.textContaining('البحث عن الأساتذة والمواد الدراسية'), findsOneWidget);
+      // - Educational Cycles Promotional Banner
+      expect(find.textContaining('الطور'), findsWidgets);
+      // - Today's Master Schedule with Alarms
+      expect(find.textContaining('جدول اليوم والرزنامة الأساسية'), findsOneWidget);
 
-      // Switch to Tab 2 (حصصي)
+      // Switch to Pillar 2 (حصصي والدروس واللايف)
       await tester.tap(find.text('حصصي'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.textContaining('حصصي والبرنامج الدراسي'), findsWidgets);
+      expect(find.textContaining('حصصي والدروس المباشرة'), findsWidgets);
+      expect(find.textContaining('محادثة الفوج'), findsWidgets);
+      expect(find.textContaining('جدول الحصص الكامل وتفاصيل الاشتراكات'), findsWidgets);
+
+      // Switch to Pillar 1 (واجهة الاشتراكات والدفع)
+      await tester.tap(find.text('الاشتراكات'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.textContaining('اشتراكاتي وباقات الدفع'), findsWidgets);
+      expect(find.textContaining('دفع الاشتراك / تغيير الباقة'), findsWidgets);
+      expect(find.textContaining('تجديد الاشتراك ⚡'), findsWidgets);
 
       // Switch to Tab 3 (مكتبتي)
       await tester.tap(find.text('مكتبتي'));
@@ -138,6 +158,106 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.textContaining('حسابي'), findsWidgets);
+    });
+
+    testWidgets('Pillar 1: SubscriptionPackageModal and AlgerianPaymentSheetModal open smoothly', (tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => SubscriptionPackageModal.show(
+                      ctx,
+                      cohortName: 'فوج النخبة للبكالوريا',
+                      teacherName: 'الأستاذ بن عيسى',
+                      subject: 'الرياضيات',
+                      currentPackageName: 'باقة الحصص فقط',
+                    ),
+                    child: const Text('Open Package Modal'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => AlgerianPaymentSheetModal.show(
+                      ctx,
+                      cohortName: 'فوج النخبة للبكالوريا',
+                      teacherName: 'الأستاذ بن عيسى',
+                      subject: 'الرياضيات',
+                      packageName: 'باقة الحصص فقط',
+                      priceDzd: 2500,
+                      isQuickRenewal: true,
+                    ),
+                    child: const Text('Open Payment Modal'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Open Package Modal
+      await tester.tap(find.text('Open Package Modal'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('اختر باقة الاشتراك المناسبة'), findsOneWidget);
+      expect(find.textContaining('باقة الحصص فقط'), findsWidgets);
+      expect(find.textContaining('باقة الحصص والمكتبة'), findsWidgets);
+
+      // Close modal
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Open Payment Modal
+      await tester.tap(find.text('Open Payment Modal'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('تجديد الاشتراك الفوري'), findsOneWidget);
+      expect(find.textContaining('بريدي موب (BaridiMob)'), findsWidgets);
+      expect(find.textContaining('البطاقة الذهبية / CIB'), findsWidgets);
+      expect(find.textContaining('حوالة CCP'), findsWidgets);
+    });
+
+    testWidgets('Pillar 2: CohortSessionHistoryView displays chronological session table from day 1', (tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CohortSessionHistoryView(
+              cohortId: 'SES_8PP4LVG1',
+              cohortName: 'فوج النخبة للبكالوريا — الرياضيات',
+              teacherName: 'الأستاذ محمد أمين بن عيسى',
+              subject: 'الرياضيات',
+              studentName: 'أحمد أمين',
+              studentEmail: 'student.amine@pindofuture.com',
+              initialEnrollmentDate: '01 سبتمبر 2026',
+              remainingCredits: 4,
+              onJoinLiveClassroom: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('فوج النخبة للبكالوريا'), findsWidgets);
+      expect(find.textContaining('تاريخ أول اشتراك:'), findsOneWidget);
+      expect(find.textContaining('01 سبتمبر 2026'), findsOneWidget);
+      expect(find.textContaining('جدول الحصص التاريخي الكامل'), findsOneWidget);
+      expect(find.textContaining('الحصة #1'), findsWidgets);
+      expect(find.textContaining('الحصة #9'), findsWidgets);
+      expect(find.textContaining('محادثة الفوج 💬'), findsWidgets);
     });
   });
 }

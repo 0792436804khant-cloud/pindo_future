@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
+import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
+import 'package:pindo_future_mobile/features/chat/services/cohort_chat_service.dart';
+import '../views/cohort_session_history_view.dart';
 
 class StudentMyClassesTab extends StatefulWidget {
   final StudentDashboardData dashboardData;
@@ -32,20 +35,52 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          const Text(
-            'حصصي والبرنامج الدراسي 🎓',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'تابع أفواجك المسجل بها، جدول الحصص الأسبوعي، وسجل حضورك وغيابك الموثّق.',
-            style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+          // Header with Cohort Chats Shortcut
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'حصصي والدروس المباشرة 🎓',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'بيئة دراستك التفاعلية، أفواجك، ومحادثات الدردشة الرسمية.',
+                      style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => CohortChatsHubModal.show(
+                  context,
+                  currentUserName: widget.dashboardData.student.name,
+                  currentUserRole: 'student',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _electricPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.forum_outlined, size: 16),
+                label: Text(
+                  'المحادثات (${CohortChatService().getTotalUnreadCount()})',
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -59,9 +94,9 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
             ),
             child: Row(
               children: [
-                _subTabItem(0, 'أفواجي (Cohorts)', Icons.groups_rounded),
+                _subTabItem(0, 'أفواجي المنخرط بها', Icons.groups_rounded),
                 _subTabItem(1, 'البرنامج الأسبوعي', Icons.calendar_month_rounded),
-                _subTabItem(2, 'سجل الحضور', Icons.fact_check_rounded),
+                _subTabItem(2, 'سجل المواظبة', Icons.fact_check_rounded),
               ],
             ),
           ),
@@ -126,25 +161,41 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
     return Column(
       children: [
         _cohortCard(
+          cohortId: 'SES_8PP4LVG1',
           title: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
           subject: 'الرياضيات',
           teacherName: 'الأستاذ محمد أمين بن عيسى',
           remainingCredits: 4,
-          nextSession: 'اليوم 18:00 (حل المسائل الشاملة للبكالوريا)',
-          sessionId: 'SES_8PP4LVG1',
-          status: 'فعال',
+          initialEnrollmentDate: '01 سبتمبر 2026',
+          nextSession: 'اليوم 18:00 (المتتاليات والبرهان بالتراجع 🔴)',
+          status: 'فعال ومفعل ✓',
+          statusColor: const Color(0xFF10B981),
         ),
         const SizedBox(height: 14),
         _cohortCard(
+          cohortId: 'SES_CURIE_01',
           title: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
           subject: 'العلوم الفيزيائية',
           teacherName: 'الأستاذة كريمة بلقاسم',
           remainingCredits: 6,
+          initialEnrollmentDate: '15 سبتمبر 2026',
           nextSession: 'الأربعاء 17:30 (المتابعة الزمنية والميكانيكا)',
-          sessionId: 'SES_CURIE_01',
-          status: 'فعال',
+          status: 'فعال ومفعل ✓',
+          statusColor: const Color(0xFF10B981),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        _cohortCard(
+          cohortId: 'SES_BIO_2026',
+          title: 'فوج التميز في علوم الطبيعة والحياة',
+          subject: 'علوم الطبيعة والحياة',
+          teacherName: 'الأستاذ عبد الرحمن دحمان',
+          remainingCredits: 1,
+          initialEnrollmentDate: '20 سبتمبر 2026',
+          nextSession: 'الخميس 18:00 (آليات تركيب البروتين والإنزيمات)',
+          status: 'مستحق للتجديد قريباً ⚠️',
+          statusColor: const Color(0xFFF59E0B),
+        ),
+        const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: widget.onOpenCohortsExplorer,
           style: OutlinedButton.styleFrom(
@@ -161,18 +212,22 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
   }
 
   Widget _cohortCard({
+    required String cohortId,
     required String title,
     required String subject,
     required String teacherName,
     required int remainingCredits,
+    required String initialEnrollmentDate,
     required String nextSession,
-    required String sessionId,
     required String status,
+    required Color statusColor,
   }) {
+    final student = widget.dashboardData.student;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.75),
+        color: const Color(0xFF0F172A).withValues(alpha: 0.80),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
@@ -185,13 +240,13 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF10B981)),
+                  border: Border.all(color: statusColor),
                 ),
                 child: Text(
                   status,
-                  style: const TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
               Text(
@@ -210,7 +265,7 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
             'المادة: $subject • الأستاذ: $teacherName',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -230,12 +285,14 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+
+          // Action 1: Live Join & Cohort Chat
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => widget.onJoinLiveClassroom(sessionId),
+                  onPressed: () => widget.onJoinLiveClassroom(cohortId),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _brightCyan,
                     foregroundColor: const Color(0xFF070B14),
@@ -243,7 +300,7 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: const Icon(Icons.sensors_rounded, size: 16),
-                  label: const Text('دخول الحصة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  label: const Text('دخول الحصة 🔴', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -251,10 +308,10 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                 child: OutlinedButton.icon(
                   onPressed: () => CohortChatRoomModal.show(
                     context,
-                    cohortId: sessionId,
+                    cohortId: cohortId,
                     cohortName: title,
                     academicLevel: 'ثالثة ثانوي',
-                    currentUserName: widget.dashboardData.student.name,
+                    currentUserName: student.name,
                     currentUserRole: 'student',
                   ),
                   style: OutlinedButton.styleFrom(
@@ -269,6 +326,38 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+
+          // Action 2: View Complete Session Table & History
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => CohortSessionHistoryView.open(
+                context,
+                cohortId: cohortId,
+                cohortName: title,
+                teacherName: teacherName,
+                subject: subject,
+                studentName: student.name,
+                studentEmail: student.email,
+                initialEnrollmentDate: initialEnrollmentDate,
+                remainingCredits: remainingCredits,
+                onJoinLiveClassroom: widget.onJoinLiveClassroom,
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFFDE68A),
+                side: BorderSide(color: const Color(0xFFF59E0B).withValues(alpha: 0.6)),
+                backgroundColor: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.table_chart_outlined, size: 16, color: Color(0xFFF59E0B)),
+              label: const Text(
+                'جدول الحصص الكامل وتفاصيل الاشتراكات 📊',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
           ),
         ],
       ),
@@ -298,45 +387,32 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
           child: Row(
             children: [
               Container(
-                width: 70,
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: _electricPurple.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _electricPurple),
                 ),
-                child: Center(
-                  child: Text(
-                    d['day']!,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
+                child: Text(
+                  d['day']!,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       d['subject']!,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'الأستاذ: ${d['teacher']}',
+                      '${d['teacher']} • ${d['time']}',
                       style: const TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _brightCyan.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  d['time']!,
-                  style: const TextStyle(color: _brightCyan, fontSize: 11.5, fontWeight: FontWeight.bold),
                 ),
               ),
             ],

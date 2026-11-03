@@ -42,7 +42,7 @@ class StudentBottomNavBar extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -54,15 +54,15 @@ class StudentBottomNavBar extends StatelessWidget {
                 ),
                 _navItem(
                   index: 1,
-                  icon: Icons.explore_outlined,
-                  activeIcon: Icons.explore_rounded,
-                  label: 'اكتشف',
-                ),
-                _navItem(
-                  index: 2,
                   icon: Icons.calendar_today_outlined,
                   activeIcon: Icons.calendar_month_rounded,
                   label: 'حصصي',
+                ),
+                _navItem(
+                  index: 2,
+                  icon: Icons.credit_card_outlined,
+                  activeIcon: Icons.credit_card_rounded,
+                  label: 'الاشتراكات',
                 ),
                 _navItem(
                   index: 3,
@@ -99,7 +99,7 @@ class StudentBottomNavBar extends StatelessWidget {
         duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
         padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 14 : 10,
+          horizontal: isSelected ? 12 : 8,
           vertical: 8,
         ),
         decoration: BoxDecoration(
@@ -125,7 +125,7 @@ class StudentBottomNavBar extends StatelessWidget {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              size: 22,
+              size: 21,
               color: isSelected ? _brightCyan : Colors.white60,
             ),
             const SizedBox(height: 3),

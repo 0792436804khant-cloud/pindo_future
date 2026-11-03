@@ -30,8 +30,8 @@ import '../../widgets/user_account_settings_modal.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/student_bottom_nav_bar.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_home_tab.dart';
-import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_explore_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_my_classes_tab.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_subscriptions_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_library_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_my_account_tab.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/student_notifications_sheet.dart';
@@ -199,13 +199,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       case 0:
         return 'مركز التلميذ • الرئيسية';
       case 1:
-        return 'اكتشف الأساتذة والأفواج';
+        return 'حصصي والدروس المباشرة';
       case 2:
-        return 'حصصي والبرنامج الدراسي';
+        return 'اشتراكاتي وباقات الدفع';
       case 3:
         return 'مكتبتي المحمية';
       case 4:
-        return 'حسابي والاشتراكات';
+        return 'حسابي والأمان';
       default:
         return 'Pindo Future';
     }
@@ -298,33 +298,33 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               IndexedStack(
                 index: _currentTabIndex,
                 children: [
-                  // Tab 0: الرئيسية (Home)
+                  // Tab 0: الرئيسية (Home - Pillar 3)
                   StudentHomeTab(
                     dashboardData: _dashboardData,
                     onRefresh: _loadDashboardData,
                     onJoinLiveClassroom: _joinClassroom,
                     onOpenRecording: _openProtectedRecording,
                     onOpenExamBank: _navigateToExamBank,
-                    onOpenWeeklySchedule: () => setState(() => _currentTabIndex = 2),
-                    onManageSubscriptions: () => setState(() => _currentTabIndex = 4),
+                    onOpenWeeklySchedule: () => setState(() => _currentTabIndex = 1),
+                    onManageSubscriptions: () => setState(() => _currentTabIndex = 2),
                     onOpenAccountSettings: () => UserAccountSettingsModal.show(
                       context,
                       user: widget.user,
                       authController: widget.authController,
                     ),
+                    onOpenTeacherShowcase: _navigateToTeacherShowcase,
                   ),
 
-                  // Tab 1: اكتشف (Explore)
-                  StudentExploreTab(
-                    onOpenTeacherShowcase: _navigateToTeacherShowcase,
+                  // Tab 1: حصصي والدروس المباشرة (My Classes & Live - Pillar 2)
+                  StudentMyClassesTab(
+                    dashboardData: _dashboardData,
                     onJoinLiveClassroom: _joinClassroom,
                     onOpenCohortsExplorer: _navigateToCohortExplorer,
                   ),
 
-                  // Tab 2: حصصي (My Classes)
-                  StudentMyClassesTab(
+                  // Tab 2: اشتراكاتي وباقات الدفع (Subscriptions & Payment Hub - Pillar 1)
+                  StudentSubscriptionsTab(
                     dashboardData: _dashboardData,
-                    onJoinLiveClassroom: _joinClassroom,
                     onOpenCohortsExplorer: _navigateToCohortExplorer,
                   ),
 
