@@ -233,11 +233,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('تم إدخال بيانات الدخول لحساب ($email) بنجاح'),
+        content: Text('تم اختيار حساب ($email) — جاري تسجيل الدخول...'),
         backgroundColor: const Color(0xFF0D9488),
         duration: const Duration(seconds: 2),
       ),
     );
+
+    // Auto-trigger sign in
+    _submitSignIn();
   }
 
   @override
