@@ -100,22 +100,44 @@ class _StudentLibraryTabState extends State<StudentLibraryTab> {
           ),
           const SizedBox(height: 16),
 
-          // Security banner
+          // Enhanced Anti-Piracy Security banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF10B981).withValues(alpha: 0.15),
+                  const Color(0xFF0F172A).withValues(alpha: 0.8),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.40)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.shield_outlined, color: Color(0xFF34D399), size: 18),
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.verified_user_rounded, color: Color(0xFF34D399), size: 18),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    'تسجيلاتك محمية ومشفرة. تُعرض بعلامة مائية شخصية (${widget.dashboardData.student.name}) لحماية حقوق الأستاذ والتلميذ.',
-                    style: const TextStyle(color: Color(0xFFD1FAE5), fontSize: 11.5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'حماية قصوى ضد لقطات الشاشة وتسجيل الفيديو (FLAG_SECURE) 🔒',
+                        style: TextStyle(color: Color(0xFF34D399), fontSize: 11.5, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'يُمنع تسجيل أو تصوير الحلقات عتادياً. تعرض الفيديوهات بعلامة مائية ديناميكية مشفرة باسمك (${widget.dashboardData.student.name}).',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 10.5, height: 1.3),
+                      ),
+                    ],
                   ),
                 ),
               ],

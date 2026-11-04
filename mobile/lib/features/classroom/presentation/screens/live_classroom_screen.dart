@@ -6,6 +6,8 @@ import '../widgets/classroom_chat_panel.dart';
 import '../widgets/classroom_controls_bar.dart';
 import '../widgets/classroom_stage_switcher.dart';
 import '../widgets/floating_student_watermark.dart';
+import '../widgets/enhanced_dynamic_watermark.dart';
+import '../../../../core/security/anti_piracy_shield.dart';
 import '../widgets/interactive_whiteboard_canvas.dart';
 import '../widgets/raised_hands_dialog.dart';
 import '../widgets/video_track_card.dart';
@@ -66,27 +68,33 @@ class _LiveClassroomScreenState extends State<LiveClassroomScreen> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
 
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        return Scaffold(
-          backgroundColor: const Color(0xFF0A0F1D), // Dark theater mode
-          body: SafeArea(
-            child: Stack(
-              children: [
-                // 1. Main Classroom Content
-                if (controller.isLoading)
-                  _buildConnectingView(controller)
-                else if (controller.state == ClassroomUiState.error)
-                  _buildErrorView(controller)
-                else if (controller.isConnected)
-                  _buildActiveRoomView(controller),
+    return AntiPiracyShield(
+      studentName: controller.connectionDetails?.watermarkText ?? 'طالب موثق',
+      studentId: controller.connectionDetails?.identity ?? 'STU_2026',
+      studentEmail: 'student@pindofuture.com',
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          return Scaffold(
+            backgroundColor: const Color(0xFF0A0F1D), // Dark theater mode
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  // 1. Main Classroom Content
+                  if (controller.isLoading)
+                    _buildConnectingView(controller)
+                  else if (controller.state == ClassroomUiState.error)
+                    _buildErrorView(controller)
+                  else if (controller.isConnected)
+                    _buildActiveRoomView(controller),
 
-                // 1.1 Anti-Piracy Floating Watermark (Identity overlay)
-                if (controller.isConnected && (controller.connectionDetails?.watermarkText?.isNotEmpty ?? false))
-                  FloatingStudentWatermark(
-                    watermarkText: controller.connectionDetails!.watermarkText!,
-                  ),
+                  // 1.1 Next-Gen Multi-Vector Anti-Piracy Enhanced Dynamic Watermark
+                  if (controller.isConnected)
+                    EnhancedDynamicWatermark(
+                      studentName: controller.connectionDetails?.watermarkText ?? 'طالب موثق',
+                      studentId: controller.connectionDetails?.identity ?? 'STU_2026',
+                      wilaya: 'الجزائر العاصمة',
+                    ),
 
                 // 2. Header Bar Overlay
                 Positioned(
@@ -167,8 +175,9 @@ class _LiveClassroomScreenState extends State<LiveClassroomScreen> {
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHeaderOverlay(ClassroomController controller) {
     return Container(
@@ -224,6 +233,28 @@ class _LiveClassroomScreenState extends State<LiveClassroomScreen> {
                 Text(
                   'Room ID: ${widget.sessionId}',
                   style: const TextStyle(color: Colors.white54, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Anti-Piracy Hardware Shield Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 0.8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 12),
+                SizedBox(width: 4),
+                Text(
+                  'FLAG_SECURE 🔒',
+                  style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

@@ -50,6 +50,44 @@
       });
     }
   </script>
+  <!-- Pindo Future Web Anti-Piracy & Anti-Screen-Capture Shield -->
+  <script>
+    (function() {
+      // 1. Block right click context menu on video and educational canvas
+      window.addEventListener('contextmenu', function(e) {
+        // Prevent inspection and direct media extraction
+        e.preventDefault();
+        return false;
+      }, false);
+
+      // 2. Intercept DevTools and screenshot key combinations
+      window.addEventListener('keydown', function(e) {
+        // F12
+        if (e.key === 'F12' || e.keyCode === 123) {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C (DevTools)
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+          e.preventDefault();
+          return false;
+        }
+        // Ctrl+U (View Source), Ctrl+S (Save Page)
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) {
+          e.preventDefault();
+          return false;
+        }
+        // PrintScreen key
+        if (e.key === 'PrintScreen') {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText('Protected Content • Pindo Future DRM');
+          }
+          e.preventDefault();
+          return false;
+        }
+      }, false);
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
