@@ -343,6 +343,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       authController: widget.authController,
                     ),
                     onLogout: () => widget.authController.logout(),
+                    onNavigateToTab: (index) => setState(() => _currentTabIndex = index),
                   ),
                 ],
               ),

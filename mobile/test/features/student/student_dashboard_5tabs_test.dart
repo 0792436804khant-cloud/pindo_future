@@ -8,6 +8,7 @@ import 'package:pindo_future_mobile/features/student/presentation/widgets/studen
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/subscription_package_modal.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/algerian_payment_sheet_modal.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/views/cohort_session_history_view.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_my_account_tab.dart';
 
 // Mock minimal AuthController for widget tests
 class _MockAuthController extends ChangeNotifier implements AuthController {
@@ -157,7 +158,10 @@ void main() {
       await tester.tap(find.text('حسابي'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.textContaining('حسابي'), findsWidgets);
+      expect(find.textContaining('الملف الشخصي وحسابي'), findsWidgets);
+      expect(find.textContaining('جواز التعلّم وإحصائيات المواظبة'), findsOneWidget);
+      expect(find.textContaining('أمان الحساب وحماية المحتوى الرقمي'), findsOneWidget);
+      expect(find.textContaining('تفضيلات التنبيهات والإشعارات الذكية'), findsOneWidget);
     });
 
     testWidgets('Pillar 1: SubscriptionPackageModal and AlgerianPaymentSheetModal open smoothly', (tester) async {
@@ -258,6 +262,54 @@ void main() {
       expect(find.textContaining('الحصة #1'), findsWidgets);
       expect(find.textContaining('الحصة #9'), findsWidgets);
       expect(find.textContaining('محادثة الفوج 💬'), findsWidgets);
+    });
+
+    testWidgets('StudentMyAccountTab allows setting photo de profil and toggling preferences', (tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final fallback = StudentDashboardData.fallback('أحمد أمين', 'student.amine@pindofuture.com');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StudentMyAccountTab(
+              dashboardData: fallback,
+              onOpenAccountSettings: () {},
+              onLogout: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('الملف الشخصي وحسابي'), findsOneWidget);
+      expect(find.textContaining('جواز التعلّم وإحصائيات المواظبة'), findsOneWidget);
+      expect(find.textContaining('أمان الحساب وحماية المحتوى الرقمي'), findsOneWidget);
+      expect(find.textContaining('تفضيلات التنبيهات والإشعارات الذكية'), findsOneWidget);
+
+      // Tap on the camera icon to open photo de profil options
+      await tester.tap(find.byIcon(Icons.camera_alt));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.textContaining('صورة الملف الشخصي (Photo de profil)'), findsOneWidget);
+      expect(find.textContaining('التقاط صورة جديدة بالكاميرا'), findsOneWidget);
+      expect(find.textContaining('اختيار صورة من معرض الصور'), findsOneWidget);
+
+      // Choose camera photo
+      await tester.tap(find.textContaining('التقاط صورة جديدة بالكاميرا'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Verify toggle switch exists and can be tapped
+      final switchFinder = find.byType(Switch).first;
+      expect(switchFinder, findsOneWidget);
+      await tester.tap(switchFinder);
+      await tester.pump();
     });
   });
 }
