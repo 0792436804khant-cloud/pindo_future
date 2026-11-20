@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
+import '../../../../monetization/domain/entities/subscription_payment_receipt.dart';
+import '../../../../monetization/services/subscription_payment_service.dart';
+import '../modals/verify_payment_receipt_modal.dart';
 
 class TeacherFinanceTab extends StatelessWidget {
   final TeacherDashboardModel dashboard;
@@ -55,6 +58,9 @@ class TeacherFinanceTab extends StatelessWidget {
           ),
 
           const SizedBox(height: 20),
+
+          // Pending Receipts Alert Banner
+          _buildPendingReceiptsAlert(context),
 
           // Total Net Earnings Hero Card
           _buildEarningsHeroCard(context, stats),
@@ -238,6 +244,86 @@ class TeacherFinanceTab extends StatelessWidget {
     );
   }
 
+  Widget _buildPendingReceiptsAlert(BuildContext context) {
+    return ValueListenableBuilder<List<SubscriptionPaymentReceipt>>(
+      valueListenable: SubscriptionPaymentService.instance.receiptsListenable,
+      builder: (context, receipts, _) {
+        final pending = receipts.where((r) => r.isPending).toList();
+        if (pending.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.amber.shade900.withValues(alpha: 0.35),
+                const Color(0xFF1E1B4B).withValues(alpha: 0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.amber.shade400.withValues(alpha: 0.7), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.amber.withValues(alpha: 0.15),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  border: Border.all(color: Colors.amber, width: 1.2),
+                ),
+                child: const Icon(Icons.mark_email_unread_rounded, color: Colors.amber, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '🔔 وصلات جديدة بانتظار التأكيد (${pending.length})',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'وصل من: ${pending.first.studentName} (${pending.first.priceDzd} دج • ${pending.first.paymentMethod})',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  VerifyPaymentReceiptModal.show(context, receipt: pending.first);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.amber,
+                  foregroundColor: const Color(0xFF0F172A),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.receipt_long, size: 14),
+                label: const Text('فحص وتفعيل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildRecentTransactionsSection(BuildContext context, List<TeacherTransactionItem> list) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,50 +354,77 @@ class TeacherFinanceTab extends StatelessWidget {
               final tx = list[idx];
               final isConfirmed = tx.status == 'مؤكد';
 
-              return Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: (isConfirmed ? const Color(0xFF10B981) : Colors.orangeAccent).withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isConfirmed ? Icons.verified_rounded : Icons.pending_rounded,
-                        color: isConfirmed ? const Color(0xFF10B981) : Colors.orangeAccent,
-                        size: 20,
-                      ),
+              return InkWell(
+                onTap: () {
+                  final all = SubscriptionPaymentService.instance.allReceipts;
+                  final match = all.firstWhere(
+                    (r) => r.studentName.contains(tx.studentName) || tx.studentName.contains(r.studentName),
+                    orElse: () => SubscriptionPaymentReceipt(
+                      id: 'TX_${tx.id}',
+                      referenceNumber: 'TRX-ALG-2026-${tx.id.toString().padLeft(4, '0')}',
+                      studentName: tx.studentName,
+                      studentEmail: 'student@pindofuture.com',
+                      studentId: 'STU_${tx.id}_2026',
+                      cohortName: tx.title,
+                      teacherName: dashboard.teacherProfile.name,
+                      subject: 'الرياضيات',
+                      packageName: 'باقة الحصص',
+                      priceDzd: tx.amount.toInt(),
+                      paymentMethod: 'BaridiMob',
+                      status: isConfirmed ? ReceiptStatus.approved : ReceiptStatus.pending,
+                      submittedAt: DateTime.now().subtract(const Duration(hours: 4)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  );
+                  VerifyPaymentReceiptModal.show(context, receipt: match);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: (isConfirmed ? const Color(0xFF10B981) : Colors.orangeAccent).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isConfirmed ? Icons.verified_rounded : Icons.pending_rounded,
+                          color: isConfirmed ? const Color(0xFF10B981) : Colors.orangeAccent,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(tx.studentName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                            const SizedBox(height: 2),
+                            Text(tx.title, style: const TextStyle(color: Colors.white60, fontSize: 11.5)),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(tx.studentName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text(
+                            '+${tx.amount.toStringAsFixed(0)} دج',
+                            style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ),
                           const SizedBox(height: 2),
-                          Text(tx.title, style: const TextStyle(color: Colors.white60, fontSize: 11.5)),
+                          Text(tx.date, style: const TextStyle(color: Colors.white38, fontSize: 10.5)),
                         ],
                       ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '+${tx.amount.toStringAsFixed(0)} دج',
-                          style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 13.5),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(tx.date, style: const TextStyle(color: Colors.white38, fontSize: 10.5)),
-                      ],
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
+                    ],
+                  ),
                 ),
               );
             },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pindo_future_mobile/features/monetization/services/subscription_payment_service.dart';
 
 class AlgerianPaymentSheetModal extends StatefulWidget {
   final String cohortName;
@@ -112,7 +113,23 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
   void _submitPayment() {
     setState(() => _isSubmitting = true);
 
-    Future.delayed(const Duration(milliseconds: 900), () {
+    final methodNames = ['BaridiMob', 'Edahabia', 'CCP'];
+    final selectedMethod = methodNames[_selectedMethodIndex];
+
+    final receipt = SubscriptionPaymentService.instance.submitReceipt(
+      cohortName: widget.cohortName,
+      teacherName: widget.teacherName,
+      subject: widget.subject,
+      packageName: widget.packageName,
+      priceDzd: widget.priceDzd,
+      paymentMethod: selectedMethod,
+      receiptName: _uploadedReceiptName,
+      studentName: 'أحمد أمين قادري',
+      studentEmail: 'student.amine@pindofuture.com',
+      studentId: 'STU_0001_2026',
+    );
+
+    Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
       Navigator.of(context).pop();
@@ -140,7 +157,7 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'تم تسجيل العملية بنجاح لصالح: ${widget.cohortName}',
+                'تم إرسال الوصل بنجاح للأستاذ: ${widget.teacherName}',
                 style: const TextStyle(color: Colors.white70, fontSize: 13),
               ),
               const SizedBox(height: 10),
@@ -157,13 +174,13 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
                     const SizedBox(height: 4),
                     Text('المبلغ: ${widget.priceDzd} دج', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text('رقم المرجع: REF-ALG-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                    Text('رقم المرجع: ${receipt.referenceNumber}', style: const TextStyle(color: Colors.white54, fontSize: 11)),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
               const Text(
-                'سيتم تفعيل الرصيد وحساب الحصص مباشرة بمجرد تأكيد المطابقة البنكية.',
+                'سيتم تفعيل الرصيد وحساب الحصص والمكتبة فور مطابقة وتأكيد الوصل من طرف الأستاذ.',
                 style: TextStyle(color: Color(0xFF34D399), fontSize: 11.5, height: 1.4),
               ),
             ],
