@@ -320,8 +320,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildHeaderMetric('إجمالي المعاملات', '${kpis.grossRevenue.toStringAsFixed(0)} دج', Colors.white),
-                _buildHeaderMetric('عمولة المنصة 20%', '${kpis.platformCommission.toStringAsFixed(0)} دج', _neonGreen),
-                _buildHeaderMetric('مستحقات الأساتذة 80%', '${kpis.teacherNetEarnings.toStringAsFixed(0)} دج', _brightCyan),
+                _buildHeaderMetric('عمولة المنصة (15% + 10%)', '${kpis.platformCommission.toStringAsFixed(0)} دج', _neonGreen),
+                _buildHeaderMetric('مستحقات الأساتذة الصافية', '${kpis.teacherNetEarnings.toStringAsFixed(0)} دج', _brightCyan),
               ],
             ),
           ),

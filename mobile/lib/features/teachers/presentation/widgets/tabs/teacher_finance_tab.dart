@@ -121,7 +121,7 @@ class TeacherFinanceTab extends StatelessWidget {
                   border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                 ),
                 child: const Text(
-                  'نسبة الأستاذ 80%',
+                  'رصيد أرباح معتمد ✓',
                   style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 11),
                 ),
               ),

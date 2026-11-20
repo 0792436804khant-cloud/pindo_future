@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:pindo_future_mobile/core/config/platform_payment_config.dart';
 import '../domain/entities/subscription_payment_receipt.dart';
 
 /// Central reactive service managing subscription payment requests,
@@ -24,6 +25,18 @@ class SubscriptionPaymentService {
   List<SubscriptionPaymentReceipt> get approvedReceipts =>
       _receiptsNotifier.value.where((r) => r.isApproved).toList();
 
+  /// Total Gross Revenue received from all approved subscriptions (in DZD)
+  int get totalGrossRevenue =>
+      approvedReceipts.fold(0, (sum, r) => sum + r.priceDzd);
+
+  /// Total Net Earnings payable to teachers from approved subscriptions (in DZD)
+  int get totalTeacherNetEarnings =>
+      approvedReceipts.fold(0, (sum, r) => sum + r.teacherPayoutDzd);
+
+  /// Total Platform Commission collected (15% live + 10% library) (in DZD)
+  int get totalPlatformCommission =>
+      approvedReceipts.fold(0, (sum, r) => sum + r.platformCommissionDzd);
+
   SubscriptionPaymentService._internal() {
     _initializeSeedData();
   }
@@ -41,6 +54,9 @@ class SubscriptionPaymentService {
       0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
     ]);
 
+    // Seed Receipts:
+    // REC_001: 3,800 DZD (Live + Library) -> Teacher Net: 3,295 DZD, Platform: 505 DZD
+    // REC_002: 2,500 DZD (Live Only) -> Teacher Net: 2,125 DZD, Platform: 375 DZD
     _receiptsNotifier.value = [
       SubscriptionPaymentReceipt(
         id: 'REC_001',
@@ -53,6 +69,8 @@ class SubscriptionPaymentService {
         subject: 'الرياضيات',
         packageName: 'باقة الحصص والمكتبة الرقمية',
         priceDzd: 3800,
+        teacherPayoutDzd: 3295,
+        platformCommissionDzd: 505,
         paymentMethod: 'BaridiMob',
         receiptName: 'recu_baridimob_9042.jpg',
         receiptBytes: sampleReceiptBytes,
@@ -70,6 +88,8 @@ class SubscriptionPaymentService {
         subject: 'الرياضيات',
         packageName: 'باقة الحصص فقط',
         priceDzd: 2500,
+        teacherPayoutDzd: 2125,
+        platformCommissionDzd: 375,
         paymentMethod: 'Edahabia',
         receiptName: 'cib_satim_8711.pdf',
         receiptBytes: sampleReceiptBytes,
@@ -97,6 +117,11 @@ class SubscriptionPaymentService {
     final now = DateTime.now();
     final ref = 'TRX-ALG-${now.year}-${now.millisecondsSinceEpoch.toString().substring(7)}';
 
+    final breakdown = PlatformPaymentConfig.calculateCommission(
+      totalPriceDzd: priceDzd,
+      packageName: packageName,
+    );
+
     final receipt = SubscriptionPaymentReceipt(
       id: 'REC_${now.millisecondsSinceEpoch}',
       referenceNumber: ref,
@@ -108,6 +133,8 @@ class SubscriptionPaymentService {
       subject: subject,
       packageName: packageName,
       priceDzd: priceDzd,
+      teacherPayoutDzd: breakdown.teacherPayoutDzd,
+      platformCommissionDzd: breakdown.platformCommissionDzd,
       paymentMethod: paymentMethod,
       receiptName: receiptName ?? 'receipt_${now.millisecondsSinceEpoch}.jpg',
       receiptBytes: receiptBytes,
@@ -116,7 +143,7 @@ class SubscriptionPaymentService {
     );
 
     _receiptsNotifier.value = [receipt, ..._receiptsNotifier.value];
-    debugPrint('[SubscriptionPaymentService] 💳 Receipt submitted: $ref for $studentName ($priceDzd DZD)');
+    debugPrint('[SubscriptionPaymentService] 💳 Receipt submitted: $ref for $studentName ($priceDzd DZD -> Teacher Net: ${breakdown.teacherPayoutDzd} DZD, Platform: ${breakdown.platformCommissionDzd} DZD)');
     return receipt;
   }
 

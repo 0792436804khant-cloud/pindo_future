@@ -30,6 +30,8 @@ class SubscriptionPaymentReceipt {
   final String subject;
   final String packageName;
   final int priceDzd;
+  final int teacherPayoutDzd;
+  final int platformCommissionDzd;
   final String paymentMethod; // 'BaridiMob', 'Edahabia', 'CCP'
   final String? receiptName;
   final Uint8List? receiptBytes;
@@ -38,7 +40,7 @@ class SubscriptionPaymentReceipt {
   final DateTime submittedAt;
   final DateTime? reviewedAt;
 
-  const SubscriptionPaymentReceipt({
+  SubscriptionPaymentReceipt({
     required this.id,
     required this.referenceNumber,
     required this.studentName,
@@ -49,6 +51,8 @@ class SubscriptionPaymentReceipt {
     required this.subject,
     required this.packageName,
     required this.priceDzd,
+    int? teacherPayoutDzd,
+    int? platformCommissionDzd,
     required this.paymentMethod,
     this.receiptName,
     this.receiptBytes,
@@ -56,7 +60,9 @@ class SubscriptionPaymentReceipt {
     this.rejectionReason,
     required this.submittedAt,
     this.reviewedAt,
-  });
+  })  : teacherPayoutDzd = teacherPayoutDzd ?? (priceDzd * 0.85).round(),
+        platformCommissionDzd = platformCommissionDzd ??
+            (priceDzd - (teacherPayoutDzd ?? (priceDzd * 0.85).round()));
 
   bool get isPending => status == ReceiptStatus.pending;
   bool get isApproved => status == ReceiptStatus.approved;
@@ -66,6 +72,8 @@ class SubscriptionPaymentReceipt {
     ReceiptStatus? status,
     String? rejectionReason,
     DateTime? reviewedAt,
+    int? teacherPayoutDzd,
+    int? platformCommissionDzd,
   }) {
     return SubscriptionPaymentReceipt(
       id: id,
@@ -78,6 +86,8 @@ class SubscriptionPaymentReceipt {
       subject: subject,
       packageName: packageName,
       priceDzd: priceDzd,
+      teacherPayoutDzd: teacherPayoutDzd ?? this.teacherPayoutDzd,
+      platformCommissionDzd: platformCommissionDzd ?? this.platformCommissionDzd,
       paymentMethod: paymentMethod,
       receiptName: receiptName,
       receiptBytes: receiptBytes,

@@ -343,7 +343,9 @@ class _VerifyPaymentReceiptModalState extends State<VerifyPaymentReceiptModal> {
                     children: [
                       _detailRow('الباقة المختارة', _currentReceipt.packageName, textColor: _brightCyan),
                       const Divider(color: Colors.white10, height: 16),
-                      _detailRow('المبلغ المطلوب', '${_currentReceipt.priceDzd} دج', textColor: const Color(0xFF10B981), isBold: true),
+                      _detailRow('سعر الباقة', '${_currentReceipt.priceDzd} دج'),
+                      const Divider(color: Colors.white10, height: 16),
+                      _detailRow('مستحقاتك المحتسبة', '+${_currentReceipt.teacherPayoutDzd} دج', textColor: const Color(0xFF10B981), isBold: true),
                       const Divider(color: Colors.white10, height: 16),
                       _detailRow('وسيلة الدفع', _currentReceipt.paymentMethod),
                       const Divider(color: Colors.white10, height: 16),

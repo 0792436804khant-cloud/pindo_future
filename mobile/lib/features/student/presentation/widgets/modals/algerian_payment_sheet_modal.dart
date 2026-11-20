@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pindo_future_mobile/core/config/platform_payment_config.dart';
 import 'package:pindo_future_mobile/features/monetization/services/subscription_payment_service.dart';
 
 class AlgerianPaymentSheetModal extends StatefulWidget {
@@ -65,8 +66,8 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
   static const Color _baridiMobGold = Color(0xFFF59E0B);
   static const Color _edahabiaGold = Color(0xFFEAB308);
 
-  static const String _baridiMobRip = '007 99999 0023456789 42';
-  static const String _ccpAccount = '23456789 المفتاح: 42';
+  static const String _baridiMobRip = PlatformPaymentConfig.formattedRip;
+  static const String _ccpAccount = '${PlatformPaymentConfig.ccpAccountNumber} المفتاح: ${PlatformPaymentConfig.ccpKey}';
 
   @override
   void dispose() {
@@ -78,14 +79,14 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
   }
 
   void _copyRip() {
-    Clipboard.setData(const ClipboardData(text: '00799999002345678942'));
+    Clipboard.setData(const ClipboardData(text: PlatformPaymentConfig.rip));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Row(
           children: [
             Icon(Icons.check_circle, color: Color(0xFF34D399), size: 18),
             SizedBox(width: 8),
-            Text('تم نسخ رقم الـ RIP بنجاح لحافظة الهاتف.'),
+            Text('تم نسخ رقم الـ RIP بنجاح (${PlatformPaymentConfig.formattedRip}).'),
           ],
         ),
         backgroundColor: const Color(0xFF0F172A),
@@ -513,40 +514,84 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _baridiMobGold.withValues(alpha: 0.35)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('رقم الحساب الجاري البريدي RIP:', style: TextStyle(color: Colors.white54, fontSize: 10.5)),
-                      SizedBox(height: 3),
-                      Text(
-                        _baridiMobRip,
-                        style: TextStyle(
-                          color: _baridiMobGold,
-                          fontSize: 13.5,
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance, color: _baridiMobGold, size: 14),
+                    const SizedBox(width: 6),
+                    const Text('الحساب المستلم: ', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                    Expanded(
+                      child: Text(
+                        PlatformPaymentConfig.accountHolderName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                          fontFamily: 'monospace',
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _copyRip,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _baridiMobGold,
-                    foregroundColor: const Color(0xFF070B14),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const Divider(color: Colors.white12, height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('رقم الحساب الجاري البريدي RIP:', style: TextStyle(color: Colors.white54, fontSize: 10.5)),
+                          SizedBox(height: 3),
+                          Text(
+                            _baridiMobRip,
+                            style: TextStyle(
+                              color: _baridiMobGold,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                              fontFamily: 'monospace',
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _copyRip,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _baridiMobGold,
+                        foregroundColor: const Color(0xFF070B14),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.copy, size: 14),
+                      label: const Text('نسخ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: _brightCyan, size: 14),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'قم بالتحويل عبر تطبيق بريدي موب إلى الـ RIP أعلاه (${widget.priceDzd} دج)، ثم ارفع وصل التحويل أدناه لتفعيل اشتراكك.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 10.5, height: 1.3),
                   ),
-                  icon: const Icon(Icons.copy, size: 14),
-                  label: const Text('نسخ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -735,11 +780,11 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('الحساب الجاري CCP:', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                SizedBox(height: 2),
-                Text(_ccpAccount, style: TextStyle(color: _brightCyan, fontSize: 13, fontWeight: FontWeight.bold)),
-                SizedBox(height: 4),
-                Text('باسم: مؤسسة بيندو فيوتشر للتعليم التفاعلي عن بعد', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                const Text('الحساب الجاري CCP:', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(height: 2),
+                const Text(_ccpAccount, style: TextStyle(color: _brightCyan, fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                const Text('باسم: ${PlatformPaymentConfig.accountHolderName}', style: TextStyle(color: Colors.white70, fontSize: 11)),
               ],
             ),
           ),

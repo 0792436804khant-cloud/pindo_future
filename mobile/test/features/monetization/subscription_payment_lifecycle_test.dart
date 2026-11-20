@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pindo_future_mobile/core/config/platform_payment_config.dart';
 import 'package:pindo_future_mobile/features/monetization/domain/entities/subscription_payment_receipt.dart';
 import 'package:pindo_future_mobile/features/monetization/services/subscription_payment_service.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
+import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/algerian_payment_sheet_modal.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/tabs/student_subscriptions_tab.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/teachers/presentation/widgets/modals/verify_payment_receipt_modal.dart';
@@ -182,6 +184,98 @@ void main() {
 
       // Verify payment history shows existing receipts
       expect(find.textContaining('TRX-ALG-2026-8711'), findsWidgets);
+    });
+
+    test('PlatformPaymentConfig computes exact 15% live and 10% library commission', () {
+      // 1. Live Only: 2,500 DZD -> 15% platform cut (375 DZD), teacher gets 2,125 DZD
+      final liveOnly = PlatformPaymentConfig.calculateCommission(
+        totalPriceDzd: 2500,
+        packageName: 'باقة الحصص فقط',
+      );
+      expect(liveOnly.grossPriceDzd, equals(2500));
+      expect(liveOnly.platformCommissionDzd, equals(375));
+      expect(liveOnly.teacherPayoutDzd, equals(2125));
+      expect(liveOnly.isLibraryIncluded, isFalse);
+
+      // 2. Live + Library: 3,800 DZD (2500 live + 1300 library)
+      // 15% on 2500 = 375 DZD, 10% on 1300 = 130 DZD -> Total platform: 505 DZD, teacher gets 3,295 DZD
+      final liveAndLibrary = PlatformPaymentConfig.calculateCommission(
+        totalPriceDzd: 3800,
+        packageName: 'باقة الحصص والمكتبة الرقمية',
+      );
+      expect(liveAndLibrary.grossPriceDzd, equals(3800));
+      expect(liveAndLibrary.platformCommissionDzd, equals(505));
+      expect(liveAndLibrary.teacherPayoutDzd, equals(3295));
+      expect(liveAndLibrary.isLibraryIncluded, isTrue);
+    });
+
+    testWidgets('VerifyPaymentReceiptModal shows net teacher earnings and conceals platform commission', (tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final receipt = service.pendingReceipts.first;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => VerifyPaymentReceiptModal.show(ctx, receipt: receipt),
+                child: const Text('Open Verify Modal'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Verify Modal'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Shows package price and teacher's net earnings
+      expect(find.textContaining('سعر الباقة'), findsOneWidget);
+      expect(find.textContaining('${receipt.priceDzd} دج'), findsWidgets);
+      expect(find.textContaining('مستحقاتك المحتسبة'), findsOneWidget);
+      expect(find.textContaining('+${receipt.teacherPayoutDzd} دج'), findsWidgets);
+
+      // CRITICAL: Must NEVER show platform commission or deduction to teacher
+      expect(find.textContaining('عمولة المنصة'), findsNothing);
+      expect(find.textContaining('اقتطاع'), findsNothing);
+    });
+
+    testWidgets('AlgerianPaymentSheetModal displays official RIP and platform account holder name', (tester) async {
+      tester.view.physicalSize = const Size(1200, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => AlgerianPaymentSheetModal.show(
+                  ctx,
+                  cohortName: 'فوج النخبة للبكالوريا',
+                  teacherName: 'الأستاذ بن عيسى',
+                  subject: 'الرياضيات',
+                  packageName: 'باقة الحصص فقط',
+                  priceDzd: 2500,
+                ),
+                child: const Text('Open Payment Sheet'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Payment Sheet'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Check RIP and Holder name are displayed
+      expect(find.textContaining(PlatformPaymentConfig.formattedRip), findsOneWidget);
+      expect(find.textContaining(PlatformPaymentConfig.accountHolderName), findsWidgets);
     });
   });
 }
