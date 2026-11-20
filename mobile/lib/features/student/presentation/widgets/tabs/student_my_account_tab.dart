@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pindo_future_mobile/features/student/data/models/student_dashboard_model.dart';
 import 'package:pindo_future_mobile/features/student/presentation/widgets/modals/support_ticket_modal.dart';
 import '../modals/subscription_package_modal.dart';
@@ -474,6 +475,60 @@ class _StudentMyAccountTabState extends State<StudentMyAccountTab> {
               _passportInfoPill(Icons.location_on_outlined, 'الولاية:', 'الجزائر العاصمة (القبة)'),
               _passportInfoPill(Icons.school_outlined, 'المؤسسة:', 'ثانوية الرياضيات بالقبة'),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.family_restroom, color: _brightCyan, size: 16),
+                    const SizedBox(width: 8),
+                    const Text('كود ربط ولي الأمر:', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'PINDO-FAM-${student.id.toString().padLeft(4, '0')}',
+                      style: const TextStyle(color: _brightCyan, fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                    ),
+                  ],
+                ),
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: 'PINDO-FAM-${student.id.toString().padLeft(4, '0')}'));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('تم نسخ كود ربط ولي الأمر لمشاركته مع الوالد.'),
+                        backgroundColor: const Color(0xFF0F172A),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _brightCyan.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.copy, color: _brightCyan, size: 12),
+                        SizedBox(width: 4),
+                        Text('نسخ', style: TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

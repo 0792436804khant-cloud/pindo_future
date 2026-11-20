@@ -345,9 +345,11 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
                           children: [
                             const Icon(Icons.auto_awesome, color: Color(0xFFFBBF24), size: 14),
                             const SizedBox(width: 6),
-                            Text(
-                              'الباقة المحددة: ${widget.packageName}',
-                              style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 12, fontWeight: FontWeight.bold),
+                            Expanded(
+                              child: Text(
+                                'الباقة المحددة: ${widget.packageName}',
+                                style: const TextStyle(color: Color(0xFFFBBF24), fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),

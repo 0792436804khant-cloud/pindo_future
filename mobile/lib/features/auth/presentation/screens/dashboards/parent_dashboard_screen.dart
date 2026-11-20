@@ -19,15 +19,19 @@ import '../../../../parent/data/datasources/parent_remote_datasource.dart';
 import '../../../../parent/data/repositories/parent_repository_impl.dart';
 import '../../../../parent/domain/entities/child_overview_entity.dart';
 import '../../../../parent/presentation/controllers/parent_controller.dart';
+import '../../../../student/presentation/widgets/modals/algerian_payment_sheet_modal.dart';
+import '../../../../../core/config/platform_payment_config.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
   final User user;
   final AuthController authController;
+  final ParentController? parentController;
 
   const ParentDashboardScreen({
     super.key,
     required this.user,
     required this.authController,
+    this.parentController,
   });
 
   @override
@@ -47,7 +51,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _initController();
+    if (widget.parentController != null) {
+      _parentController = widget.parentController;
+      _isInitializing = false;
+    } else {
+      _initController();
+    }
   }
 
   Future<void> _initController() async {
@@ -114,7 +123,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               CircularProgressIndicator(color: _brightCyan),
               SizedBox(height: 16),
               Text(
-                'Connecting to Guardian Oversight Portal...',
+                'جارٍ الاتصال ببوابة المتابعة الأبوية...',
                 style: TextStyle(color: Colors.white70, fontSize: 13.5),
               ),
             ],
@@ -148,7 +157,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 const PindoBrandLogo(size: 26, showText: false, withGlow: true),
                 const SizedBox(width: 10),
                 Text(
-                  'Guardian Portal • ${widget.user.name}',
+                  'بوابة ولي الأمر 👨‍👦 • ${widget.user.name}',
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -161,12 +170,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh, color: _brightCyan),
-                tooltip: 'Refresh Portal Data',
+                tooltip: 'تحديث البيانات',
                 onPressed: () => ctrl.loadChildren(),
               ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-                tooltip: 'Settings & Security',
+                tooltip: 'إعدادات الحساب والأمان',
                 onPressed: () => UserAccountSettingsModal.show(
                   context,
                   user: widget.user,
@@ -175,7 +184,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white70),
-                tooltip: 'Sign Out',
+                tooltip: 'تسجيل الخروج',
                 onPressed: () => widget.authController.logout(),
               ),
               const SizedBox(width: 8),
@@ -258,6 +267,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                                   if (selectedChild == null) ...[
                                     _buildEmptyChildrenState(ctrl),
                                   ] else ...[
+                                    _buildLiveAttendanceAlert(ctrl, selectedChild)
+                                        .animate()
+                                        .fadeIn(duration: 400.ms)
+                                        .slideY(begin: -0.04, end: 0, duration: 400.ms),
+                                    const SizedBox(height: 16),
                                     _buildKpiOverview(selectedChild)
                                         .animate()
                                         .fadeIn(duration: 450.ms, delay: 100.ms)
@@ -334,7 +348,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         ),
                         const SizedBox(width: 10),
                         const FuturisticGlowBadge(
-                          label: 'GUARDIAN',
+                          label: 'ولي أمر معتمد ✓',
                           color: _brightCyan,
                         ),
                       ],
@@ -346,8 +360,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${ctrl.children.length} Student${ctrl.children.length == 1 ? '' : 's'} Linked for Oversight',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11.5),
+                      '${ctrl.children.length} أبناء مرتبطين للمتابعة الأكاديمية والأبوية',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.70), fontSize: 11.5),
                     ),
                   ],
                 ),
@@ -356,7 +370,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           );
 
           final linkButton = FuturisticCapsuleButton(
-            text: 'Link Child',
+            text: 'ربط ابن جديد',
             icon: Icons.person_add_rounded,
             height: 42,
             accentColor: _brightCyan,
@@ -396,9 +410,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Select Student for Oversight:',
-          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.7)),
+        const Text(
+          'اختر الابن للمتابعة اللحظية:',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 10),
         SingleChildScrollView(
@@ -470,6 +484,190 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   }
 
   // ==========================================
+  // Live Attendance & Absence Alerts (15-min)
+  // ==========================================
+  Widget _buildLiveAttendanceAlert(ParentController ctrl, ChildOverviewEntity child) {
+    if (ctrl.isAbsenceAlertTriggered) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFFDC2626).withValues(alpha: 0.35),
+              const Color(0xFF991B1B).withValues(alpha: 0.20),
+              const Color(0xFF0F172A).withValues(alpha: 0.85),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '⚠️ تنبيه غياب فوري: الابن ${child.name} لم يسجل حضوره!',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'حصة ${ctrl.currentLiveSubject} مع ${ctrl.currentLiveTeacher} انطلقت منذ ${ctrl.liveMinutesElapsed} دقيقة، وتجاوزت مهلة الـ 15 دقيقة دون تسجيل دخول.',
+                        style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.35),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.send_to_mobile, color: Color(0xFF34D399), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('تم إرسال إشعار فوري لهاتف الابن (${child.name}) للالتحاق بقاعة البث المباشر.')),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF0F172A),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Color(0xFF10B981)),
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    icon: const Icon(Icons.notifications_active_rounded, size: 16),
+                    label: const Text('تنبيه الابن هاتفياً 📲', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => ctrl.toggleChildLivePresence(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  ),
+                  child: const Text('محاكاة الحضور ✓', style: TextStyle(fontSize: 11.5)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (ctrl.isChildAttendingNow) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF047857).withValues(alpha: 0.35),
+              const Color(0xFF065F46).withValues(alpha: 0.20),
+              const Color(0xFF0F172A).withValues(alpha: 0.85),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.2),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFF10B981),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.sensors, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🟢 ${child.name} حاضر ويتفاعل الآن في البث المباشر',
+                    style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'مادة ${ctrl.currentLiveSubject} مع ${ctrl.currentLiveTeacher} (منذ ${ctrl.liveMinutesElapsed} دقيقة - مواظبة ممتازة).',
+                    style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: () => ctrl.toggleChildLivePresence(),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white60,
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              ),
+              child: const Text('محاكاة الغياب', style: TextStyle(fontSize: 10.5)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ==========================================
   // Executive KPI Stat Cards
   // ==========================================
   Widget _buildKpiOverview(ChildOverviewEntity child) {
@@ -479,28 +677,28 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
         final kpis = [
           _buildKpiCard(
-            title: 'Academic Progress',
+            title: 'التقدم الأكاديمي والتحصيل',
             primaryValue: '${child.averageProgress.toStringAsFixed(1)}%',
-            subtitle: '${child.completedCoursesCount} of ${child.enrolledCoursesCount} Completed',
+            subtitle: '${child.completedCoursesCount} من ${child.enrolledCoursesCount} أفواج مكتملة',
             icon: Icons.school_rounded,
             color: _brightCyan,
             progress: child.averageProgress / 100,
           ),
           _buildKpiCard(
-            title: 'Live Watch-Time',
-            primaryValue: '${child.totalWatchMinutes.toStringAsFixed(0)} mins',
-            subtitle: '${child.sessionsAttendedCount} Sessions Attended',
+            title: 'دقائق التعلّم المباشر',
+            primaryValue: '${child.totalWatchMinutes.toStringAsFixed(0)} دقيقة',
+            subtitle: '${child.sessionsAttendedCount} حصص مباشرة تم حضورها',
             icon: Icons.access_time_filled_rounded,
             color: _electricPurple,
             progress: (child.totalWatchMinutes / 120).clamp(0.0, 1.0),
           ),
           _buildKpiCard(
-            title: 'Instructor Notes',
+            title: 'توجيهات وملاحظات الأساتذة',
             primaryValue: '${child.notesCount}',
-            subtitle: child.notesCount > 0 ? 'Feedback & Inquiries' : 'No Pending Alerts',
+            subtitle: child.notesCount > 0 ? 'تنبيهات وتوجيهات نشطة' : 'لا توجد ملاحظات معلقة',
             icon: Icons.mark_email_unread_rounded,
             color: const Color(0xFFF59E0B),
-            badge: child.notesCount > 0 ? '${child.notesCount} Note' : null,
+            badge: child.notesCount > 0 ? '${child.notesCount} ملاحظة' : null,
           ),
         ];
 
@@ -548,14 +746,17 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.65),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.65),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               BentoIconAura(
                 icon: icon,
                 color: color,
@@ -567,12 +768,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Text(
-                primaryValue,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+              Expanded(
+                child: Text(
+                  primaryValue,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
               ),
               if (badge != null) ...[
@@ -611,11 +814,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   // ==========================================
   Widget _buildTabBar(ParentController ctrl) {
     final tabs = [
-      {'title': 'Academics', 'icon': Icons.school_rounded},
-      {'title': 'Attendance', 'icon': Icons.access_time_filled_rounded},
-      {'title': 'Schedule', 'icon': Icons.calendar_month_rounded},
-      {'title': 'Notes', 'icon': Icons.forum_rounded},
-      {'title': 'Instructors', 'icon': Icons.hub_rounded},
+      {'title': 'حصص واشتراكات الابن', 'icon': Icons.school_rounded},
+      {'title': 'المواظبة والحضور', 'icon': Icons.access_time_filled_rounded},
+      {'title': 'الجدول الأسبوعي', 'icon': Icons.calendar_month_rounded},
+      {'title': 'ملاحظات الأساتذة', 'icon': Icons.forum_rounded},
+      {'title': 'استكشاف الأساتذة', 'icon': Icons.hub_rounded},
     ];
 
     return Container(
@@ -665,7 +868,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         tab['title'] as String,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           color: isSelected ? Colors.white : Colors.white60,
                         ),
@@ -687,7 +890,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   Widget _buildTabContent(ParentController ctrl, ChildOverviewEntity child) {
     switch (ctrl.activeTabIndex) {
       case 0:
-        return _buildAcademicsTab(ctrl);
+        return _buildAcademicsTab(ctrl, child);
       case 1:
         return _buildAttendanceTab(ctrl);
       case 2:
@@ -699,19 +902,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           onOpenTeacherShowcase: _navigateToTeacherShowcase,
         );
       default:
-        return _buildAcademicsTab(ctrl);
+        return _buildAcademicsTab(ctrl, child);
     }
   }
 
   // ------------------------------------------
   // Tab 0: Academics & Courses
   // ------------------------------------------
-  Widget _buildAcademicsTab(ParentController ctrl) {
+  Widget _buildAcademicsTab(ParentController ctrl, ChildOverviewEntity child) {
     if (ctrl.academics.isEmpty) {
       return _buildEmptyTab(
         icon: Icons.school_outlined,
-        title: 'No Course Enrollments Found',
-        message: 'This student has not enrolled in any masterclasses yet.',
+        title: 'لا توجد اشتراكات أو أفواج حالياً',
+        message: 'لم يتم تسجيل الابن في أي فوج دراسي حتى الآن.',
       );
     }
 
@@ -723,6 +926,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           end: Alignment.bottomRight,
         );
         final isCompleted = course.progressPercentage >= 100;
+        final remainingLessons = (course.totalLessons - course.completedLessons).clamp(0, course.totalLessons);
 
         return GlassmorphicContainer(
           borderRadius: BorderRadius.circular(20),
@@ -748,7 +952,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       color: Colors.white,
                     ),
                     FuturisticGlowBadge(
-                      label: isCompleted ? '✓ Completed' : '${course.progressPercentage}% Progress',
+                      label: isCompleted ? '✓ مكتمل' : 'نسبة الإنجاز ${course.progressPercentage.toStringAsFixed(0)}%',
                       color: isCompleted ? _neonGreen : Colors.white,
                     ),
                   ],
@@ -790,7 +994,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         ),
                         const Spacer(),
                         Text(
-                          '${course.completedLessons} of ${course.totalLessons} Lessons',
+                          '${course.completedLessons} من ${course.totalLessons} حصص مكتملة',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -811,6 +1015,99 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         minHeight: 7,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    // Guardian Direct Payment & Balance Action Strip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isCompact = constraints.maxWidth < 480;
+
+                          final creditCounter = Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: remainingLessons <= 2
+                                      ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                                      : _brightCyan.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  remainingLessons <= 2 ? Icons.hourglass_bottom_rounded : Icons.check_circle_rounded,
+                                  color: remainingLessons <= 2 ? const Color(0xFFEF4444) : _brightCyan,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'رصيد الحصص المتبقية:',
+                                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                                  ),
+                                  Text(
+                                    '$remainingLessons حصص متبقية في الفوج',
+                                    style: TextStyle(
+                                      color: remainingLessons <= 2 ? const Color(0xFFEF4444) : Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+
+                          final payBtn = FuturisticCapsuleButton(
+                            text: 'تجديد ودفع اشتراك الابن ببريدي موب ⚡',
+                            icon: Icons.flash_on_rounded,
+                            height: 38,
+                            fontSize: 11.5,
+                            accentColor: const Color(0xFF10B981),
+                            secondaryColor: const Color(0xFF047857),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            onPressed: () {
+                              AlgerianPaymentSheetModal.show(
+                                context,
+                                cohortName: course.title,
+                                teacherName: course.teacherName,
+                                subject: course.category,
+                                packageName: 'الباقة المباشرة + المكتبة الشاملة',
+                                priceDzd: 3800,
+                                isQuickRenewal: true,
+                              );
+                            },
+                          );
+
+                          if (isCompact) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                creditCounter,
+                                const SizedBox(height: 10),
+                                payBtn,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              creditCounter,
+                              payBtn,
+                            ],
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -828,8 +1125,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     if (ctrl.attendanceRecords.isEmpty) {
       return _buildEmptyTab(
         icon: Icons.timer_off_outlined,
-        title: 'No Live Attendance Records',
-        message: 'No recorded attendance for live masterclasses yet.',
+        title: 'لا يوجد سجل حضور مباشر بعد',
+        message: 'لم يتم تسجيل أي حضور مباشر للابن حتى الآن.',
       );
     }
 
@@ -849,11 +1146,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildAttendanceMetric('Total Sessions', '$totalSessions', _brightCyan),
+              _buildAttendanceMetric('إجمالي الحصص', '$totalSessions', _brightCyan),
               Container(height: 32, width: 1, color: Colors.white.withValues(alpha: 0.15)),
-              _buildAttendanceMetric('Watch-Time', '${totalMins.toStringAsFixed(0)}m', _electricPurple),
+              _buildAttendanceMetric('دقائق المشاهدة', '${totalMins.toStringAsFixed(0)} د', _electricPurple),
               Container(height: 32, width: 1, color: Colors.white.withValues(alpha: 0.15)),
-              _buildAttendanceMetric('Hours', '${totalHours.toStringAsFixed(1)}h', _neonGreen),
+              _buildAttendanceMetric('ساعات التعلّم', '${totalHours.toStringAsFixed(1)} س', _neonGreen),
             ],
           ),
         ),
@@ -883,19 +1180,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Session: ${att.sessionId}',
+                        'معرف الحصة: ${att.sessionId}',
                         style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.55)),
                       ),
                       if (att.joinedAt != null)
                         Text(
-                          'Joined: ${att.joinedAt!.split('T').first}',
+                          'تاريخ الانضمام: ${att.joinedAt!.split('T').first}',
                           style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
                         ),
                     ],
                   ),
                 ),
                 FuturisticGlowBadge(
-                  label: '${att.durationMinutes.toStringAsFixed(0)} mins',
+                  label: '${att.durationMinutes.toStringAsFixed(0)} دقيقة',
                   color: _brightCyan,
                 ),
               ],
@@ -933,8 +1230,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     if (ctrl.schedule.isEmpty) {
       return _buildEmptyTab(
         icon: Icons.calendar_today_outlined,
-        title: 'No Upcoming Classroom Sessions',
-        message: 'No live sessions currently scheduled for this curriculum.',
+        title: 'لا توجد حصص قادمة في الجدول',
+        message: 'الجدول الدراسي فارغ حالياً لهذا الأسبوع.',
       );
     }
 
@@ -972,19 +1269,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         ),
                         if (session.isLive)
                           const FuturisticGlowBadge(
-                            label: 'LIVE NOW',
+                            label: 'مباشر الآن 🔴',
                             color: Color(0xFFEF4444),
                           ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Course: ${session.courseTitle}',
+                      'الفوج الدراسي: ${session.courseTitle}',
                       style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65)),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Instructor: ${session.teacherName} • Session: ${session.sessionId}',
+                      'الأستاذ المحاضر: ${session.teacherName} • المعرف: ${session.sessionId}',
                       style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.45)),
                     ),
                   ],
@@ -1008,11 +1305,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Instructor Commendations & Alerts',
+              'توجيهات وتنبيهات الأساتذة',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             FuturisticCapsuleButton(
-              text: 'New Inquiry',
+              text: 'استفسار جديد للأساتذة',
               icon: Icons.add_comment_rounded,
               height: 38,
               fontSize: 12,
@@ -1027,8 +1324,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         if (ctrl.notes.isEmpty)
           _buildEmptyTab(
             icon: Icons.chat_bubble_outline,
-            title: 'No Guardian Notes Yet',
-            message: 'You can submit an inquiry or question to course instructors above.',
+            title: 'لا توجد ملاحظات أو توجيهات بعد',
+            message: 'يمكنك إرسال استفسار أو سؤال للأساتذة والمشرفين عبر الزر أعلاه.',
           )
         else
           ...ctrl.notes.map((note) {
@@ -1036,8 +1333,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             final isReport = note.type == 'progress_report';
 
             Color bannerColor = _brightCyan;
-            if (isAlert) bannerColor = const Color(0xFFEF4444);
-            if (isReport) bannerColor = _neonGreen;
+            String typeBadgeLabel = 'ملاحظة عامة';
+            if (isAlert) {
+              bannerColor = const Color(0xFFEF4444);
+              typeBadgeLabel = 'تنبيه غياب ومواظبة';
+            } else if (isReport) {
+              bannerColor = _neonGreen;
+              typeBadgeLabel = 'تقرير تحصيل أكاديمي';
+            }
 
             return GlassmorphicContainer(
               borderRadius: BorderRadius.circular(18),
@@ -1050,7 +1353,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   Row(
                     children: [
                       FuturisticGlowBadge(
-                        label: note.type.toUpperCase().replaceAll('_', ' '),
+                        label: typeBadgeLabel,
                         color: bannerColor,
                       ),
                       const SizedBox(width: 10),
@@ -1071,7 +1374,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                           ),
                           icon: const Icon(Icons.check_circle_outline, size: 16),
-                          label: const Text('Acknowledge', style: TextStyle(fontSize: 12)),
+                          label: const Text('تأكيد الاطلاع ✓', style: TextStyle(fontSize: 12)),
                           onPressed: () => ctrl.acknowledgeNote(note.id),
                         ),
                     ],
@@ -1089,7 +1392,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       Icon(Icons.person, size: 13, color: Colors.white.withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
-                        '${note.authorName} (${note.authorRole})',
+                        '${note.authorName} (${note.authorRole == 'teacher' ? 'أستاذ المادة' : note.authorRole})',
                         style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6)),
                       ),
                       const Spacer(),
@@ -1124,18 +1427,18 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           ),
           const SizedBox(height: 18),
           const Text(
-            'No Student Accounts Linked',
+            'لم يتم ربط أي حساب تلميذ بعد',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
-            'Connect your child or student account to view real-time learning progress, live classroom attendance, and instructor commendations.',
+            'قم بربط حساب ابنك عبر رمز العائلة أو البريد الإلكتروني لمتابعة تحصيله الدراسي، وحضوره المباشر، وملاحظات أساتذته لحظة بلحظة.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
           ),
           const SizedBox(height: 22),
           FuturisticCapsuleButton(
-            text: 'Link Student Account',
+            text: 'ربط حساب الابن الآن',
             icon: Icons.person_add_rounded,
             accentColor: _brightCyan,
             secondaryColor: _electricPurple,
@@ -1222,7 +1525,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   // ==========================================
   void _showLinkChildDialog(ParentController ctrl) {
     final emailController = TextEditingController();
-    final relationshipController = TextEditingController(text: 'Parent');
+    final relationshipController = TextEditingController(text: 'ولي الأمر');
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -1254,7 +1557,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'Link Student Account',
+                          'ربط حساب الابن 👨‍👦',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -1271,7 +1574,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Enter your student\'s registered email address on Pindo Future to link their progress:',
+                    'أدخل رمز العائلة (PINDO-FAM-XXXX) الموجود في حساب الابن، أو بريده الإلكتروني المسجل في منصة بيندو:',
                     style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 16),
@@ -1279,11 +1582,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     controller: emailController,
                     style: const TextStyle(color: Colors.white, fontSize: 13.5),
                     decoration: InputDecoration(
-                      labelText: 'Student Email Address',
+                      labelText: 'رمز العائلة أو البريد الإلكتروني للابن',
                       labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                      hintText: 'e.g. student.demo@pindofuture.com',
+                      hintText: 'مثال: PINDO-FAM-0001 أو student@pindo.dz',
                       hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
-                      prefixIcon: const Icon(Icons.email_outlined, color: _brightCyan, size: 20),
+                      prefixIcon: const Icon(Icons.link_rounded, color: _brightCyan, size: 20),
                       filled: true,
                       fillColor: Colors.white.withValues(alpha: 0.05),
                       border: OutlineInputBorder(
@@ -1300,8 +1603,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       ),
                     ),
                     validator: (val) {
-                      if (val == null || val.trim().isEmpty) return 'Student email is required';
-                      if (!val.contains('@')) return 'Enter a valid email address';
+                      if (val == null || val.trim().isEmpty) return 'يرجى إدخال رمز العائلة أو البريد الإلكتروني';
+                      final text = val.trim();
+                      if (!text.contains('@') && !text.toUpperCase().startsWith('PINDO-FAM-')) {
+                        return 'أدخل رمز عائلة صحيح (PINDO-FAM-XXXX) أو بريد إلكتروني';
+                      }
                       return null;
                     },
                   ),
@@ -1310,9 +1616,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     controller: relationshipController,
                     style: const TextStyle(color: Colors.white, fontSize: 13.5),
                     decoration: InputDecoration(
-                      labelText: 'Your Relationship',
+                      labelText: 'صلة القرابة',
                       labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                      hintText: 'e.g. Mother, Father, Guardian',
+                      hintText: 'مثال: الأب، الأم، الولي الشرعي',
                       hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
                       prefixIcon: const Icon(Icons.family_restroom_outlined, color: _electricPurple, size: 20),
                       filled: true,
@@ -1336,7 +1642,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     children: [
                       Expanded(
                         child: FuturisticCapsuleButton(
-                          text: 'Cancel',
+                          text: 'إلغاء',
                           isPrimary: false,
                           height: 42,
                           onPressed: () => Navigator.of(ctx).pop(),
@@ -1345,7 +1651,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FuturisticCapsuleButton(
-                          text: 'Link Account',
+                          text: 'ربط الحساب الآن',
                           icon: Icons.link_rounded,
                           height: 42,
                           accentColor: _brightCyan,
@@ -1412,7 +1718,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Inquiry for ${child.name}',
+                              'استفسار بخصوص ${child.name}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -1429,7 +1735,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Direct communication with instructors and academic mentors:',
+                        'تواصل مباشر وسريع مع أساتذة المادة والمشرفين الأكاديميين:',
                         style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.7)),
                       ),
                       const SizedBox(height: 16),
@@ -1449,9 +1755,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                             style: const TextStyle(color: Colors.white, fontSize: 13),
                             icon: const Icon(Icons.keyboard_arrow_down, color: _brightCyan),
                             items: const [
-                              DropdownMenuItem(value: 'general', child: Text('General Inquiry')),
-                              DropdownMenuItem(value: 'progress_report', child: Text('Academic Progress Question')),
-                              DropdownMenuItem(value: 'attendance_alert', child: Text('Attendance Notice')),
+                              DropdownMenuItem(value: 'general', child: Text('استفسار عام')),
+                              DropdownMenuItem(value: 'progress_report', child: Text('سؤال عن التحصيل والتقدم الأكاديمي')),
+                              DropdownMenuItem(value: 'attendance_alert', child: Text('إشعار بخصوص الحضور أو الغياب')),
                             ],
                             onChanged: (val) {
                               if (val != null) setDialogState(() => selectedType = val);
@@ -1464,7 +1770,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         controller: titleController,
                         style: const TextStyle(color: Colors.white, fontSize: 13.5),
                         decoration: InputDecoration(
-                          labelText: 'Subject / Title',
+                          labelText: 'عنوان الاستفسار / الموضوع',
                           labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                           filled: true,
                           fillColor: Colors.white.withValues(alpha: 0.05),
@@ -1482,7 +1788,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           ),
                         ),
                         validator: (val) {
-                          if (val == null || val.trim().isEmpty) return 'Subject title is required';
+                          if (val == null || val.trim().isEmpty) return 'يرجى كتابة عنوان للاستفسار';
                           return null;
                         },
                       ),
@@ -1492,7 +1798,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         maxLines: 4,
                         style: const TextStyle(color: Colors.white, fontSize: 13.5),
                         decoration: InputDecoration(
-                          labelText: 'Message Body',
+                          labelText: 'نص الرسالة أو الاستفسار',
                           labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
                           filled: true,
                           fillColor: Colors.white.withValues(alpha: 0.05),
@@ -1510,7 +1816,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           ),
                         ),
                         validator: (val) {
-                          if (val == null || val.trim().isEmpty) return 'Message body is required';
+                          if (val == null || val.trim().isEmpty) return 'يرجى كتابة نص الرسالة أو الاستفسار';
                           return null;
                         },
                       ),
@@ -1519,7 +1825,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         children: [
                           Expanded(
                             child: FuturisticCapsuleButton(
-                              text: 'Cancel',
+                              text: 'إلغاء',
                               isPrimary: false,
                               height: 42,
                               onPressed: () => Navigator.of(ctx).pop(),
@@ -1528,7 +1834,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: FuturisticCapsuleButton(
-                              text: 'Send Message',
+                              text: 'إرسال الاستفسار ✉️',
                               icon: Icons.send_rounded,
                               height: 42,
                               accentColor: _brightCyan,
