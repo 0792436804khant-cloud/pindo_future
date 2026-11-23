@@ -6,7 +6,7 @@
     "background_color": "#070B14",
     "theme_color": "#0D9488",
     "description": "Next-Generation Live Educational Streaming Platform with High-Concurrency SFU, Vector Whiteboard & Guardian Oversight.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
