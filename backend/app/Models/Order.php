@@ -27,8 +27,13 @@ class Order extends Model
         'payment_method',
         'gateway_transaction_id',
         'receipt_number',
+        'receipt_image_path',
+        'receipt_hash',
+        'tx_reference',
+        'rejection_reason',
         'payment_metadata',
         'paid_at',
+        'subscription_ends_at',
     ];
 
     protected function casts(): array
@@ -37,6 +42,7 @@ class Order extends Model
             'amount' => 'decimal:2',
             'payment_metadata' => 'array',
             'paid_at' => 'datetime',
+            'subscription_ends_at' => 'datetime',
         ];
     }
 

@@ -17,11 +17,25 @@ class CohortMember extends Model
         'student_id',
         'status',
         'joined_at',
+        'ends_at',
     ];
 
     protected $casts = [
         'joined_at' => 'datetime',
+        'ends_at' => 'datetime',
     ];
+
+    /**
+     * Scope only active memberships where end date has not lapsed.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('ends_at')
+                  ->orWhere('ends_at', '>', now());
+            });
+    }
 
     /**
      * Study cohort.

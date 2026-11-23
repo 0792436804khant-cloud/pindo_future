@@ -1441,7 +1441,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               _demoPill('👨‍🏫 أستاذ معتمد (الأستاذ أمين)', 'amine@pindofuture.com', 'password123', UserRole.teacher),
               _demoPill('👩‍🎓 تلميذ مشترك (أحمد)', 'student.amine@pindofuture.com', 'password123', UserRole.student),
               _demoPill('👩‍👧 ولي أمر (سليم)', 'parent@pindofuture.com', 'password123', UserRole.parent),
-              _demoPill('🛡️ إدارة المنصة', 'admin@pindofuture.com', 'password123', UserRole.admin),
             ],
           ),
         ],

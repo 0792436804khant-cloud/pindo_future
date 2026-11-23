@@ -26,6 +26,7 @@ class Enrollment extends Model
         'course_id',
         'status',
         'enrolled_at',
+        'ends_at',
         'progress_percentage',
     ];
 
@@ -33,6 +34,7 @@ class Enrollment extends Model
     {
         return [
             'enrolled_at' => 'datetime',
+            'ends_at' => 'datetime',
             'progress_percentage' => 'integer',
         ];
     }
@@ -54,10 +56,14 @@ class Enrollment extends Model
     }
 
     /**
-     * Scope for active enrollments.
+     * Scope for active enrollments whose end date has not lapsed.
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('status', self::STATUS_ACTIVE);
+        return $query->where('status', self::STATUS_ACTIVE)
+            ->where(function ($q) {
+                $q->whereNull('ends_at')
+                  ->orWhere('ends_at', '>', now());
+            });
     }
 }

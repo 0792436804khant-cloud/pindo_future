@@ -35,8 +35,10 @@ class User extends Authenticatable
         'guardian_link_code',
         'is_verified',
         'verification_status',
+        'rejection_reason',
         'verified_at',
         'national_id_or_diploma',
+        'diploma_preview_url',
     ];
 
     /**

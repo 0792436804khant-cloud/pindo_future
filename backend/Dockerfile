@@ -37,5 +37,5 @@ RUN rm -rf /var/www/bootstrap/cache/*.php /var/www/.env* \
 ENV PORT=8080
 EXPOSE 8080
 
-# Robust runtime startup: purge env/cache, discover packages, migrate, compile config & route cache, and serve
-CMD ["sh", "-c", "rm -f /var/www/.env /var/www/.env.* /var/www/bootstrap/cache/*.php && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+# Robust runtime startup: purge env/cache, discover packages, migrate, storage:link, compile config & route cache, and serve
+CMD ["sh", "-c", "rm -f /var/www/.env /var/www/.env.* /var/www/bootstrap/cache/*.php && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan storage:link --force && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]

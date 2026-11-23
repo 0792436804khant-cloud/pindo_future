@@ -430,5 +430,9 @@ class DatabaseSeeder extends Seeder
 
         // 10. Phase 6: Algerian National Exam Banks & Timed Simulations
         $this->call(ExamBankSeeder::class);
+
+        // 11. Real-Time Admin Operations & Telemetry Seed
+        require_once __DIR__ . '/AdminOperationsTelemetrySeeder.php';
+        $this->call(AdminOperationsTelemetrySeeder::class);
     }
 }
