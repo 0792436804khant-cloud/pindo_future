@@ -116,49 +116,58 @@ class StudentSubscriptionsTab extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              _subscriptionCard(
-                context,
-                cohortName: 'فوج النخبة للبكالوريا — الرياضيات',
-                teacherName: 'الأستاذ محمد أمين بن عيسى',
-                subject: 'الرياضيات',
-                packageName: 'باقة الحصص فقط (Live Only)',
-                priceDzd: 2500,
-                remainingCredits: 4,
-                totalCredits: 8,
-                expiresAt: '20 نوفمبر 2026',
-                status: 'فعال ومفعل ✓',
-                statusColor: const Color(0xFF10B981),
-              ),
-              const SizedBox(height: 14),
-
-              _subscriptionCard(
-                context,
-                cohortName: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
-                teacherName: 'الأستاذة كريمة بلقاسم',
-                subject: 'العلوم الفيزيائية',
-                packageName: 'باقة الحصص والمكتبة الرقمية (Live + Library)',
-                priceDzd: 3800,
-                remainingCredits: 6,
-                totalCredits: 8,
-                expiresAt: '25 نوفمبر 2026',
-                status: 'فعال ومفعل ✓',
-                statusColor: const Color(0xFF10B981),
-              ),
-              const SizedBox(height: 14),
-
-              _subscriptionCard(
-                context,
-                cohortName: 'فوج التميز في علوم الطبيعة والحياة',
-                teacherName: 'الأستاذ عبد الرحمن دحمان',
-                subject: 'علوم الطبيعة والحياة',
-                packageName: 'باقة الحصص فقط (Live Only)',
-                priceDzd: 2500,
-                remainingCredits: 1,
-                totalCredits: 8,
-                expiresAt: '05 نوفمبر 2026',
-                status: 'مستحق للتجديد قريباً ⚠️',
-                statusColor: const Color(0xFFF59E0B),
-              ),
+              if (dashboardData.subscriptions.activeCohortsCount == 0 && dashboardData.nextSession == null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.credit_card_off_rounded, color: Colors.white.withValues(alpha: 0.35), size: 36),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'لا توجد اشتراكات نشطة حالياً',
+                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'تصفح قائمة الأساتذة والأفواج النموذجية المعتمدة للاشتراك في باقات الحصص المباشرة والمكتبة التعليمية.',
+                        style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 18),
+                      ElevatedButton.icon(
+                        onPressed: onOpenCohortsExplorer,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _brightCyan,
+                          foregroundColor: const Color(0xFF070B14),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.explore_outlined, size: 16),
+                        label: const Text('استكشاف الأفواج والاشتراك الآن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                      ),
+                    ],
+                  ),
+                )
+              else if (dashboardData.nextSession != null)
+                _subscriptionCard(
+                  context,
+                  cohortName: dashboardData.nextSession!.cohortName,
+                  teacherName: dashboardData.nextSession!.teacherName,
+                  subject: dashboardData.nextSession!.subject,
+                  packageName: dashboardData.subscriptions.packageName,
+                  priceDzd: 2500,
+                  remainingCredits: dashboardData.subscriptions.remainingCredits,
+                  totalCredits: 8,
+                  expiresAt: dashboardData.subscriptions.expiresAt.isNotEmpty ? dashboardData.subscriptions.expiresAt : 'اشتراك مفعل',
+                  status: 'فعال ومفعل ✓',
+                  statusColor: const Color(0xFF10B981),
+                ),
               const SizedBox(height: 20),
 
               // Explore Additional Cohorts

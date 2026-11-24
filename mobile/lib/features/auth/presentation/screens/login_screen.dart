@@ -23,8 +23,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _registerFormKey = GlobalKey<FormState>();
 
   // Sign In Controllers
-  final _loginEmailController = TextEditingController(text: 'amine@pindofuture.com');
-  final _loginPasswordController = TextEditingController(text: 'password123');
+  final _loginEmailController = TextEditingController();
+  final _loginPasswordController = TextEditingController();
   bool _loginObscurePassword = true;
 
   // Register Controllers
@@ -221,26 +221,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         // Authenticated user is automatically routed by main.dart ListenableBuilder
       }
     }
-  }
-
-  void _quickFillDemo(String email, String password, UserRole role) {
-    setState(() {
-      _activeTabIndex = 0; // Switch to Sign In
-      _loginEmailController.text = email;
-      _loginPasswordController.text = password;
-    });
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('تم اختيار حساب ($email) — جاري تسجيل الدخول...'),
-        backgroundColor: const Color(0xFF0D9488),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // Auto-trigger sign in
-    _submitSignIn();
   }
 
   @override
@@ -665,15 +645,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
 
           const SizedBox(height: 24),
-          const Divider(color: Colors.white12, height: 1),
-          const SizedBox(height: 18),
 
-          // 4. One-Tap Demo Credentials Helper
-          _buildDemoAccountsQuickFill(),
-
-          const SizedBox(height: 18),
-
-          // 5. Apple & Google Compliant Privacy Policy & Terms Link
+          // Apple & Google Compliant Privacy Policy & Terms Link
           Center(
             child: InkWell(
               onTap: () => PrivacyPolicyModal.show(context),
@@ -1400,72 +1373,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         ),
       ),
-    );
-  }
-
-  // ==========================================
-  // Quick-Fill Demo Accounts Section
-  // ==========================================
-  Widget _buildDemoAccountsQuickFill() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.flash_on, color: Color(0xFFF59E0B), size: 14),
-              SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  'الدخول المباشر إلى المنظومة الرسمية (حسابات مفعلة):',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFCBD5E1),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              _demoPill('👨‍🏫 أستاذ معتمد (الأستاذ أمين)', 'amine@pindofuture.com', 'password123', UserRole.teacher),
-              _demoPill('👩‍🎓 تلميذ مشترك (أحمد)', 'student.amine@pindofuture.com', 'password123', UserRole.student),
-              _demoPill('👩‍👧 ولي أمر (سليم)', 'parent@pindofuture.com', 'password123', UserRole.parent),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _demoPill(String label, String email, String password, UserRole role) {
-    return GlassmorphicScaleButton(
-      pressedScale: 0.92,
-      onPressed: () => _quickFillDemo(email, password, role),
-      builder: (context, isPressed, isHovered) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: isHovered ? 0.12 : 0.06),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.white.withValues(alpha: isHovered ? 0.22 : 0.12)),
-          ),
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
-          ),
-        );
-      },
     );
   }
 

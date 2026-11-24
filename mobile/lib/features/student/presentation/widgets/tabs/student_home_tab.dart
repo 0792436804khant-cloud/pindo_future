@@ -253,6 +253,9 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
             if (nextSession != null) ...[
               _buildNextSessionHeroCard(context, nextSession),
               const SizedBox(height: 20),
+            ] else ...[
+              _buildNoActiveSessionCard(context),
+              const SizedBox(height: 20),
             ],
 
             // 7. Today's Master Schedule with Alarms & Notifications (جدول اليوم مع التنبيهات)
@@ -380,14 +383,10 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
     );
   }
 
-  // 1. Teacher Stories Tray (شريط القصص المنشورة من طرف الأساتذة)
+  // 1. Teacher Stories Tray (شريط القصص والبيانات الرسمية)
   Widget _buildTeacherStoriesTray() {
     final teachersWithStories = [
-      {'name': 'الأستاذ محمد أمين بن عيسى', 'shortName': 'بن عيسى', 'subject': 'الرياضيات', 'avatar': 'ع', 'hasLive': true},
-      {'name': 'الأستاذة كريمة بلقاسم', 'shortName': 'بلقاسم', 'subject': 'الفيزياء', 'avatar': 'ك', 'hasLive': false},
-      {'name': 'الأستاذ عبد الرحمن دحمان', 'shortName': 'دحمان', 'subject': 'العلوم', 'avatar': 'د', 'hasLive': false},
-      {'name': 'الأستاذ مراد زروقي', 'shortName': 'زروقي', 'subject': 'الأدب العربي', 'avatar': 'ز', 'hasLive': false},
-      {'name': 'منصة Pindo Future', 'shortName': 'إعلانات المنصة', 'subject': 'رسمي', 'avatar': 'P', 'hasLive': false},
+      {'name': 'منصة Pindo Future الرسمية', 'shortName': 'إعلانات المنصة', 'subject': 'قناة الإدارة الرسمية', 'avatar': 'P', 'hasLive': false},
     ];
 
     return Column(
@@ -585,12 +584,7 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
   Widget _buildTeacherSearchBar() {
     final chips = ['الكل 🌐', 'الرياضيات 📐', 'الفيزياء ⚡', 'العلوم 🔬', 'الفلسفة 📖', 'اللغات 🌍'];
 
-    final teachersDirectory = [
-      {'id': 'TCH_01', 'name': 'الأستاذ محمد أمين بن عيسى', 'subject': 'الرياضيات', 'exp': '10 سنوات', 'rating': '4.9 ★'},
-      {'id': 'TCH_02', 'name': 'الأستاذة كريمة بلقاسم', 'subject': 'الفيزياء', 'exp': '8 سنوات', 'rating': '4.8 ★'},
-      {'id': 'TCH_03', 'name': 'الأستاذ عبد الرحمن دحمان', 'subject': 'العلوم', 'exp': '12 سنة', 'rating': '4.9 ★'},
-      {'id': 'TCH_04', 'name': 'الأستاذ مراد زروقي', 'subject': 'الفلسفة', 'exp': '7 سنوات', 'rating': '4.7 ★'},
-    ];
+    final teachersDirectory = <Map<String, String>>[];
 
     final matchingTeachers = teachersDirectory.where((t) {
       if (_selectedSearchChip == 1 && !t['subject']!.contains('الرياضيات')) return false;
@@ -627,7 +621,7 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
             onChanged: (val) => setState(() => _searchQuery = val.trim()),
             style: const TextStyle(color: Colors.white, fontSize: 12.5),
             decoration: InputDecoration(
-              hintText: 'ابحث عن أستاذ (بن عيسى، بلقاسم...)، مادة، أو شعبة...',
+              hintText: 'ابحث عن أستاذ معتمد، مادة دراسية، أو شعبة...',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 11.5),
               prefixIcon: const Icon(Icons.search, color: _brightCyan, size: 18),
               suffixIcon: _searchQuery.isNotEmpty
@@ -691,65 +685,75 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
         if (_searchQuery.isNotEmpty || _selectedSearchChip != 0) ...[
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFF0F172A),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _brightCyan.withValues(alpha: 0.25)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'نتائج البحث المطابقة (${matchingTeachers.length} أستاذ):',
-                  style: const TextStyle(color: Colors.white70, fontSize: 11),
-                ),
-                const SizedBox(height: 6),
-                ...matchingTeachers.map((t) => Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor: _electricPurple.withValues(alpha: 0.3),
-                                child: Text(t['name']![7], style: const TextStyle(color: Colors.white, fontSize: 11)),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(t['name']!, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                  Text('${t['subject']} • خبرة ${t['exp']}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          OutlinedButton(
-                            onPressed: () {
-                              if (widget.onOpenTeacherShowcase != null) {
-                                widget.onOpenTeacherShowcase!(t['id']!);
-                              } else {
-                                _openTeacherStory(t['name']!, t['subject']!);
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: _brightCyan,
-                              side: const BorderSide(color: _brightCyan),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                            ),
-                            child: const Text('الملف والأفواج', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
+            child: matchingTeachers.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'لا توجد نتائج مطابقة لمعايير البحث حالياً.',
+                        style: TextStyle(color: Colors.white60, fontSize: 12),
                       ),
-                    )),
-              ],
-            ),
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'نتائج البحث المطابقة (${matchingTeachers.length} أستاذ):',
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                      const SizedBox(height: 6),
+                      ...matchingTeachers.map((t) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: _electricPurple.withValues(alpha: 0.3),
+                                      child: Text(t['name']!.isNotEmpty ? t['name']![0] : 'أ', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(t['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                        Text('${t['subject']} • خبرة ${t['exp']}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                OutlinedButton(
+                                  onPressed: () {
+                                    if (widget.onOpenTeacherShowcase != null) {
+                                      widget.onOpenTeacherShowcase!(t['id']!);
+                                    } else {
+                                      _openTeacherStory(t['name']!, t['subject']!);
+                                    }
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: _brightCyan,
+                                    side: const BorderSide(color: _brightCyan),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                  ),
+                                  child: const Text('الملف والأفواج', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          )),
+                    ],
+                  ),
           ),
         ],
       ],
@@ -863,6 +867,54 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // 5. No Active Live Session Placeholder Card
+  Widget _buildNoActiveSessionCard(BuildContext context) {
+    return GlassmorphicContainer(
+      borderRadius: BorderRadius.circular(22),
+      blurSigma: 16.0,
+      borderWidth: 1.2,
+      borderColor: Colors.white.withValues(alpha: 0.12),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0xFF0F172A).withValues(alpha: 0.85),
+          const Color(0xFF1E293B).withValues(alpha: 0.65),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _brightCyan.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.school_outlined, color: _brightCyan, size: 24),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'لا توجد حصة مباشرة نشطة الآن',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'راجع جدول مواعيد حصص اليوم، أو تصفح الأفواج الدراسية المتاحة للانضمام.',
+                  style: TextStyle(color: Colors.white60, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1210,7 +1262,29 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
             ],
           ),
           const SizedBox(height: 12),
-          ...widget.dashboardData.todaySchedule.map((item) {
+          if (widget.dashboardData.todaySchedule.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.event_available_outlined, color: Colors.white.withValues(alpha: 0.35), size: 32),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'لا توجد حصص مبرمجة لليوم في أفواجك',
+                      style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'تفقد البرنامج الأسبوعي أو تصفح الأفواج المتاحة للاشتراك',
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...widget.dashboardData.todaySchedule.map((item) {
             final isLive = item.status == 'live';
             final hasAlarm = _enabledScheduleAlarms.contains(item.time);
 
@@ -1319,7 +1393,35 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
           ],
         ),
         const SizedBox(height: 12),
-        ...widget.dashboardData.recentRecordings.map((rec) {
+        if (widget.dashboardData.recentRecordings.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.video_library_outlined, color: Colors.white.withValues(alpha: 0.35), size: 30),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'لا توجد تسجيلات متوفرة حالياً',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'سيتم حفظ وأرشفة تسجيلات حصصك التفاعلية هنا تلقائياً بعد انتهائها',
+                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...widget.dashboardData.recentRecordings.map((rec) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: InkWell(

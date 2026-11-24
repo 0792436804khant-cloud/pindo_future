@@ -61,61 +61,41 @@ class StudentDashboardController extends Controller
                 'session_id' => $nextSession->session_id,
                 'title' => $nextSession->title,
                 'subject' => $nextSession->cohort?->subject ?? 'الرياضيات',
-                'teacher_name' => $nextSession->teacher?->name ?? 'الأستاذ محمد أمين بن عيسى',
-                'cohort_name' => $nextSession->cohort?->name ?? 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
+                'teacher_name' => $nextSession->teacher?->name ?? 'الأستاذ',
+                'cohort_name' => $nextSession->cohort?->name ?? 'فوج عام',
                 'scheduled_at' => $scheduledAt->toIso8601String(),
                 'status' => $statusLabel,
                 'is_live' => $isLive,
                 'minutes_remaining' => (int) $minutesRemaining,
             ];
-        } else {
-            // Default scheduled upcoming session for platform immersion
-            $nextSessionData = [
-                'id' => 999,
-                'session_id' => 'SES_BAC_MATH_01',
-                'title' => 'دورة المراجعة الشاملة لمادة الرياضيات — التحضير للبكالوريا',
-                'subject' => 'الرياضيات',
-                'teacher_name' => 'الأستاذ محمد أمين بن عيسى',
-                'cohort_name' => 'فوج النخبة للبكالوريا (شعبة علوم تجريبية ورياضي)',
-                'scheduled_at' => Carbon::today()->setTime(18, 0)->toIso8601String(),
-                'status' => 'imminent',
-                'is_live' => false,
-                'minutes_remaining' => 45,
-            ];
         }
 
-        // 2. Subscriptions & Credit Ledger Summary
-        $remainingCredits = CreditLedger::where('user_id', $user->id)
-            ->sum('amount');
-        if ($remainingCredits <= 0) {
-            $remainingCredits = 4; // Default starting credit balance
-        }
-
+        // 2. Subscriptions & Credit Ledger Summary (Real Data)
+        $remainingCredits = (int) CreditLedger::where('user_id', $user->id)->sum('amount');
         $activeCohortsCount = $user->cohorts()->count();
-        if ($activeCohortsCount === 0) {
-            $activeCohortsCount = 2;
-        }
 
-        // 3. Today's Schedule
-        $todaySchedule = [
-            [
-                'time' => '18:00',
-                'subject' => 'الرياضيات (Mathematics)',
-                'teacher' => 'الأستاذ محمد أمين بن عيسى',
-                'topic' => 'الحصة التفاعلية المباشرة: حل المسائل النموذجية والامتحانات الرسمية',
-                'status' => 'upcoming',
-            ],
-            [
-                'time' => '20:00',
-                'subject' => 'العلوم الفيزيائية (Physics)',
-                'teacher' => 'الأستاذة كريمة بلقاسم',
-                'topic' => 'تطور كميات المادة في مزيج تفاعلي وتطبيقات التمارين',
-                'status' => 'scheduled',
-            ],
-        ];
+        // 3. Today's Real Schedule
+        $todayStart = Carbon::today()->startOfDay();
+        $todayEnd = Carbon::today()->endOfDay();
+        $cohortIds = $user->cohorts()->pluck('study_cohorts.id')->toArray();
+        $todaySchedule = ClassroomSession::whereIn('cohort_id', $cohortIds)
+            ->whereBetween('scheduled_at', [$todayStart, $todayEnd])
+            ->with(['teacher', 'cohort'])
+            ->orderBy('scheduled_at', 'asc')
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'time' => $s->scheduled_at?->format('H:i') ?? '00:00',
+                    'subject' => $s->cohort?->subject ?? 'مادة تعليمية',
+                    'teacher' => $s->teacher?->name ?? 'الأستاذ',
+                    'topic' => $s->title,
+                    'status' => $s->status === 'active' ? 'live' : 'scheduled',
+                ];
+            })->toArray();
 
-        // 4. Recent Protected Recordings
-        $recentRecordings = SessionRecording::with(['session.cohort', 'session.teacher'])
+        // 4. Recent Protected Recordings (Real Data)
+        $recentRecordings = SessionRecording::whereIn('cohort_id', $cohortIds)
+            ->with(['session.cohort', 'session.teacher'])
             ->latest()
             ->take(4)
             ->get()
@@ -123,72 +103,43 @@ class StudentDashboardController extends Controller
                 return [
                     'id' => $rec->id,
                     'title' => $rec->title,
-                    'subject' => $rec->session?->cohort?->subject ?? 'العلوم الدقيقة',
-                    'teacher_name' => $rec->session?->teacher?->name ?? 'الأستاذ المعتمد',
+                    'subject' => $rec->session?->cohort?->subject ?? 'العلوم',
+                    'teacher_name' => $rec->session?->teacher?->name ?? 'الأستاذ',
                     'duration_minutes' => $rec->duration_minutes ?? 90,
-                    'created_at' => $rec->created_at ? $rec->created_at->diffForHumans() : 'منذ يومين',
+                    'created_at' => $rec->created_at ? $rec->created_at->diffForHumans() : 'مؤخراً',
                     'is_accessible' => true,
                 ];
-            });
+            })->toArray();
 
-        if ($recentRecordings->isEmpty()) {
-            $recentRecordings = [
-                [
-                    'id' => 101,
-                    'title' => 'مراجعة الميكانيكا والكهرباء — حلول نموذجية',
-                    'subject' => 'العلوم الفيزيائية',
-                    'teacher_name' => 'الأستاذة كريمة بلقاسم',
-                    'duration_minutes' => 105,
-                    'created_at' => 'أمس',
-                    'is_accessible' => true,
-                ],
-                [
-                    'id' => 102,
-                    'title' => 'طرق معالجة المقال الفلسفي للشعب العلمية',
-                    'subject' => 'الفلسفة',
-                    'teacher_name' => 'الأستاذ مراد زروقي',
-                    'duration_minutes' => 75,
-                    'created_at' => 'منذ 3 أيام',
-                    'is_accessible' => true,
-                ],
-            ];
-        }
-
-        // 5. Attendance Summary
+        // 5. Attendance Summary (Real Data)
         $attendanceCount = ClassroomAttendance::where('user_id', $user->id)
             ->where('status', 'present')
             ->count();
-        $totalSessions = max($attendanceCount, 12);
-        $attendanceRate = $totalSessions > 0 ? round(($attendanceCount / $totalSessions) * 100) : 95;
-        if ($attendanceRate < 90) $attendanceRate = 96;
+        $totalSessions = ClassroomAttendance::where('user_id', $user->id)->count();
+        $attendanceRate = $totalSessions > 0 ? round(($attendanceCount / $totalSessions) * 100) : 100;
 
         // 6. Recent Notifications
-        $notifications = [
-            [
+        $notifications = [];
+        if ($nextSessionData) {
+            $notifications[] = [
                 'id' => 1,
-                'title' => 'الحصة القادمة تبدأ قريباً',
-                'body' => 'حصة الرياضيات مع الأستاذ محمد أمين تبدأ في تمام 18:00.',
+                'title' => 'تذكير بموعد الحصة القادمة',
+                'body' => 'حصة ' . ($nextSessionData['subject'] ?? 'المادة') . ' تبدأ قريباً في الفوج التعليمي.',
                 'type' => 'reminder',
-                'time' => 'منذ 15 دقيقة',
+                'time' => 'مؤخراً',
                 'is_read' => false,
-            ],
-            [
+            ];
+        }
+        if ($remainingCredits > 0) {
+            $notifications[] = [
                 'id' => 2,
-                'title' => 'تسجيل جديد متاح في مكتبتك',
-                'body' => 'تمت إضافة تسجيل حصة الفيزياء للأستاذة كريمة بلقاسم مع العلامة المائية المحمية.',
-                'type' => 'library',
-                'time' => 'منذ ساعتين',
-                'is_read' => false,
-            ],
-            [
-                'id' => 3,
-                'title' => 'تأكيد الاشتراك وتجديد الرصيد',
-                'body' => 'تم تفعيل باقة (دروس البكالوريا + المكتبة) بنجاح. رصيدك الحالي: ' . $remainingCredits . ' حصص.',
+                'title' => 'رصيد الحصص المتاح',
+                'body' => 'رصيد اشتراكك الحالي: ' . $remainingCredits . ' حصص تفاعلية.',
                 'type' => 'billing',
-                'time' => 'أمس',
+                'time' => 'اليوم',
                 'is_read' => true,
-            ],
-        ];
+            ];
+        }
 
                 return [
                     'student' => [

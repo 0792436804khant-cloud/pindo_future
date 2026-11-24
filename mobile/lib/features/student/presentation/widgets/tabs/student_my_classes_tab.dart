@@ -158,43 +158,71 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
   }
 
   Widget _buildMyCohortsView() {
+    final subs = widget.dashboardData.subscriptions;
+    final nextSession = widget.dashboardData.nextSession;
+
+    if (subs.activeCohortsCount == 0 && nextSession == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A).withValues(alpha: 0.80),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _brightCyan.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.groups_outlined, color: _brightCyan, size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'لم تنضم إلى أي فوج دراسي بعد',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'انضم إلى الأفواج الدراسية للأساتذة المعتمدين لمتابعة الحصص المباشرة والواجبات وسجلات الحضور والتقييمات.',
+              style: TextStyle(color: Colors.white60, fontSize: 12.5, height: 1.5),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: widget.onOpenCohortsExplorer,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _brightCyan,
+                foregroundColor: const Color(0xFF070B14),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.explore_outlined, size: 18),
+              label: const Text('استكشاف الأفواج المتاحة للانضمام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       children: [
-        _cohortCard(
-          cohortId: 'SES_8PP4LVG1',
-          title: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
-          subject: 'الرياضيات',
-          teacherName: 'الأستاذ محمد أمين بن عيسى',
-          remainingCredits: 4,
-          initialEnrollmentDate: '01 سبتمبر 2026',
-          nextSession: 'اليوم 18:00 (المتتاليات والبرهان بالتراجع 🔴)',
-          status: 'فعال ومفعل ✓',
-          statusColor: const Color(0xFF10B981),
-        ),
-        const SizedBox(height: 14),
-        _cohortCard(
-          cohortId: 'SES_CURIE_01',
-          title: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
-          subject: 'العلوم الفيزيائية',
-          teacherName: 'الأستاذة كريمة بلقاسم',
-          remainingCredits: 6,
-          initialEnrollmentDate: '15 سبتمبر 2026',
-          nextSession: 'الأربعاء 17:30 (المتابعة الزمنية والميكانيكا)',
-          status: 'فعال ومفعل ✓',
-          statusColor: const Color(0xFF10B981),
-        ),
-        const SizedBox(height: 14),
-        _cohortCard(
-          cohortId: 'SES_BIO_2026',
-          title: 'فوج التميز في علوم الطبيعة والحياة',
-          subject: 'علوم الطبيعة والحياة',
-          teacherName: 'الأستاذ عبد الرحمن دحمان',
-          remainingCredits: 1,
-          initialEnrollmentDate: '20 سبتمبر 2026',
-          nextSession: 'الخميس 18:00 (آليات تركيب البروتين والإنزيمات)',
-          status: 'مستحق للتجديد قريباً ⚠️',
-          statusColor: const Color(0xFFF59E0B),
-        ),
+        if (nextSession != null)
+          _cohortCard(
+            cohortId: nextSession.sessionId,
+            title: nextSession.cohortName,
+            subject: nextSession.subject,
+            teacherName: nextSession.teacherName,
+            remainingCredits: subs.remainingCredits,
+            initialEnrollmentDate: 'فوج نشط ومسجل',
+            nextSession: nextSession.isLive ? 'جارية الآن 🔴' : 'الحصة القادمة قريباً',
+            status: 'فعال ومفعل ✓',
+            statusColor: const Color(0xFF10B981),
+          ),
         const SizedBox(height: 18),
         OutlinedButton.icon(
           onPressed: widget.onOpenCohortsExplorer,
@@ -365,17 +393,39 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
   }
 
   Widget _buildWeeklyScheduleView() {
-    final days = [
-      {'day': 'الأحد', 'time': '18:00', 'subject': 'الرياضيات — حل المسائل النموذجية', 'teacher': 'الأستاذ محمد أمين'},
-      {'day': 'الإثنين', 'time': '20:00', 'subject': 'العلوم الفيزيائية — الميكانيكا والكهرباء', 'teacher': 'الأستاذة كريمة بلقاسم'},
-      {'day': 'الثلاثاء', 'time': '17:30', 'subject': 'علوم الطبيعة والحياة — منهجية الاستدلال', 'teacher': 'الأستاذ عبد الرحمن'},
-      {'day': 'الأربعاء', 'time': '18:00', 'subject': 'الرياضيات — الدوال والتطبيقات الرسمية', 'teacher': 'الأستاذ محمد أمين'},
-      {'day': 'الخميس', 'time': '19:00', 'subject': 'اللغة العربية وفنون البلاغة', 'teacher': 'الأستاذ مراد زروقي'},
-      {'day': 'الجمعة', 'time': '15:00', 'subject': 'جلسة المراجعة الشاملة للامتحانات الرسمية', 'teacher': 'إشراف المنصة'},
-    ];
+    final schedule = widget.dashboardData.todaySchedule;
+    final nextSession = widget.dashboardData.nextSession;
+
+    if (schedule.isEmpty && nextSession == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.calendar_month_outlined, color: Colors.white.withValues(alpha: 0.35), size: 36),
+            const SizedBox(height: 12),
+            const Text(
+              'البرنامج الأسبوعي فارغ حالياً',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'عند انضمامك إلى الأفواج الدراسية، ستظهر هنا مواعيد جميع حصصك المجدولة أسبوعياً.',
+              style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
-      children: days.map((d) {
+      children: schedule.map((d) {
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
@@ -394,7 +444,7 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                   border: Border.all(color: _electricPurple),
                 ),
                 child: Text(
-                  d['day']!,
+                  d.time,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                 ),
               ),
@@ -404,12 +454,12 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      d['subject']!,
+                      d.subject,
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${d['teacher']} • ${d['time']}',
+                      '${d.teacher} • ${d.topic}',
                       style: const TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],
@@ -425,11 +475,43 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
   Widget _buildAttendanceLedgerView() {
     final attendance = widget.dashboardData.attendance;
 
-    final records = [
-      {'date': '2026-10-24', 'session': 'حل المسائل الشاملة للبكالوريا', 'join': '18:02', 'leave': '19:35', 'duration': '93 دقيقة', 'status': 'حاضر'},
-      {'date': '2026-10-21', 'session': 'الميكانيكا وقوانين نيوتن', 'join': '17:34', 'leave': '19:10', 'duration': '96 دقيقة', 'status': 'حاضر'},
-      {'date': '2026-10-18', 'session': 'المقال الفلسفي', 'join': '18:15', 'leave': '19:30', 'duration': '75 دقيقة', 'status': 'متأخر'},
-      {'date': '2026-10-15', 'session': 'التحولات النووية', 'join': '17:30', 'leave': '19:00', 'duration': '90 دقيقة', 'status': 'حاضر'},
+    if (attendance.totalSessions == 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.fact_check_outlined, color: Colors.white.withValues(alpha: 0.35), size: 36),
+            const SizedBox(height: 12),
+            const Text(
+              'سجل الحضور فارغ',
+              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'لم يتم تسجيل حضورك لأي حصة تفاعلية حتى الآن. احرص على حضور الحصص المباشرة لتسجيل مواظبتك.',
+              style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final records = <Map<String, String>>[
+      {
+        'date': 'الحصة الأخيرة',
+        'session': 'حصة تفاعلية معتمدة',
+        'join': '--:--',
+        'leave': '--:--',
+        'duration': 'مكتملة',
+        'status': 'حاضر',
+      },
     ];
 
     return Column(

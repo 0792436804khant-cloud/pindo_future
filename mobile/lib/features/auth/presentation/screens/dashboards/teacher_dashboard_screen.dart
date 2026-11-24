@@ -60,9 +60,9 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   void initState() {
     super.initState();
     _currentUser = widget.user;
-    _dashboard = TeacherDashboardModel.mockFallback(
+    _dashboard = TeacherDashboardModel.empty(
       teacherName: widget.user.name.isNotEmpty ? widget.user.name : 'الأستاذ',
-      teacherId: widget.user.teacherId ?? 'TCH_DZ_2027',
+      teacherId: widget.user.teacherId ?? 'TCH_DZ',
     );
     _fetchDashboardData();
   }

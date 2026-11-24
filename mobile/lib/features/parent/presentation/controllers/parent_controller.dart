@@ -91,7 +91,12 @@ class ParentController extends ChangeNotifier {
         }
         await loadChildDetails(_selectedChild!.id);
       } else {
-        _loadFallbackChildren();
+        _children = [];
+        _selectedChild = null;
+        _academics = [];
+        _attendanceRecords = [];
+        _schedule = [];
+        _notes = [];
       }
     } catch (_) {
       _loadFallbackChildren();

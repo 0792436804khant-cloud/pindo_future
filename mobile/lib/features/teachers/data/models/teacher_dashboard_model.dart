@@ -48,6 +48,49 @@ class TeacherDashboardModel {
     );
   }
 
+  factory TeacherDashboardModel.empty({
+    String teacherName = 'الأستاذ',
+    String teacherId = 'TCH_NEW',
+  }) {
+    return TeacherDashboardModel(
+      teacherProfile: TeacherProfileInfo(
+        id: 1,
+        name: teacherName,
+        email: '',
+        teacherId: teacherId,
+        avatarUrl: null,
+        coverImageUrl: null,
+        isVerified: false,
+        yearsOfExperience: 0,
+        headline: 'أستاذ معتمد',
+        wilaya: '',
+        bio: '',
+        subjects: const [],
+        levels: const [],
+        stories: const [],
+        workplaces: const [],
+        cohortSchedules: const [],
+        studentResults: const [],
+      ),
+      stats: const TeacherStats(
+        enrolledStudentsCount: 0,
+        activeCohortsCount: 0,
+        scheduledSessionsCount: 0,
+        completedSessionsCount: 0,
+        expiredCreditsStudentsCount: 0,
+        totalEarnings: 0.0,
+        grossSales: 0.0,
+        pendingEarnings: 0.0,
+        libraryRecordingsCount: 0,
+      ),
+      upcomingSession: null,
+      todaySchedule: const [],
+      notifications: const [],
+      cohorts: const [],
+      recentTransactions: const [],
+    );
+  }
+
   factory TeacherDashboardModel.mockFallback({
     String teacherName = 'الأستاذ محمد أمين بن عيسى',
     String teacherId = 'TCH_DZ_2027',
