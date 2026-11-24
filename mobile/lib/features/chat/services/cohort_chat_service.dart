@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../domain/entities/cohort_chat_message.dart';
 
 class CohortSummary {
@@ -30,11 +31,55 @@ class CohortChatService {
   static final CohortChatService _instance = CohortChatService._internal();
   factory CohortChatService() => _instance;
 
-  CohortChatService._internal() {
-    _initPreSeededMessages();
-  }
+  CohortChatService._internal();
 
   final Map<String, List<CohortChatMessage>> _messagesByCohort = {};
+  final List<CohortSummary> _summaries = [];
+
+  @visibleForTesting
+  void seedForTesting() {
+    _messagesByCohort.clear();
+    _summaries.clear();
+    _initPreSeededMessages();
+    _summaries.addAll(const [
+      CohortSummary(
+        cohortId: 'COHORT_BAC27_MATH',
+        cohortName: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
+        subject: 'الرياضيات',
+        academicLevel: 'ثالثة ثانوي',
+        lastMessageText: 'جاهزون للحصة يا أستاذ ومعنا كراس التمارين جاهز 🌟',
+        lastMessageTime: 'منذ 20 د',
+        lastMessageSender: 'مريم بن زينة',
+        unreadCount: 3,
+        membersCount: 42,
+        isLiveNow: true,
+      ),
+      CohortSummary(
+        cohortId: 'SES_CURIE_01',
+        cohortName: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
+        subject: 'العلوم الفيزيائية',
+        academicLevel: 'ثالثة ثانوي',
+        lastMessageText: 'تم رفع ملخص قوانين نيوتن وحركة الكواكب والأقمار الاصطناعية...',
+        lastMessageTime: 'منذ 3 ساعات',
+        lastMessageSender: 'الأستاذة كريمة بلقاسم',
+        unreadCount: 1,
+        membersCount: 38,
+        isLiveNow: false,
+      ),
+      CohortSummary(
+        cohortId: 'COHORT_1AS_SCI',
+        cohortName: 'الفوج النموذجي — أولى ثانوي جذع مشترك علوم',
+        subject: 'الرياضيات',
+        academicLevel: 'أولى ثانوي',
+        lastMessageText: 'أعزائي طلبة السنة أولى ثانوي، مرحباً بكم في فوج الرياضيات...',
+        lastMessageTime: 'منذ 6 ساعات',
+        lastMessageSender: 'الأستاذ محمد أمين بن عيسى',
+        unreadCount: 0,
+        membersCount: 23,
+        isLiveNow: false,
+      ),
+    ]);
+  }
 
   void _initPreSeededMessages() {
     const mathCohortId = 'COHORT_BAC27_MATH';
@@ -231,53 +276,17 @@ class CohortChatService {
 
   int getUnreadCount(String cohortId) {
     final key = _normalizeCohortId(cohortId);
-    if (key == 'COHORT_BAC27_MATH') return 3;
-    if (key == 'SES_CURIE_01') return 1;
+    for (final s in _summaries) {
+      if (s.cohortId == key) return s.unreadCount;
+    }
     return 0;
   }
 
   int getTotalUnreadCount() {
-    return 4; // Sum of active unread messages
+    return _summaries.fold(0, (sum, s) => sum + s.unreadCount);
   }
 
   List<CohortSummary> getAllCohortSummaries() {
-    return const [
-      CohortSummary(
-        cohortId: 'COHORT_BAC27_MATH',
-        cohortName: 'فوج النخبة للبكالوريا — الرياضيات (شعبة علوم تجريبية ورياضي)',
-        subject: 'الرياضيات',
-        academicLevel: 'ثالثة ثانوي',
-        lastMessageText: 'جاهزون للحصة يا أستاذ ومعنا كراس التمارين جاهز 🌟',
-        lastMessageTime: 'منذ 20 د',
-        lastMessageSender: 'مريم بن زينة',
-        unreadCount: 3,
-        membersCount: 42,
-        isLiveNow: true,
-      ),
-      CohortSummary(
-        cohortId: 'SES_CURIE_01',
-        cohortName: 'فوج التفوق في العلوم الفيزيائية والكيمياء',
-        subject: 'العلوم الفيزيائية',
-        academicLevel: 'ثالثة ثانوي',
-        lastMessageText: 'تم رفع ملخص قوانين نيوتن وحركة الكواكب والأقمار الاصطناعية...',
-        lastMessageTime: 'منذ 3 ساعات',
-        lastMessageSender: 'الأستاذة كريمة بلقاسم',
-        unreadCount: 1,
-        membersCount: 38,
-        isLiveNow: false,
-      ),
-      CohortSummary(
-        cohortId: 'COHORT_1AS_SCI',
-        cohortName: 'الفوج النموذجي — أولى ثانوي جذع مشترك علوم',
-        subject: 'الرياضيات',
-        academicLevel: 'أولى ثانوي',
-        lastMessageText: 'أعزائي طلبة السنة أولى ثانوي، مرحباً بكم في فوج الرياضيات...',
-        lastMessageTime: 'منذ 6 ساعات',
-        lastMessageSender: 'الأستاذ محمد أمين بن عيسى',
-        unreadCount: 0,
-        membersCount: 23,
-        isLiveNow: false,
-      ),
-    ];
+    return List.unmodifiable(_summaries);
   }
 }

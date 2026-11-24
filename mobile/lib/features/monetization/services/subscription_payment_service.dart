@@ -37,9 +37,7 @@ class SubscriptionPaymentService {
   int get totalPlatformCommission =>
       approvedReceipts.fold(0, (sum, r) => sum + r.platformCommissionDzd);
 
-  SubscriptionPaymentService._internal() {
-    _initializeSeedData();
-  }
+  SubscriptionPaymentService._internal();
 
   void _initializeSeedData() {
     final now = DateTime.now();

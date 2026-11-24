@@ -22,10 +22,8 @@ class AdminDashboardController extends Controller
         $totalStudentsCount = User::where('role', 'student')->count();
         $totalTeachersCount = User::where('role', 'teacher')->count();
         $verifiedTeachersCount = User::where('role', 'teacher')
-            ->where(function ($q) {
-                $q->where('is_verified', true)
-                  ->orWhere('isTeacherVerified', true);
-            })->count();
+            ->where('is_verified', true)
+            ->count();
 
         $pendingVerificationsCount = User::where('role', 'teacher')
             ->where('verification_status', 'pending')
@@ -50,13 +48,13 @@ class AdminDashboardController extends Controller
             ->where('verification_status', 'pending')
             ->orderByDesc('created_at')
             ->limit(10)
-            ->get(['id', 'name', 'email', 'teacherId', 'wilaya', 'teaching_subjects', 'teaching_levels', 'created_at'])
+            ->get(['id', 'name', 'email', 'teacher_id', 'wilaya', 'teaching_subjects', 'teaching_levels', 'created_at'])
             ->map(function ($t) {
                 return [
                     'id' => $t->id,
                     'name' => $t->name,
                     'email' => $t->email,
-                    'teacher_id' => $t->teacherId ?? 'TCH_' . $t->id,
+                    'teacher_id' => $t->teacher_id ?? 'TCH_' . $t->id,
                     'wilaya' => $t->wilaya ?? 'الجزائر العاصمة',
                     'subjects' => $t->teaching_subjects ?? ['الرياضيات'],
                     'submitted_at' => $t->created_at?->diffForHumans() ?? 'مؤخراً',
@@ -78,7 +76,7 @@ class AdminDashboardController extends Controller
                     'amount' => (float) $p->amount,
                     'currency' => $p->currency ?? 'DZD',
                     'payout_method' => $p->payout_method ?? 'BaridiMob',
-                    'destination_account' => $p->destination_account ?? '00799999000123456789',
+                    'destination_account' => $p->destination_account ?? '-',
                     'status' => $p->status,
                     'requested_at' => $p->created_at?->diffForHumans() ?? 'مؤخراً',
                 ];

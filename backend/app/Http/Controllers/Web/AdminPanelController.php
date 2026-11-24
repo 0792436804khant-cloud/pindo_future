@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Models\ClassroomAttendance;
 use App\Models\ClassroomSession;
 use App\Models\CohortMember;
 use App\Models\Course;
@@ -141,8 +142,8 @@ class AdminPanelController extends Controller
                     'wilaya_ar' => $wilayaInfo['arabic'] ?? 'الجزائر العاصمة',
                     'wilaya_fr' => $wilayaInfo['french'] ?? 'Alger',
                     'academic_phase' => $teacher->academic_level ?? 'التعليم الثانوي (Lycée)',
-                    'subjects' => is_array($teacher->teaching_subjects) ? implode(', ', $teacher->teaching_subjects) : ($teacher->teaching_subjects ?? 'الرياضيات'),
-                    'document_url' => $teacher->diploma_preview_url ?: ($teacher->national_id_or_diploma ? asset('storage/' . $teacher->national_id_or_diploma) : 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop'),
+                    'subjects' => is_array($teacher->teaching_subjects) ? implode(', ', $teacher->teaching_subjects) : ($teacher->teaching_subjects ?? 'غير محددة'),
+                    'document_url' => $teacher->diploma_preview_url ?: ($teacher->national_id_or_diploma ? asset('storage/' . $teacher->national_id_or_diploma) : null),
                     'created_at_human' => $teacher->created_at?->diffForHumans() ?? 'الآن',
                 ];
             });
@@ -167,12 +168,12 @@ class AdminPanelController extends Controller
                     'order_number' => $order->order_number,
                     'student_name' => $order->user?->name ?? 'طالب',
                     'student_email' => $order->user?->email ?? '-',
-                    'course_title' => $order->course?->title ?? 'باقة الاشتراك الفصلي الشاملة',
+                    'course_title' => $order->course?->title ?? 'باقة الاشتراك',
                     'amount' => (float) $order->amount,
                     'currency' => $order->currency,
                     'payment_method' => $order->payment_method ?? 'BaridiMob',
-                    'tx_reference' => $order->tx_reference ?? 'BM_' . substr($order->order_number, -6),
-                    'receipt_image' => $order->receipt_image_path ? asset('storage/' . $order->receipt_image_path) : 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop',
+                    'tx_reference' => $order->tx_reference ?? ('BM_' . substr($order->order_number, -6)),
+                    'receipt_image' => $order->receipt_image_path ? asset('storage/' . $order->receipt_image_path) : null,
                     'is_fraud_suspect' => $isDuplicate,
                     'submitted_at_human' => $order->created_at?->diffForHumans() ?? 'الآن',
                 ];
@@ -180,22 +181,35 @@ class AdminPanelController extends Controller
 
         // 6. Active Live Classroom Rooms (SFU Telemetry)
         $activeSessions = ClassroomSession::where('status', ClassroomSession::STATUS_ACTIVE)
-            ->with('teacher')
+            ->with(['teacher', 'cohort'])
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
             ->map(function ($session) {
+                $liveCount = ClassroomAttendance::where('session_id', $session->session_id)
+                    ->whereNull('left_at')
+                    ->count();
+
                 return [
                     'id' => $session->id,
                     'session_uuid' => $session->session_id ?? ('SES_' . $session->id),
                     'teacher_name' => $session->teacher?->name ?? 'الأستاذ',
                     'title' => $session->title ?? 'حصة تقوية مباشرة',
-                    'subject' => $session->subject ?? 'الرياضيات',
-                    'student_count' => rand(14, 28), // Live SFU connection counter
-                    'duration_minutes' => $session->created_at ? $session->created_at->diffInMinutes(now()) : 25,
+                    'subject' => $session->cohort?->subject ?? 'عام',
+                    'student_count' => $liveCount,
+                    'duration_minutes' => $session->started_at ? $session->started_at->diffInMinutes(now()) : ($session->created_at ? $session->created_at->diffInMinutes(now()) : 0),
                     'drm_protected' => true,
                 ];
             });
+
+        $queueOperational = true;
+        if (config('queue.default') === 'redis') {
+            try {
+                \Illuminate\Support\Facades\Redis::connection()->ping();
+            } catch (\Throwable $e) {
+                $queueOperational = false;
+            }
+        }
 
         return response()->json([
             'status' => 'success',
@@ -205,7 +219,7 @@ class AdminPanelController extends Controller
                 'database' => $dbConnected ? 'OPERATIONAL' : 'DEGRADED',
                 'https_secured' => $isHttps,
                 'storage_symlink' => $storageLinkActive ? 'ACTIVE' : 'BROKEN',
-                'queue_worker' => 'ACTIVE',
+                'queue_worker' => $queueOperational ? 'ACTIVE' : 'DEGRADED',
             ],
             'kpis' => [
                 'total_students' => $totalStudents,

@@ -125,33 +125,32 @@ class TeacherDashboardController extends Controller
                 ];
             });
 
-        // 8. Alerts & Notifications
-        $notifications = [
-            [
-                'id' => 'alert_1',
+        // 8. Real In-App Alerts & Notifications
+        $notifications = \App\Models\AppNotification::forUser($teacher->id)
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(function ($n) {
+                return [
+                    'id' => (string) $n->id,
+                    'title' => $n->title,
+                    'body' => $n->body,
+                    'type' => $n->type,
+                    'time' => $n->created_at?->diffForHumans() ?? 'مؤخراً',
+                    'is_read' => $n->read_at !== null,
+                ];
+            })->toArray();
+
+        if (empty($notifications) && $upcomingSessionData) {
+            $notifications[] = [
+                'id' => 'alert_upcoming',
                 'title' => 'تذكير بالحصة المجدولة',
-                'body' => $upcomingSessionData ? 'لديك حصة قادمة: ' . $upcomingSessionData['title'] : 'جدول حصصك منتظم هذا الأسبوع',
+                'body' => 'لديك حصة قادمة: ' . $upcomingSessionData['title'],
                 'type' => 'session',
-                'time' => 'منذ 10 دقائق',
+                'time' => 'مؤخراً',
                 'is_read' => false,
-            ],
-            [
-                'id' => 'alert_2',
-                'title' => 'تأكيد عملية دفع جديدة',
-                'body' => 'تم استلام وتأكيد اشتراك طالب جديد في فوج البكالوريا.',
-                'type' => 'payment',
-                'time' => 'منذ ساعة',
-                'is_read' => true,
-            ],
-            [
-                'id' => 'alert_3',
-                'title' => 'تنبيه انتهاء رصيد طالب',
-                'body' => $expiredCreditsCount > 0 ? "يوجد {$expiredCreditsCount} طالب استنفدوا رصيد الحصص وبانتظار التجديد." : 'جميع اشتراكات الطلاب نشطة حالياً.',
-                'type' => 'credit',
-                'time' => 'منذ 3 ساعات',
-                'is_read' => true,
-            ],
-        ];
+            ];
+        }
 
         // 9. Cohorts Summary
         $cohortsList = $cohorts->map(function ($c) {
@@ -179,7 +178,7 @@ class TeacherDashboardController extends Controller
             ->map(function ($e) {
                 return [
                     'id' => $e->id,
-                    'student_name' => $e->order?->user?->name ?? 'طالب جديد',
+                    'student_name' => $e->order?->user?->name ?? 'طالب',
                     'title' => $e->course?->title ?? 'اشتراك فوج دراسي',
                     'amount' => (float) $e->net_amount,
                     'status' => $e->status,
@@ -187,18 +186,21 @@ class TeacherDashboardController extends Controller
                 ];
             });
 
+                $teacher->loadMissing('teacherPlatform');
+                $platformSettings = $teacher->teacherPlatform?->settings ?? [];
+
                 return [
                     'teacher' => [
                         'id' => $teacher->id,
                         'name' => $teacher->name,
                         'email' => $teacher->email,
-                        'teacher_id' => $teacher->teacherId ?? 'TCH_' . $teacher->id,
-                        'avatar_url' => $teacher->avatarUrl,
-                        'is_verified' => (bool) $teacher->isTeacherVerified,
-                        'years_of_experience' => $teacher->yearsOfExperience ?? 5,
-                        'headline' => $teacher->headline ?? 'أستاذ معتمد في المنصة',
-                        'subjects' => $teacher->teachingSubjects ?? ['الرياضيات'],
-                        'levels' => $teacher->teachingLevels ?? ['ثانوي'],
+                        'teacher_id' => $teacher->teacher_id ?? 'TCH_' . $teacher->id,
+                        'avatar_url' => $platformSettings['avatar_url'] ?? null,
+                        'is_verified' => (bool) $teacher->is_verified,
+                        'years_of_experience' => (int) ($platformSettings['years_of_experience'] ?? 0),
+                        'headline' => $teacher->teacherPlatform?->headline ?? '',
+                        'subjects' => $teacher->teaching_subjects ?? [],
+                        'levels' => $teacher->teaching_levels ?? [],
                     ],
                     'stats' => [
                         'enrolled_students_count' => $enrolledStudentsCount,

@@ -28,6 +28,7 @@ RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-d
 
 # Storage directory initialization and permissions
 RUN rm -rf /var/www/bootstrap/cache/*.php /var/www/.env* \
+    && mkdir -p /var/www/storage/app/public \
     && mkdir -p /var/www/storage/framework/sessions \
     && mkdir -p /var/www/storage/framework/views \
     && mkdir -p /var/www/storage/framework/cache \
@@ -37,5 +38,5 @@ RUN rm -rf /var/www/bootstrap/cache/*.php /var/www/.env* \
 ENV PORT=8080
 EXPOSE 8080
 
-# Robust runtime startup: purge env/cache, discover packages, migrate, storage:link, compile config & route cache, and serve
-CMD ["sh", "-c", "rm -f /var/www/.env /var/www/.env.* /var/www/bootstrap/cache/*.php && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan storage:link --force && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+# Robust production runtime startup: purge env/cache, discover packages, storage:link, migrate, ProductionSeeder, queue worker, compile config & route cache, and serve
+CMD ["sh", "-c", "rm -f /var/www/.env /var/www/.env.* /var/www/bootstrap/cache/*.php && mkdir -p /var/www/storage/app/public /var/www/storage/framework/sessions /var/www/storage/framework/views /var/www/storage/framework/cache && php artisan package:discover --ansi && if [ -z \"$APP_KEY\" ]; then php artisan key:generate --force; fi && php artisan storage:link --force || true && php artisan migrate --force && php artisan db:seed --class=ProductionSeeder --force && php artisan pindo:expire-subscriptions || true && php artisan config:cache && php artisan route:cache && (while true; do php artisan queue:work --tries=3 --backoff=5 --sleep=3 --max-time=3600; sleep 3; done &) && (while true; do sleep 3600; php artisan pindo:expire-subscriptions >/dev/null 2>&1 || true; done &) && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]

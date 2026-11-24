@@ -29,10 +29,11 @@ class TeacherPublicController extends Controller
             }]);
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
-                  ->orWhere('teacher_id', 'ilike', "%{$search}%");
+            $term = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                  ->orWhereRaw('LOWER(email) LIKE ?', [$term])
+                  ->orWhereRaw('LOWER(COALESCE(teacher_id, \'\')) LIKE ?', [$term]);
             });
         }
 

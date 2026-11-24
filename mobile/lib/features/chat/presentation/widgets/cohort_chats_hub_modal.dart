@@ -160,7 +160,10 @@ class _CohortChatsHubModalState extends State<CohortChatsHubModal> {
             child: summaries.isEmpty
                 ? Center(
                     child: Text(
-                      'لم يتم العثور على أي محادثات مطابقة لـ «$_searchQuery»',
+                      _searchQuery.isNotEmpty
+                          ? 'لم يتم العثور على أي محادثات مطابقة لـ «$_searchQuery»'
+                          : 'لا توجد محادثات أفواج نشطة حالياً — انضم إلى فوج أو أنشئ فوجاً لتفعيل المحادثة.',
+                      textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white54, fontSize: 13),
                     ),
                   )

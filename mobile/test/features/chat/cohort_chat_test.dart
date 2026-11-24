@@ -15,6 +15,7 @@ void main() {
 
     setUp(() {
       service = CohortChatService();
+      service.seedForTesting();
     });
 
     test('Loads pre-seeded messages for Algerian BAC cohorts', () {
@@ -73,6 +74,10 @@ void main() {
   });
 
   group('Cohort Chat UI Widget Tests', () {
+    setUp(() {
+      CohortChatService().seedForTesting();
+    });
+
     testWidgets('CohortChatsHubModal renders cohort search and chat list items', (tester) async {
       await tester.binding.setSurfaceSize(const Size(800, 900));
 

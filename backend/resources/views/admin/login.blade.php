@@ -73,7 +73,8 @@
                         name="email" 
                         id="email" 
                         required 
-                        value="{{ old('email', 'admin@pindofuture.com') }}"
+                        autocomplete="username"
+                        value="{{ old('email') }}"
                         class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                         placeholder="admin@pindofuture.com"
                     >
@@ -89,7 +90,7 @@
                         name="password" 
                         id="password" 
                         required 
-                        value="AdminPassword123!"
+                        autocomplete="current-password"
                         class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all font-mono"
                         placeholder="••••••••••••"
                     >
@@ -100,9 +101,7 @@
                         <input type="checkbox" name="remember" class="rounded bg-slate-900 border-white/20 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 w-4 h-4">
                         <span class="text-xs text-slate-400 select-none">تذكر الجلسة الآمنة</span>
                     </label>
-                    <button type="button" onclick="fillAdminCredentials()" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline decoration-dotted">
-                        ملء بيانات الإدارة التجريبية
-                    </button>
+                    <span class="text-[11px] text-emerald-400/80 font-semibold">Protected Access</span>
                 </div>
 
                 <button 
@@ -122,12 +121,5 @@
             </div>
         </div>
     </div>
-
-    <script>
-        function fillAdminCredentials() {
-            document.getElementById('email').value = 'admin@pindofuture.com';
-            document.getElementById('password').value = 'AdminPassword123!';
-        }
-    </script>
 </body>
 </html>

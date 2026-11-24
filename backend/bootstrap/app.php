@@ -18,10 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'api/*',
-            'admin/api/*',
         ]);
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin.web' => \App\Http\Middleware\EnsureAdminWebSession::class,
             'teacher' => \App\Http\Middleware\EnsureUserIsTeacher::class,
             'parent' => \App\Http\Middleware\EnsureUserIsParent::class,
         ]);

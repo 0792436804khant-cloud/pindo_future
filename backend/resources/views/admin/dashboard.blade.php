@@ -682,10 +682,13 @@
                         <div class="text-[10px] text-slate-400">${t.academic_phase}</div>
                     </td>
                     <td class="py-3.5 px-3">
-                        <button onclick="openLightbox('${t.document_url}', 'شهادة الأستاذ: ${t.name}', '${t.subjects} - ${t.wilaya_ar}')" class="flex items-center space-x-2 space-x-reverse p-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 transition-all">
-                            <img src="${t.document_url}" alt="Diploma" class="w-8 h-8 rounded-lg object-cover">
-                            <span class="text-[11px] text-cyan-400 underline font-semibold pl-2">معاينة وتكبير 🔍</span>
-                        </button>
+                        ${t.document_url
+                            ? `<button onclick="openLightbox('${t.document_url}', 'شهادة الأستاذ: ${t.name}', '${t.subjects} - ${t.wilaya_ar}')" class="flex items-center space-x-2 space-x-reverse p-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 transition-all">
+                                <img src="${t.document_url}" alt="Diploma" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="text-[11px] text-cyan-400 underline font-semibold pl-2">معاينة وتكبير 🔍</span>
+                               </button>`
+                            : `<span class="px-2.5 py-1 rounded-lg bg-slate-900/70 border border-white/5 text-[11px] text-slate-500">لم تُرفع وثيقة مصوّرة</span>`
+                        }
                     </td>
                     <td class="py-3.5 px-3 font-mono text-[11px] text-slate-400">
                         ${t.created_at_human}
@@ -743,10 +746,13 @@
                         <div class="text-[10px] text-slate-400">Tx: ${s.tx_reference}</div>
                     </td>
                     <td class="py-3.5 px-3">
-                        <button onclick="openLightbox('${s.receipt_image}', 'وصل بريدي موب - ${s.order_number}', 'المبلغ: ${s.amount} دج • التلميذ: ${s.student_name}')" class="flex items-center space-x-2 space-x-reverse p-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 transition-all">
-                            <img src="${s.receipt_image}" alt="Receipt" class="w-8 h-8 rounded-lg object-cover">
-                            <span class="text-[11px] text-cyan-300 underline font-semibold pl-2">معاينة الإيصال 📄</span>
-                        </button>
+                        ${s.receipt_image
+                            ? `<button onclick="openLightbox('${s.receipt_image}', 'وصل بريدي موب - ${s.order_number}', 'المبلغ: ${s.amount} دج • التلميذ: ${s.student_name}')" class="flex items-center space-x-2 space-x-reverse p-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 transition-all">
+                                <img src="${s.receipt_image}" alt="Receipt" class="w-8 h-8 rounded-lg object-cover">
+                                <span class="text-[11px] text-cyan-300 underline font-semibold pl-2">معاينة الإيصال 📄</span>
+                               </button>`
+                            : `<span class="px-2.5 py-1 rounded-lg bg-slate-900/70 border border-white/5 text-[11px] text-slate-500">لا توجد صورة مرفقة</span>`
+                        }
                     </td>
                     <td class="py-3.5 px-3">
                         ${s.is_fraud_suspect 

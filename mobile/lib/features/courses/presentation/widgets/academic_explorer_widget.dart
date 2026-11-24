@@ -79,78 +79,20 @@ class _AcademicExplorerWidgetState extends State<AcademicExplorerWidget> {
             _isLoadingTeachers = false;
           });
         }
-      } else {
-        _fallbackTeachers(subject);
+      } else if (mounted) {
+        setState(() {
+          _teachers = [];
+          _isLoadingTeachers = false;
+        });
       }
     } catch (_) {
-      _fallbackTeachers(subject);
+      if (mounted) {
+        setState(() {
+          _teachers = [];
+          _isLoadingTeachers = false;
+        });
+      }
     }
-  }
-
-  void _fallbackTeachers(AcademicSubject subject) {
-    if (!mounted) return;
-
-    // Guaranteed fallback with pre-classified teachers so student experience is never empty
-    final fallbackList = <TeacherDirectoryItem>[
-      const TeacherDirectoryItem(
-        id: 2,
-        name: 'الأستاذ محمد أمين بن عيسى',
-        email: 'amine@pindofuture.com',
-        teacherId: 'TCH_123',
-        deepLinkUrl: 'http://localhost:8000/teacher/TCH_123',
-        teachingLevels: ['التعليم الثانوي (ثانوي)', 'التعليم الجامعي'],
-        teachingYears: ['ثالثة ثانوي (بكالوريا)', 'ثانية ثانوي', 'أولى ثانوي'],
-        teachingSubjects: ['الرياضيات', 'الرياضيات المتقدمة', 'حل المسائل الشاملة'],
-        headline: 'أستاذ رئيسي للتعليم الثانوي ومعد دورات المتفوقين في الرياضيات',
-        bio: 'دروس تفاعلية مباشرة، شروحات دقيقة لمنهجية البكالوريا، حلول مواضيع الامتحانات الرسمية مع السبورة الرقمية.',
-        isLive: true,
-        liveSessionId: 'SES_4HP0TFRC',
-        totalCourses: 6,
-        totalStudents: 124,
-      ),
-      const TeacherDirectoryItem(
-        id: 5,
-        name: 'الأستاذة كريمة بلقاسم',
-        email: 'karima@pindofuture.com',
-        teacherId: 'TCH_CURIE',
-        deepLinkUrl: 'http://localhost:8000/teacher/TCH_CURIE',
-        teachingLevels: ['التعليم المتوسط (CEM)', 'التعليم الثانوي (ثانوي)'],
-        teachingYears: ['رابعة متوسط (BEM)', 'ثالثة ثانوي (بكالوريا)'],
-        teachingSubjects: ['العلوم الفيزيائية', 'الكيمياء', 'الميكانيكا والطاقة'],
-        headline: 'أستاذة متميزة في العلوم الفيزيائية والكيمياء للطورين الثانوي والمتوسط',
-        bio: 'تجارب ومحاكاة علمية تفاعلية، تبسيط الميكانيكا والكهرباء والتحولات النووية لشهادة البكالوريا وBEM.',
-        isLive: false,
-        totalCourses: 4,
-        totalStudents: 98,
-      ),
-      const TeacherDirectoryItem(
-        id: 7,
-        name: 'الأستاذ عبد الرحمن حمداوي',
-        email: 'abderrahmane@pindofuture.com',
-        teacherId: 'TCH_HAMDAWI',
-        deepLinkUrl: 'http://localhost:8000/teacher/TCH_HAMDAWI',
-        teachingLevels: ['التعليم الثانوي (ثانوي)'],
-        teachingYears: ['ثالثة ثانوي (بكالوريا)', 'ثانية ثانوي'],
-        teachingSubjects: ['علوم الطبيعة والحياة', 'البيولوجيا', 'الاستدلال العلمي'],
-        headline: 'خبير منهجية الاستدلال العلمي والتحليل البيولوجي للبكالوريا',
-        bio: 'منهجية الإجابة الدقيقة على أسئلة الاستدلال العلمي والتفسير والتركيب للحصول على العلامة الكاملة.',
-        isLive: false,
-        totalCourses: 3,
-        totalStudents: 85,
-      ),
-    ];
-
-    final matching = fallbackList.where((t) {
-      final hasSub = t.teachingSubjects.any((s) =>
-          s.toLowerCase().contains(subject.title.toLowerCase()) ||
-          subject.title.toLowerCase().contains(s.toLowerCase()));
-      return hasSub;
-    }).toList();
-
-    setState(() {
-      _teachers = matching.isNotEmpty ? matching : fallbackList;
-      _isLoadingTeachers = false;
-    });
   }
 
   void _resetToLevels() {
