@@ -366,7 +366,7 @@
             <div id="role-panel-student" class="role-panel glass-card rounded-3xl p-8 lg:p-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                 <div class="space-y-5">
                     <span class="text-xs font-extrabold text-cyan-400">Pillar 1 • Pillar 2 • Pillar 3</span>
-                    <h3 class="text-2xl sm:text-3xl font-black text-white">مسار التلميذ نحو التفوق في الـ BEM و الـ BAC</h3>
+                    <h3 class="text-2xl sm:text-3xl font-black text-white">مسار التلميذ نحو التفوق من 0 الى الامتياز</h3>
                     <p class="text-slate-300 text-sm leading-relaxed">
                         انضم إلى أفواج أساتذتك المعتمدين في كافة الأطوار (الابتدائي، المتوسط، الثانوي، والجامعي)، احضر الحصص المباشرة وتفاعل بالسبورة والمحادثة، وراجع دروسك من المكتبة الرقمية المحمية في أي وقت.
                     </p>
