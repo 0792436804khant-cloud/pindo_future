@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
   final _teacherIdController = TextEditingController();
@@ -37,6 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     _teacherIdController.dispose();
@@ -49,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final success = await widget.authController.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
         password: _passwordController.text,
         passwordConfirmation: _passwordConfirmController.text,
         role: _selectedRole,
@@ -219,6 +222,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               }
                               if (!value.contains('@')) {
                                 return 'Please enter a valid email address.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Phone Number (All Roles)
+                          _buildTextField(
+                            controller: _phoneController,
+                            label: 'Phone Number / رقم الهاتف (للتواصل معك)',
+                            hintText: 'e.g. 0550 12 34 56',
+                            prefixIcon: Icons.phone_outlined,
+                            keyboardType: TextInputType.phone,
+                            validator: (value) {
+                              final cleaned = (value ?? '').trim();
+                              if (cleaned.isEmpty) {
+                                return 'رقم الهاتف مطلوب للتواصل معك (Phone number is required)';
+                              }
+                              if (!RegExp(r'^[0-9+\s()-]{8,25}$').hasMatch(cleaned)) {
+                                return 'Please enter a valid phone number.';
                               }
                               return null;
                             },

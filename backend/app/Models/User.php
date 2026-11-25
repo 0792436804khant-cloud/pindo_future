@@ -22,6 +22,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role', // 'admin', 'teacher', 'student', 'parent'
         'teacher_id', // unique ID for teacher deep links (e.g., TCH_123)

@@ -9,6 +9,7 @@ class RegisterUseCase {
   Future<User> call({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required UserRole role,
@@ -22,6 +23,7 @@ class RegisterUseCase {
     return await repository.register(
       name: name,
       email: email,
+      phone: phone,
       password: password,
       passwordConfirmation: passwordConfirmation,
       role: role,

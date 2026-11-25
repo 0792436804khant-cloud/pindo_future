@@ -45,6 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<User> register({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required UserRole role,
@@ -59,6 +60,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final data = await remoteDataSource.register(
         name: name,
         email: email,
+        phone: phone,
         password: password,
         passwordConfirmation: passwordConfirmation,
         role: role.name,

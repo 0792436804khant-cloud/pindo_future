@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../domain/entities/user.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/privacy_policy_modal.dart';
@@ -30,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // Register Controllers
   final _registerNameController = TextEditingController();
   final _registerEmailController = TextEditingController();
+  final _registerPhoneController = TextEditingController();
   final _registerPasswordController = TextEditingController();
   final _registerConfirmPasswordController = TextEditingController();
   final _registerTeacherIdController = TextEditingController();
@@ -61,6 +63,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   // Tabs: 0 = Sign In, 1 = Create Account
   int _activeTabIndex = 0;
 
+  // On mobile phones (< 960px), present the animated brand feature showcase before login/register
+  bool _showMobileShowcaseIntro = true;
+
   // Ambient mesh animation
   late AnimationController _ambientAnimationController;
 
@@ -87,6 +92,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _loginPasswordController.dispose();
     _registerNameController.dispose();
     _registerEmailController.dispose();
+    _registerPhoneController.dispose();
     _registerPasswordController.dispose();
     _registerConfirmPasswordController.dispose();
     _registerTeacherIdController.dispose();
@@ -197,6 +203,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final success = await widget.authController.register(
         name: _registerNameController.text.trim(),
         email: _registerEmailController.text.trim(),
+        phone: _registerPhoneController.text.trim(),
         password: _registerPasswordController.text,
         passwordConfirmation: _registerConfirmPasswordController.text,
         role: _registerRole,
@@ -266,7 +273,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.sizeOf(context).width < 460 ? 16 : 24,
+                  vertical: 28,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: LayoutBuilder(
@@ -292,12 +302,70 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           ],
                         );
                       } else {
-                        return Column(
-                          children: [
-                            _buildCompactMobileHeader(),
-                            const SizedBox(height: 24),
-                            _buildAuthGlassCard(authController),
-                          ],
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 450),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.04),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _showMobileShowcaseIntro
+                              ? KeyedSubtree(
+                                  key: const ValueKey('mobile_showcase_intro'),
+                                  child: _buildMobileAnimatedShowcaseIntro(),
+                                )
+                              : KeyedSubtree(
+                                  key: const ValueKey('mobile_auth_workspace'),
+                                  child: Column(
+                                    children: [
+                                      _buildCompactMobileHeader(),
+                                      const SizedBox(height: 14),
+                                      InkWell(
+                                        onTap: () => setState(() => _showMobileShowcaseIntro = true),
+                                        borderRadius: BorderRadius.circular(999),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF0D9488).withValues(alpha: 0.14),
+                                            borderRadius: BorderRadius.circular(999),
+                                            border: Border.all(
+                                              color: const Color(0xFF2DD4BF).withValues(alpha: 0.35),
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.auto_awesome, color: Color(0xFF2DD4BF), size: 15),
+                                              SizedBox(width: 6),
+                                              Flexible(
+                                                child: Text(
+                                                  'عرض مميزات المنصة • Platform Intro',
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Color(0xFF5EEAD4),
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _buildAuthGlassCard(authController),
+                                    ],
+                                  ),
+                                ),
                         );
                       }
                     },
@@ -312,9 +380,111 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   // ==========================================
-  // Left Hero Showcase (Desktop & Tablet)
+  // Mobile Animated Showcase Intro (Before Auth)
   // ==========================================
-  Widget _buildHeroShowcase() {
+  Widget _buildMobileAnimatedShowcaseIntro() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: const Key('mobile_showcase_skip_btn'),
+            onPressed: () => setState(() => _showMobileShowcaseIntro = false),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF94A3B8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(999),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+              ),
+            ),
+            icon: const Text(
+              'تخطي • Skip',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            label: const Icon(Icons.arrow_forward_rounded, size: 15),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildHeroShowcase(isCompactMobile: true),
+        const SizedBox(height: 24),
+        GlassmorphicScaleButton(
+          key: const Key('mobile_showcase_continue_btn'),
+          onPressed: () => setState(() {
+            _activeTabIndex = 1;
+            _showMobileShowcaseIntro = false;
+          }),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0D9488), Color(0xFF2563EB)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2DD4BF).withValues(alpha: 0.30),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 19),
+                SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    'ابدأ الآن • إنشاء حساب أو الدخول',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+              ],
+            ),
+          ),
+        )
+            .animate()
+            .fadeIn(delay: 520.ms, duration: 420.ms)
+            .slideY(begin: 0.18, end: 0, delay: 520.ms, duration: 420.ms, curve: Curves.easeOutCubic),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: () => setState(() {
+              _activeTabIndex = 0;
+              _showMobileShowcaseIntro = false;
+            }),
+            child: const Text(
+              'لديك حساب بالفعل؟ تسجيل الدخول • Sign In',
+              style: TextStyle(
+                color: Color(0xFF5EEAD4),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ).animate().fadeIn(delay: 600.ms, duration: 350.ms),
+      ],
+    );
+  }
+
+  // ==========================================
+  // Left Hero Showcase (Desktop & Mobile Intro)
+  // ==========================================
+  Widget _buildHeroShowcase({bool isCompactMobile = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -326,8 +496,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             Hero(
               tag: 'pindo_brand_logo_hero',
               child: Container(
-                width: 58,
-                height: 58,
+                width: isCompactMobile ? 52 : 58,
+                height: isCompactMobile ? 52 : 58,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -362,9 +532,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: RichText(
-                  text: const TextSpan(
-                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.5, fontFamily: 'Roboto'),
-                    children: [
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontSize: isCompactMobile ? 26 : 30,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      fontFamily: 'Roboto',
+                    ),
+                    children: const [
                       TextSpan(text: 'Pindo ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
                       TextSpan(text: 'Future', style: TextStyle(color: Color(0xFF2DD4BF), fontWeight: FontWeight.w800)),
                     ],
@@ -373,8 +548,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 22),
+        )
+            .animate()
+            .fadeIn(duration: 420.ms)
+            .slideX(begin: -0.06, end: 0, duration: 420.ms, curve: Curves.easeOutCubic),
+        SizedBox(height: isCompactMobile ? 16 : 22),
 
         // Live Security & SFU Status Pill
         Container(
@@ -413,14 +591,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
+        )
+            .animate()
+            .fadeIn(delay: 90.ms, duration: 400.ms)
+            .slideY(begin: 0.15, end: 0, delay: 90.ms, duration: 400.ms, curve: Curves.easeOutCubic),
+        SizedBox(height: isCompactMobile ? 16 : 20),
 
         // Brand Title
         RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 38, fontWeight: FontWeight.bold, height: 1.15, fontFamily: 'Roboto'),
-            children: [
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: isCompactMobile ? 30 : 38,
+              fontWeight: FontWeight.bold,
+              height: 1.15,
+              fontFamily: 'Roboto',
+            ),
+            children: const [
               TextSpan(text: 'Next-Generation\n', style: TextStyle(color: Colors.white)),
               TextSpan(
                 text: 'Livestreaming & Learning',
@@ -430,47 +616,64 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ),
             ],
           ),
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 160.ms, duration: 450.ms)
+            .slideY(begin: 0.12, end: 0, delay: 160.ms, duration: 450.ms, curve: Curves.easeOutCubic),
         const SizedBox(height: 14),
 
-        const Text(
+        Text(
           'Empowering educators and students with high-concurrency WebRTC masterclasses, interactive whiteboards, Algerian Dinar (DZD) payments, and zero-trust account security.',
           style: TextStyle(
-            color: Color(0xFF94A3B8),
-            fontSize: 14,
+            color: const Color(0xFF94A3B8),
+            fontSize: isCompactMobile ? 13.5 : 14,
             height: 1.5,
           ),
-        ),
-        const SizedBox(height: 28),
+        )
+            .animate()
+            .fadeIn(delay: 220.ms, duration: 450.ms),
+        SizedBox(height: isCompactMobile ? 20 : 28),
 
-        // 4 Modern Feature Cards
+        // 4 Modern Feature Cards (Staggered Entrance Animation)
         _buildFeatureItem(
           icon: Icons.security,
           iconColor: const Color(0xFF10B981),
           title: 'Zero-Trust Account Defense',
           subtitle: 'Sanctum token hashing & active anti-brute force rate limiting.',
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 260.ms, duration: 380.ms)
+            .slideX(begin: -0.06, end: 0, delay: 260.ms, duration: 380.ms, curve: Curves.easeOutCubic),
         const SizedBox(height: 14),
         _buildFeatureItem(
           icon: Icons.draw,
           iconColor: const Color(0xFF38BDF8),
           title: 'Interactive Vector Whiteboard',
           subtitle: 'Sub-50ms synchronized drawing, geometric tools & saved snapshots.',
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 340.ms, duration: 380.ms)
+            .slideX(begin: -0.06, end: 0, delay: 340.ms, duration: 380.ms, curve: Curves.easeOutCubic),
         const SizedBox(height: 14),
         _buildFeatureItem(
           icon: Icons.payments,
           iconColor: const Color(0xFFF59E0B),
           title: 'Algerian Dinar (DZD) Monetization',
           subtitle: 'Automated 80/20 instructor splits, instant checkout & CCP disbursements.',
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 420.ms, duration: 380.ms)
+            .slideX(begin: -0.06, end: 0, delay: 420.ms, duration: 380.ms, curve: Curves.easeOutCubic),
         const SizedBox(height: 14),
         _buildFeatureItem(
           icon: Icons.family_restroom,
           iconColor: const Color(0xFFA855F7),
           title: 'Guardian Oversight Engine',
           subtitle: 'Real-time parent portal tracking attendance and academic milestones.',
-        ),
+        )
+            .animate()
+            .fadeIn(delay: 500.ms, duration: 380.ms)
+            .slideX(begin: -0.06, end: 0, delay: 500.ms, duration: 380.ms, curve: Curves.easeOutCubic),
       ],
     );
   }
@@ -603,7 +806,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           offset: const Offset(0, 10),
         ),
       ],
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 460 ? 20 : 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -658,14 +861,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   children: [
                     Icon(Icons.shield_outlined, color: Color(0xFF2DD4BF), size: 14),
                     SizedBox(width: 6),
-                    Text(
-                      'Privacy Policy & Terms of Service',
-                      style: TextStyle(
-                        color: Color(0xFF2DD4BF),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Color(0xFF2DD4BF),
+                    Flexible(
+                      child: Text(
+                        'Privacy Policy & Terms of Service',
+                        style: TextStyle(
+                          color: Color(0xFF2DD4BF),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Color(0xFF2DD4BF),
+                        ),
                       ),
                     ),
                   ],
@@ -741,13 +946,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 16, color: isSelected ? Colors.white : const Color(0xFF94A3B8)),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                title,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
               ),
             ),
           ],
@@ -892,6 +1100,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Email is required';
               if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+
+          _buildGlassField(
+            controller: _registerPhoneController,
+            label: 'Phone Number / رقم الهاتف (للتواصل معك)',
+            hint: 'e.g. 0550 12 34 56',
+            icon: Icons.phone_outlined,
+            keyboardType: TextInputType.phone,
+            validator: (v) {
+              final cleaned = (v ?? '').trim();
+              if (cleaned.isEmpty) {
+                return 'رقم الهاتف مطلوب للتواصل معك (Phone number is required)';
+              }
+              if (!RegExp(r'^[0-9+\s()-]{8,25}$').hasMatch(cleaned)) {
+                return 'يرجى إدخال رقم هاتف صحيح (Enter a valid phone number)';
+              }
               return null;
             },
           ),
@@ -1187,12 +1414,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         color: isSelected ? const Color(0xFF00E5FF) : Colors.white60,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        lvl,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontSize: 11.5,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      Flexible(
+                        child: Text(
+                          lvl,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.white70,
+                            fontSize: 11.5,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
                       ),
                     ],
@@ -1305,9 +1534,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     children: [
                       const Icon(Icons.add, color: Color(0xFF00E5FF), size: 12),
                       const SizedBox(width: 4),
-                      Text(
-                        sub,
-                        style: const TextStyle(color: Colors.white70, fontSize: 10.5),
+                      Flexible(
+                        child: Text(
+                          sub,
+                          style: const TextStyle(color: Colors.white70, fontSize: 10.5),
+                        ),
                       ),
                     ],
                   ),
@@ -1519,13 +1750,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     children: [
                       Icon(icon, color: Colors.white, size: 18),
                       const SizedBox(width: 10),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.4,
+                      Flexible(
+                        child: Text(
+                          label,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.4,
+                          ),
                         ),
                       ),
                     ],

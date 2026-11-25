@@ -11,6 +11,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required String role,
@@ -54,6 +55,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> register({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required String role,
@@ -72,6 +74,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       'role': role,
       'device_name': 'Flutter Mobile App',
     };
+
+    if (phone != null && phone.trim().isNotEmpty) {
+      body['phone'] = phone.trim();
+    }
 
     if (teacherId != null && teacherId.trim().isNotEmpty) {
       body['teacher_id'] = teacherId.trim();

@@ -38,6 +38,7 @@ class User {
   final int id;
   final String name;
   final String email;
+  final String? phone;
   final UserRole role;
   final String? teacherId;
   final String? studentId;
@@ -62,6 +63,7 @@ class User {
     required this.id,
     required this.name,
     required this.email,
+    this.phone,
     required this.role,
     this.teacherId,
     this.studentId,
@@ -99,6 +101,7 @@ class User {
     int? id,
     String? name,
     String? email,
+    String? phone,
     UserRole? role,
     String? teacherId,
     String? studentId,
@@ -123,6 +126,7 @@ class User {
       id: id ?? this.id,
       name: name ?? this.name,
       email: email ?? this.email,
+      phone: phone ?? this.phone,
       role: role ?? this.role,
       teacherId: teacherId ?? this.teacherId,
       studentId: studentId ?? this.studentId,

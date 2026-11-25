@@ -230,4 +230,50 @@ class AuthTest extends TestCase
             'email' => 'delete.me@pindofuture.com',
         ]);
     }
+
+    /**
+     * Test registration stores phone number for student, teacher, and parent roles.
+     */
+    public function test_registration_stores_phone_number_for_student_teacher_and_parent(): void
+    {
+        $roles = [
+            ['role' => 'student', 'email' => 'phone.student@pindofuture.com', 'phone' => '0550112233'],
+            ['role' => 'teacher', 'email' => 'phone.teacher@pindofuture.com', 'phone' => '+213661223344'],
+            ['role' => 'parent', 'email' => 'phone.parent@pindofuture.com', 'phone' => '0770998877'],
+        ];
+
+        foreach ($roles as $case) {
+            $payload = [
+                'name' => 'Phone Test ' . ucfirst($case['role']),
+                'email' => $case['email'],
+                'phone' => $case['phone'],
+                'password' => 'SecurePass123!',
+                'password_confirmation' => 'SecurePass123!',
+                'role' => $case['role'],
+            ];
+
+            if ($case['role'] === 'teacher') {
+                $payload['teaching_levels'] = ['High School (Secondary)'];
+                $payload['teaching_years'] = ['3AS (BAC)'];
+                $payload['teaching_subjects'] = ['Mathematics'];
+            }
+
+            if ($case['role'] === 'parent') {
+                $payload['student_id'] = 'student.demo@pindofuture.com';
+            }
+
+            $response = $this->postJson('/api/v1/auth/register', $payload);
+
+            $response->assertStatus(201)
+                ->assertJsonPath('status', 'success')
+                ->assertJsonPath('user.role', $case['role'])
+                ->assertJsonPath('user.phone', $case['phone']);
+
+            $this->assertDatabaseHas('users', [
+                'email' => $case['email'],
+                'role' => $case['role'],
+                'phone' => $case['phone'],
+            ]);
+        }
+    }
 }

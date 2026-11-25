@@ -672,6 +672,7 @@
                     <td class="py-3.5 pr-4">
                         <div class="font-bold text-white text-xs">${t.name}</div>
                         <div class="text-[11px] text-slate-400 font-mono">${t.teacher_id} • ${t.email}</div>
+                        ${t.phone ? `<a href="tel:${t.phone}" class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-300 hover:bg-emerald-500/20" dir="ltr">📞 ${t.phone}</a>` : ''}
                     </td>
                     <td class="py-3.5 px-3">
                         <div class="font-semibold text-slate-200">${t.wilaya_ar}</div>
@@ -736,6 +737,7 @@
                     <td class="py-3.5 pr-4">
                         <div class="font-bold text-white text-xs">${s.student_name}</div>
                         <div class="text-[11px] text-slate-400 font-mono">${s.order_number}</div>
+                        ${s.student_phone ? `<a href="tel:${s.student_phone}" class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-mono text-cyan-300 hover:bg-cyan-500/20" dir="ltr">📞 ${s.student_phone}</a>` : ''}
                     </td>
                     <td class="py-3.5 px-3">
                         <div class="text-slate-200 font-semibold">${s.course_title}</div>

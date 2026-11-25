@@ -36,6 +36,7 @@ class MockAuthRepository implements AuthRepository {
   Future<User> register({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required UserRole role,
@@ -50,6 +51,7 @@ class MockAuthRepository implements AuthRepository {
       id: 3,
       name: name,
       email: email,
+      phone: phone,
       role: role,
       teacherId: teacherId ?? (role == UserRole.teacher ? 'TCH_AUTO' : null),
       studentId: studentId ?? (role == UserRole.student ? 'STU_AUTO' : null),

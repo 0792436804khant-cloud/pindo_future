@@ -95,6 +95,7 @@ class AuthController extends ChangeNotifier {
   Future<bool> register({
     required String name,
     required String email,
+    String? phone,
     required String password,
     required String passwordConfirmation,
     required UserRole role,
@@ -113,6 +114,7 @@ class AuthController extends ChangeNotifier {
       final user = await registerUseCase(
         name: name,
         email: email,
+        phone: phone,
         password: password,
         passwordConfirmation: passwordConfirmation,
         role: role,
