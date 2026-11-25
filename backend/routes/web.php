@@ -1,11 +1,22 @@
 <?php
 
 use App\Http\Controllers\Web\AdminPanelController;
+use App\Http\Controllers\Web\SiteWebController;
 use Illuminate\Support\Facades\Route;
 
-// Omnichannel Web App Entry (Serves compiled Flutter PWA when present, fallback to Admin Login)
-Route::get('/', function () {
-    $flutterEntry = public_path('app.html');
+// Official Pindo Future Marketing & Product Website ("مستقبل التعليم في الجزائر | Future Generation of Education DZ")
+Route::get('/', [SiteWebController::class, 'home'])->name('site.home');
+Route::get('/privacy', [SiteWebController::class, 'privacy'])->name('site.privacy');
+Route::get('/teacher/{teacherId}', [SiteWebController::class, 'teacherShowcase'])->name('site.teacher');
+Route::get('/download/android', [SiteWebController::class, 'downloadAndroid'])->name('site.download.android');
+
+// Omnichannel Flutter Web PWA Application (/app/)
+Route::get('/app', function () {
+    return redirect('/app/');
+});
+
+Route::get('/app/', function () {
+    $flutterEntry = public_path('app/index.html');
     if (file_exists($flutterEntry)) {
         return response()->file($flutterEntry, [
             'Content-Type' => 'text/html; charset=UTF-8',
@@ -13,7 +24,7 @@ Route::get('/', function () {
         ]);
     }
 
-    return redirect()->route('admin.login');
+    return redirect()->route('site.home');
 })->name('app.home');
 
 // Admin Web Authentication
