@@ -50,10 +50,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final token = await authLocal.getToken();
 
       final response = await apiClient.get('/admin/dashboard', token: token);
-      if (response.statusCode == 200 && response.data['data'] != null) {
+      if (response is Map<String, dynamic> && response['data'] != null) {
         if (mounted) {
           setState(() {
-            _dashboard = AdminDashboardModel.fromJson(response.data);
+            _dashboard = AdminDashboardModel.fromJson(response);
             _isLoading = false;
           });
         }

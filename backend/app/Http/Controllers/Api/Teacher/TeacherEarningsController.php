@@ -23,6 +23,10 @@ class TeacherEarningsController extends Controller
         $earningsQuery = TeacherEarning::where('teacher_id', $teacher->id);
 
         $grossSales = (float) $earningsQuery->sum('gross_amount');
+        $liveGrossSales = (float) (clone $earningsQuery)->sum('live_gross_amount');
+        $libraryGrossSales = (float) (clone $earningsQuery)->sum('library_gross_amount');
+        $livePlatformFees = (float) (clone $earningsQuery)->sum('live_platform_fee');
+        $libraryPlatformFees = (float) (clone $earningsQuery)->sum('library_platform_fee');
         $platformFees = (float) $earningsQuery->sum('platform_fee');
         $totalNetEarned = (float) $earningsQuery->sum('net_amount');
 
@@ -42,7 +46,7 @@ class TeacherEarningsController extends Controller
 
         // 2. Recent Sales Transactions
         $transactions = TeacherEarning::where('teacher_id', $teacher->id)
-            ->with(['order.user', 'course'])
+            ->with(['order.user', 'course', 'order.cohort'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get()
@@ -51,8 +55,12 @@ class TeacherEarningsController extends Controller
                     'id' => $e->id,
                     'order_number' => $e->order?->order_number,
                     'course_id' => $e->course_id,
-                    'course_title' => $e->course?->title ?? 'Course',
+                    'cohort_id' => $e->cohort_id,
+                    'package_type' => $e->package_type ?? 'full_bundle',
+                    'course_title' => $e->order?->cohort?->name ?? $e->course?->title ?? 'Course',
                     'student_name' => $e->order?->user?->name ?? 'Student',
+                    'live_gross_amount' => (float) $e->live_gross_amount,
+                    'library_gross_amount' => (float) $e->library_gross_amount,
                     'gross_amount' => $e->gross_amount,
                     'platform_fee' => $e->platform_fee,
                     'net_amount' => $e->net_amount,
@@ -83,13 +91,17 @@ class TeacherEarningsController extends Controller
             'status' => 'success',
             'summary' => [
                 'gross_sales' => round($grossSales, 2),
+                'live_gross_sales' => round($liveGrossSales, 2),
+                'library_gross_sales' => round($libraryGrossSales, 2),
+                'live_platform_fees' => round($livePlatformFees, 2),
+                'library_platform_fees' => round($libraryPlatformFees, 2),
                 'platform_fees' => round($platformFees, 2),
                 'total_net_earned' => round($totalNetEarned, 2),
                 'available_balance' => round($availableBalance, 2),
                 'pending_payout' => round($pendingPayoutBalance, 2),
                 'paid_out' => round($completedPayoutBalance, 2),
                 'total_sales_count' => $totalSalesCount,
-                'revenue_split' => '80% Instructor / 20% Platform',
+                'revenue_split' => 'Live: 85%/15% • Library: 90%/10%',
             ],
             'transactions' => $transactions,
             'payouts' => $payouts,

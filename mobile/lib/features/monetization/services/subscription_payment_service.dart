@@ -105,6 +105,9 @@ class SubscriptionPaymentService {
     required String subject,
     required String packageName,
     required int priceDzd,
+    String? packageType,
+    int? livePriceDzd,
+    int? libraryPriceDzd,
     required String paymentMethod,
     String? receiptName,
     Uint8List? receiptBytes,
@@ -118,6 +121,9 @@ class SubscriptionPaymentService {
     final breakdown = PlatformPaymentConfig.calculateCommission(
       totalPriceDzd: priceDzd,
       packageName: packageName,
+      packageType: packageType,
+      livePriceDzd: livePriceDzd,
+      libraryPriceDzd: libraryPriceDzd,
     );
 
     final receipt = SubscriptionPaymentReceipt(

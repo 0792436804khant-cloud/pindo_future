@@ -1509,8 +1509,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               'Physics & Chemistry',
               'Natural Sciences',
               'Arabic Literature',
+              'History & Geography (الاجتماعيات)',
+              'Islamic Sciences (العلوم الإسلامية)',
               'Computer Science & Algorithms',
               'Philosophy',
+              'French Language',
+              'English Language',
+              'Economics & Accounting',
+              'Engineering (Civil/Elec/Mech)',
             ].map((sub) {
               return GlassmorphicScaleButton(
                 onPressed: () {

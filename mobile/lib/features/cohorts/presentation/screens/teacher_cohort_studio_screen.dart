@@ -374,11 +374,18 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
 
   void _showCreateCohortModal(BuildContext context) {
     final nameController = TextEditingController();
-    final priceController = TextEditingController(text: '3000');
+    final livePriceController = TextEditingController(text: '2500');
+    final libraryPriceController = TextEditingController(text: '1500');
+    final bundlePriceController = TextEditingController(text: '3500');
     final maxStudentsController = TextEditingController(text: '100');
-    String selectedLevel = AlgerianEducationConstants.academicLevels.first;
-    String selectedStream = AlgerianEducationConstants.secondaryStreams.first;
-    String selectedSubject = AlgerianEducationConstants.subjects.first;
+    final availableLevels = AlgerianEducationConstants.resolveTeacherCohortYears(
+      widget.teacher.teachingYears,
+    );
+    String selectedLevel = availableLevels.first;
+    List<String> availableStreams = AlgerianEducationConstants.streamsForYearLabel(selectedLevel);
+    String selectedStream = availableStreams.first;
+    List<String> availableSubjects = AlgerianEducationConstants.subjectsForYearLabel(selectedLevel);
+    String selectedSubject = availableSubjects.first;
 
     showModalBottomSheet(
       context: context,
@@ -420,16 +427,28 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
                   dropdownColor: const Color(0xFF0F172A),
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: 'المستوى الأكاديمي',
+                    labelText: 'السنة / المستوى الأكاديمي',
                     filled: true,
                     fillColor: const Color(0xFF0F172A),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  items: AlgerianEducationConstants.academicLevels.map((lvl) {
+                  items: availableLevels.map((lvl) {
                     return DropdownMenuItem(value: lvl, child: Text(lvl, style: const TextStyle(fontSize: 13)));
                   }).toList(),
                   onChanged: (val) {
-                    if (val != null) setModalState(() => selectedLevel = val);
+                    if (val != null) {
+                      setModalState(() {
+                        selectedLevel = val;
+                        availableStreams = AlgerianEducationConstants.streamsForYearLabel(val);
+                        if (!availableStreams.contains(selectedStream)) {
+                          selectedStream = availableStreams.first;
+                        }
+                        availableSubjects = AlgerianEducationConstants.subjectsForYearLabel(val);
+                        if (!availableSubjects.contains(selectedSubject)) {
+                          selectedSubject = availableSubjects.first;
+                        }
+                      });
+                    }
                   },
                 ),
                 const SizedBox(height: 12),
@@ -443,7 +462,7 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
                     fillColor: const Color(0xFF0F172A),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  items: AlgerianEducationConstants.secondaryStreams.map((st) {
+                  items: availableStreams.map((st) {
                     return DropdownMenuItem(value: st, child: Text(st, style: const TextStyle(fontSize: 13)));
                   }).toList(),
                   onChanged: (val) {
@@ -461,7 +480,7 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
                     fillColor: const Color(0xFF0F172A),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  items: AlgerianEducationConstants.subjects.map((sub) {
+                  items: availableSubjects.map((sub) {
                     return DropdownMenuItem(value: sub, child: Text(sub, style: const TextStyle(fontSize: 13)));
                   }).toList(),
                   onChanged: (val) {
@@ -487,11 +506,43 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextField(
-                        controller: priceController,
+                        controller: livePriceController,
                         keyboardType: TextInputType.number,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          labelText: 'السعر الشهري (دج)',
+                          labelText: 'سعر الحصص (دج)',
+                          filled: true,
+                          fillColor: const Color(0xFF0F172A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: libraryPriceController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'سعر المكتبة (دج)',
+                          filled: true,
+                          fillColor: const Color(0xFF0F172A),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: bundlePriceController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'الباقة المتكاملة (دج)',
                           filled: true,
                           fillColor: const Color(0xFF0F172A),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -511,13 +562,20 @@ class _TeacherCohortStudioScreenState extends State<TeacherCohortStudioScreen> {
                     if (nameController.text.trim().isEmpty) return;
                     Navigator.pop(ctx);
                     if (widget.teacher.token != null) {
+                      final live = double.tryParse(livePriceController.text) ?? 2500.0;
+                      final lib = double.tryParse(libraryPriceController.text) ?? 1500.0;
+                      final bundle = double.tryParse(bundlePriceController.text) ?? (live + lib);
                       await widget.cohortController.createCohort(widget.teacher.token!, {
                         'name': nameController.text.trim(),
                         'subject': selectedSubject,
                         'academic_level': selectedLevel,
                         'stream': selectedStream,
                         'max_students': int.tryParse(maxStudentsController.text) ?? 100,
-                        'monthly_price': double.tryParse(priceController.text) ?? 0.0,
+                        'monthly_price': bundle,
+                        'live_sessions_price': live,
+                        'library_price': lib,
+                        'bundle_price': bundle,
+                        'include_library': true,
                       });
                     }
                   },

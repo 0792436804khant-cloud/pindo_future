@@ -64,6 +64,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
       teacherName: widget.user.name.isNotEmpty ? widget.user.name : 'الأستاذ',
       teacherId: widget.user.teacherId ?? 'TCH_DZ',
     );
+    _dashboard = _dashboard.copyWith(
+      teacherProfile: _dashboard.teacherProfile.copyWith(
+        subjects: widget.user.teachingSubjects,
+        levels: widget.user.teachingLevels,
+        teachingYears: widget.user.teachingYears,
+      ),
+    );
     _fetchDashboardData();
   }
 
@@ -72,23 +79,68 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     try {
       final apiClient = ApiClient();
       final authLocal = AuthLocalDataSourceImpl();
-      final token = await authLocal.getToken();
+      final token = _currentUser.token ?? await authLocal.getToken();
 
       final response = await apiClient.get('/teacher/dashboard', token: token);
-      if (response.statusCode == 200 && response.data['data'] != null) {
+      if (response is Map<String, dynamic> && response['data'] != null) {
+        final parsed = TeacherDashboardModel.fromJson(response);
+        final mergedYears = parsed.teacherProfile.teachingYears.isNotEmpty
+            ? parsed.teacherProfile.teachingYears
+            : _currentUser.teachingYears;
+        final mergedSubjects = parsed.teacherProfile.subjects.isNotEmpty
+            ? parsed.teacherProfile.subjects
+            : _currentUser.teachingSubjects;
+        final mergedLevels = parsed.teacherProfile.levels.isNotEmpty
+            ? parsed.teacherProfile.levels
+            : _currentUser.teachingLevels;
+
         if (mounted) {
           setState(() {
-            _dashboard = TeacherDashboardModel.fromJson(response.data);
+            _dashboard = parsed.copyWith(
+              teacherProfile: parsed.teacherProfile.copyWith(
+                teachingYears: mergedYears,
+                subjects: mergedSubjects,
+                levels: mergedLevels,
+              ),
+            );
             _isLoading = false;
           });
         }
         return;
       }
     } catch (_) {
-      // Graceful fallback to mock data
+      // Graceful fallback
     }
     if (mounted) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _createCohort(Map<String, dynamic> payload) async {
+    final apiClient = ApiClient();
+    final authLocal = AuthLocalDataSourceImpl();
+    final token = _currentUser.token ?? await authLocal.getToken();
+
+    final response = await apiClient.post(
+      '/teacher/cohorts',
+      body: payload,
+      token: token,
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
+      final createdJson = Map<String, dynamic>.from(response['data'] as Map<String, dynamic>);
+      final newItem = TeacherCohortItem.fromJson(createdJson);
+
+      if (mounted) {
+        setState(() {
+          final existing = _dashboard.cohorts.where((c) => c.id != newItem.id).toList();
+          _dashboard = _dashboard.copyWith(cohorts: [newItem, ...existing]);
+        });
+      }
+      // Refresh summary & stats in background from server
+      await _fetchDashboardData();
+    } else {
+      throw Exception('استجابة غير متوقعة من الخادم عند إنشاء الفوج.');
     }
   }
 
@@ -204,14 +256,17 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         title: const Row(
           children: [
             PindoBrandLogo(size: 28, showText: false, withGlow: true),
-            SizedBox(width: 10),
-            Text(
-              'Teacher Studio — لوحة الأستاذ',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                letterSpacing: 0.2,
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'لوحة الأستاذ • Studio',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  letterSpacing: 0.2,
+                ),
               ),
             ),
           ],
@@ -363,11 +418,25 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
                 dashboard: _dashboard,
                 onStartLiveSession: _launchLiveSession,
                 onNavigateToTab: _onTabSelected,
+                onCreateCohort: _createCohort,
+                allowedTeachingYears: _dashboard.teacherProfile.teachingYears.isNotEmpty
+                    ? _dashboard.teacherProfile.teachingYears
+                    : _currentUser.teachingYears,
+                allowedTeachingSubjects: _dashboard.teacherProfile.subjects.isNotEmpty
+                    ? _dashboard.teacherProfile.subjects
+                    : _currentUser.teachingSubjects,
               ),
 
               // 1. أفواجي (Groups Management)
               TeacherGroupsTab(
                 cohorts: _dashboard.cohorts,
+                onCreateCohort: _createCohort,
+                allowedTeachingYears: _dashboard.teacherProfile.teachingYears.isNotEmpty
+                    ? _dashboard.teacherProfile.teachingYears
+                    : _currentUser.teachingYears,
+                allowedTeachingSubjects: _dashboard.teacherProfile.subjects.isNotEmpty
+                    ? _dashboard.teacherProfile.subjects
+                    : _currentUser.teachingSubjects,
               ),
 
               // 2. الجدول (Schedule & Broadcasts)

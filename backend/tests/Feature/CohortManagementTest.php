@@ -253,4 +253,83 @@ class CohortManagementTest extends TestCase
             'student_id' => $student->id,
         ]);
     }
+
+    public function test_split_pricing_cohorts_invalidate_teacher_cache_and_track_package_revenue(): void
+    {
+        $teacher = $this->createUser(Role::TEACHER, [
+            'teaching_years' => ['3AS (BAC)', '2AS'],
+            'teaching_subjects' => ['التاريخ والجغرافيا (الاجتماعيات)'],
+        ]);
+        $student1 = $this->createUser(Role::STUDENT);
+        $student2 = $this->createUser(Role::STUDENT);
+        $student3 = $this->createUser(Role::STUDENT);
+
+        // Warm teacher dashboard cache before creating cohort
+        $this->actingAs($teacher)->getJson('/api/v1/teacher/dashboard')
+            ->assertStatus(200)
+            ->assertJsonCount(0, 'data.cohorts');
+
+        // Create cohort with explicit live, library, and integrated bundle pricing
+        $createRes = $this->actingAs($teacher)->postJson('/api/v1/teacher/cohorts', [
+            'name' => 'فوج الاجتماعيات الممتاز',
+            'subject' => 'التاريخ والجغرافيا (الاجتماعيات)',
+            'academic_level' => 'ثالثة ثانوي (BAC)',
+            'stream' => 'آداب وفلسفة',
+            'live_sessions_price' => 2000,
+            'library_price' => 1000,
+            'bundle_price' => 2700,
+            'include_library' => true,
+        ]);
+
+        $createRes->assertStatus(201)
+            ->assertJsonPath('data.live_sessions_price', 2000)
+            ->assertJsonPath('data.library_price', 1000)
+            ->assertJsonPath('data.bundle_price', 2700);
+
+        $cohortId = $createRes->json('data.id');
+
+        // Dashboard cache must be invalidated immediately & expose teaching_years + created cohort
+        $this->actingAs($teacher)->getJson('/api/v1/teacher/dashboard')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data.cohorts')
+            ->assertJsonPath('data.cohorts.0.name', 'فوج الاجتماعيات الممتاز')
+            ->assertJsonPath('data.teacher.teaching_years.0', '3AS (BAC)');
+
+        // Student 1 chooses live_only (2000 -> 15% fee = 300, net = 1700)
+        $this->actingAs($student1)->postJson("/api/v1/student/cohorts/{$cohortId}/join", [
+            'package_type' => StudyCohort::PACKAGE_LIVE_ONLY,
+        ])->assertStatus(201)
+            ->assertJsonPath('pricing_breakdown.platform_fee', 300)
+            ->assertJsonPath('pricing_breakdown.teacher_net_amount', 1700)
+            ->assertJsonPath('membership.live_access', true)
+            ->assertJsonPath('membership.library_access', false);
+
+        // Student 2 chooses library_only (1000 -> 10% fee = 100, net = 900)
+        $this->actingAs($student2)->postJson("/api/v1/student/cohorts/{$cohortId}/join", [
+            'package_type' => StudyCohort::PACKAGE_LIBRARY_ONLY,
+        ])->assertStatus(201)
+            ->assertJsonPath('pricing_breakdown.platform_fee', 100)
+            ->assertJsonPath('pricing_breakdown.teacher_net_amount', 900)
+            ->assertJsonPath('membership.live_access', false)
+            ->assertJsonPath('membership.library_access', true);
+
+        // Student 3 chooses full_bundle (2700: 1800 live @15% = 270 + 900 lib @10% = 90 -> fee = 360, net = 2340)
+        $this->actingAs($student3)->postJson("/api/v1/student/cohorts/{$cohortId}/join", [
+            'package_type' => StudyCohort::PACKAGE_FULL_BUNDLE,
+        ])->assertStatus(201)
+            ->assertJsonPath('pricing_breakdown.gross_amount', 2700)
+            ->assertJsonPath('membership.live_access', true)
+            ->assertJsonPath('membership.library_access', true);
+
+        // Verify accurate split revenue breakdown on teacher earnings endpoint
+        $this->actingAs($teacher)->getJson('/api/v1/teacher/earnings')
+            ->assertStatus(200)
+            ->assertJsonPath('summary.gross_sales', 5700)
+            ->assertJsonPath('summary.live_gross_sales', 3800)
+            ->assertJsonPath('summary.library_gross_sales', 1900)
+            ->assertJsonPath('summary.live_platform_fees', 570)
+            ->assertJsonPath('summary.library_platform_fees', 190)
+            ->assertJsonPath('summary.platform_fees', 760)
+            ->assertJsonPath('summary.total_net_earned', 4940);
+    }
 }

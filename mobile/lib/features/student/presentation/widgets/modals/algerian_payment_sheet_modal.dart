@@ -9,6 +9,9 @@ class AlgerianPaymentSheetModal extends StatefulWidget {
   final String subject;
   final String packageName;
   final int priceDzd;
+  final String? packageType;
+  final int? livePriceDzd;
+  final int? libraryPriceDzd;
   final bool isQuickRenewal;
 
   const AlgerianPaymentSheetModal({
@@ -18,6 +21,9 @@ class AlgerianPaymentSheetModal extends StatefulWidget {
     required this.subject,
     required this.packageName,
     required this.priceDzd,
+    this.packageType,
+    this.livePriceDzd,
+    this.libraryPriceDzd,
     this.isQuickRenewal = false,
   });
 
@@ -28,6 +34,9 @@ class AlgerianPaymentSheetModal extends StatefulWidget {
     required String subject,
     required String packageName,
     required int priceDzd,
+    String? packageType,
+    int? livePriceDzd,
+    int? libraryPriceDzd,
     bool isQuickRenewal = false,
   }) {
     return showModalBottomSheet(
@@ -40,6 +49,9 @@ class AlgerianPaymentSheetModal extends StatefulWidget {
         subject: subject,
         packageName: packageName,
         priceDzd: priceDzd,
+        packageType: packageType,
+        livePriceDzd: livePriceDzd,
+        libraryPriceDzd: libraryPriceDzd,
         isQuickRenewal: isQuickRenewal,
       ),
     );
@@ -123,6 +135,9 @@ class _AlgerianPaymentSheetModalState extends State<AlgerianPaymentSheetModal> {
       subject: widget.subject,
       packageName: widget.packageName,
       priceDzd: widget.priceDzd,
+      packageType: widget.packageType,
+      livePriceDzd: widget.livePriceDzd,
+      libraryPriceDzd: widget.libraryPriceDzd,
       paymentMethod: selectedMethod,
       receiptName: _uploadedReceiptName,
       studentName: 'أحمد أمين قادري',

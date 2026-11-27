@@ -103,8 +103,9 @@ void main() {
 
       expect(find.text('💰 إدارة المداخيل والاشتراكات'), findsOneWidget);
       expect(find.text('صافي المستحقات المتاحة'), findsOneWidget);
-      expect(find.text('باقة دروس فقط'), findsOneWidget);
-      expect(find.text('دروس + مكتبة'), findsOneWidget);
+      expect(find.text('باقة الحصص فقط'), findsOneWidget);
+      expect(find.text('المكتبة الرقمية فقط'), findsOneWidget);
+      expect(find.text('الباقة المتكاملة'), findsOneWidget);
     });
 
     testWidgets('TeacherAccountTab renders profile info and deep link sharing', (tester) async {

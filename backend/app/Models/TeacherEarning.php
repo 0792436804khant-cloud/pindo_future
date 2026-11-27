@@ -18,6 +18,12 @@ class TeacherEarning extends Model
         'teacher_id',
         'order_id',
         'course_id',
+        'cohort_id',
+        'package_type',
+        'live_gross_amount',
+        'library_gross_amount',
+        'live_platform_fee',
+        'library_platform_fee',
         'gross_amount',
         'platform_fee',
         'net_amount',
@@ -28,6 +34,10 @@ class TeacherEarning extends Model
     protected function casts(): array
     {
         return [
+            'live_gross_amount' => 'decimal:2',
+            'library_gross_amount' => 'decimal:2',
+            'live_platform_fee' => 'decimal:2',
+            'library_platform_fee' => 'decimal:2',
             'gross_amount' => 'decimal:2',
             'platform_fee' => 'decimal:2',
             'net_amount' => 'decimal:2',

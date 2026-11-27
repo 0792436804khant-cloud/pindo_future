@@ -7,6 +7,7 @@ import '../../../library/data/repositories/library_repository_impl.dart';
 import '../../../library/presentation/controllers/library_controller.dart';
 import '../../../library/presentation/screens/cohort_library_screen.dart';
 import '../../../teachers/presentation/widgets/teacher_verification_badge.dart';
+import '../../../student/presentation/widgets/modals/subscription_package_modal.dart';
 import '../../domain/entities/study_cohort_entity.dart';
 import '../controllers/cohort_controller.dart';
 
@@ -278,7 +279,28 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
               _buildSmallBadge(cohort.subject, const Color(0xFFEC4899)),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _buildSmallBadge(
+                'الحصص: ${cohort.liveSessionsPrice > 0 ? "${cohort.liveSessionsPrice.toStringAsFixed(0)} دج" : "مجاني"}',
+                const Color(0xFF00E5FF),
+              ),
+              if (cohort.includeLibrary) ...[
+                _buildSmallBadge(
+                  'المكتبة: ${cohort.libraryPrice > 0 ? "${cohort.libraryPrice.toStringAsFixed(0)} دج" : "مضمنة"}',
+                  const Color(0xFF10B981),
+                ),
+                _buildSmallBadge(
+                  'المتكاملة: ${cohort.bundlePrice > 0 ? "${cohort.bundlePrice.toStringAsFixed(0)} دج" : "مجاني"}',
+                  const Color(0xFFF59E0B),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -295,25 +317,55 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
                   backgroundColor: cohort.isFull ? Colors.grey : const Color(0xFF10B981),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
                 icon: const Icon(Icons.group_add, size: 18),
-                label: const Text('انضمام للفوج', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: Text(
+                  (cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0)
+                      ? 'اختيار الباقة والاشتراك'
+                      : 'انضمام للفوج',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                ),
                 onPressed: cohort.isFull
                     ? null
                     : () async {
-                        if (widget.student.token != null) {
-                          final success = await widget.cohortController.joinCohort(widget.student.token!, cohort.id);
-                          if (success && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('تم الانضمام إلى الفوج بنجاح! مرحباً بك 🎉'),
-                                backgroundColor: Color(0xFF10B981),
-                              ),
-                            );
-                            _tabController.animateTo(1);
+                        final isPaid = cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0;
+                        if (!isPaid) {
+                          if (widget.student.token != null) {
+                            final success = await widget.cohortController.joinCohort(widget.student.token!, cohort.id);
+                            if (success && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('تم الانضمام إلى الفوج بنجاح! مرحباً بك 🎉'),
+                                  backgroundColor: Color(0xFF10B981),
+                                ),
+                              );
+                              _tabController.animateTo(1);
+                            }
                           }
+                          return;
                         }
+
+                        SubscriptionPackageModal.show(
+                          context,
+                          cohortName: cohort.name,
+                          teacherName: cohort.teacherName ?? 'أستاذ المادة',
+                          subject: cohort.subject,
+                          currentPackageName: cohort.includeLibrary ? 'الباقة المتكاملة' : 'باقة الحصص فقط',
+                          liveSessionsPriceDzd: cohort.liveSessionsPrice.toInt(),
+                          libraryPriceDzd: cohort.libraryPrice.toInt(),
+                          fullBundlePriceDzd: cohort.bundlePrice.toInt(),
+                          hasLibrary: cohort.includeLibrary,
+                          onPackageConfirmed: (packageType, packageName, priceDzd) async {
+                            if (widget.student.token != null) {
+                              await widget.cohortController.joinCohort(
+                                widget.student.token!,
+                                cohort.id,
+                                packageType: packageType,
+                              );
+                            }
+                          },
+                        );
                       },
               ),
             ],

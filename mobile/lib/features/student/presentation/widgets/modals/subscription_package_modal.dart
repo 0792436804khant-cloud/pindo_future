@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/config/platform_payment_config.dart';
 import 'algerian_payment_sheet_modal.dart';
 
 class SubscriptionPackageModal extends StatefulWidget {
@@ -6,6 +7,11 @@ class SubscriptionPackageModal extends StatefulWidget {
   final String teacherName;
   final String subject;
   final String currentPackageName;
+  final int liveSessionsPriceDzd;
+  final int libraryPriceDzd;
+  final int fullBundlePriceDzd;
+  final bool hasLibrary;
+  final Future<void> Function(String packageType, String packageName, int priceDzd)? onPackageConfirmed;
 
   const SubscriptionPackageModal({
     super.key,
@@ -13,6 +19,11 @@ class SubscriptionPackageModal extends StatefulWidget {
     required this.teacherName,
     required this.subject,
     required this.currentPackageName,
+    this.liveSessionsPriceDzd = 2500,
+    this.libraryPriceDzd = 1500,
+    this.fullBundlePriceDzd = 3500,
+    this.hasLibrary = true,
+    this.onPackageConfirmed,
   });
 
   static Future<void> show(
@@ -21,6 +32,11 @@ class SubscriptionPackageModal extends StatefulWidget {
     required String teacherName,
     required String subject,
     required String currentPackageName,
+    int liveSessionsPriceDzd = 2500,
+    int libraryPriceDzd = 1500,
+    int fullBundlePriceDzd = 3500,
+    bool hasLibrary = true,
+    Future<void> Function(String packageType, String packageName, int priceDzd)? onPackageConfirmed,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -31,6 +47,11 @@ class SubscriptionPackageModal extends StatefulWidget {
         teacherName: teacherName,
         subject: subject,
         currentPackageName: currentPackageName,
+        liveSessionsPriceDzd: liveSessionsPriceDzd,
+        libraryPriceDzd: libraryPriceDzd,
+        fullBundlePriceDzd: fullBundlePriceDzd,
+        hasLibrary: hasLibrary,
+        onPackageConfirmed: onPackageConfirmed,
       ),
     );
   }
@@ -40,7 +61,10 @@ class SubscriptionPackageModal extends StatefulWidget {
 }
 
 class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
-  int _selectedPackage = 0; // 0: باقة الحصص فقط, 1: باقة الحصص والمكتبة
+  // 0: الحصص المباشرة فقط (live_only)
+  // 1: المكتبة الرقمية فقط (library_only)
+  // 2: الباقة المتكاملة - الكل في واحد (full_bundle)
+  int _selectedPackage = 0;
 
   static const Color _brightCyan = Color(0xFF00E5FF);
   static const Color _electricPurple = Color(0xFF7C4DFF);
@@ -49,15 +73,47 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
   @override
   void initState() {
     super.initState();
-    if (widget.currentPackageName.contains('المكتبة')) {
+    final lower = widget.currentPackageName.toLowerCase();
+    if (widget.hasLibrary &&
+        (widget.currentPackageName.contains('متكاملة') ||
+            (widget.currentPackageName.contains('المكتبة') && widget.currentPackageName.contains('الحصص')) ||
+            lower.contains('bundle'))) {
+      _selectedPackage = 2;
+    } else if (widget.hasLibrary && widget.currentPackageName.contains('المكتبة')) {
       _selectedPackage = 1;
+    } else {
+      _selectedPackage = 0;
     }
   }
 
-  void _proceedToPayment() {
-    final chosenPackage = _selectedPackage == 0 ? 'باقة الحصص فقط' : 'باقة الحصص والمكتبة الرقمية';
-    final price = _selectedPackage == 0 ? 2500 : 3800;
+  int get _selectedPrice {
+    if (_selectedPackage == 1 && widget.hasLibrary) return widget.libraryPriceDzd;
+    if (_selectedPackage == 2 && widget.hasLibrary) return widget.fullBundlePriceDzd;
+    return widget.liveSessionsPriceDzd;
+  }
 
+  String get _selectedPackageType {
+    if (_selectedPackage == 1 && widget.hasLibrary) return PlatformPaymentConfig.packageLibraryOnly;
+    if (_selectedPackage == 2 && widget.hasLibrary) return PlatformPaymentConfig.packageFullBundle;
+    return PlatformPaymentConfig.packageLiveOnly;
+  }
+
+  String get _selectedPackageTitle {
+    if (_selectedPackage == 1 && widget.hasLibrary) return 'باقة المكتبة الرقمية فقط';
+    if (_selectedPackage == 2 && widget.hasLibrary) return 'الباقة المتكاملة (الحصص + المكتبة الشاملة)';
+    return 'باقة الحصص المباشرة والحضورية فقط';
+  }
+
+  Future<void> _proceedToPayment() async {
+    final chosenPackage = _selectedPackageTitle;
+    final packageType = _selectedPackageType;
+    final price = _selectedPrice;
+
+    if (widget.onPackageConfirmed != null) {
+      await widget.onPackageConfirmed!(packageType, chosenPackage, price);
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pop();
 
     AlgerianPaymentSheetModal.show(
@@ -67,6 +123,9 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
       subject: widget.subject,
       packageName: chosenPackage,
       priceDzd: price,
+      packageType: packageType,
+      livePriceDzd: widget.liveSessionsPriceDzd,
+      libraryPriceDzd: widget.libraryPriceDzd,
       isQuickRenewal: false,
     );
   }
@@ -74,6 +133,9 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.90,
+      ),
       decoration: const BoxDecoration(
         color: _deepIndigo,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -82,111 +144,133 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
         ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle Bar
-          Container(
-            width: 44,
-            height: 5,
-            decoration: BoxDecoration(
-              color: Colors.white30,
-              borderRadius: BorderRadius.circular(10),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle Bar
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white30,
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: _electricPurple.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.style_rounded, color: _electricPurple, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
                     children: [
-                      const Text(
-                        'اختر باقة الاشتراك المناسبة 🎯',
-                        style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.bold),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: _electricPurple.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.style_rounded, color: _electricPurple, size: 22),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'الفوج: ${widget.cohortName}',
-                        style: const TextStyle(color: Colors.white60, fontSize: 11.5),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'اختر باقة الاشتراك المناسبة 🎯',
+                              style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'الفوج: ${widget.cohortName}',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white60, fontSize: 11.5),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Option 0: باقة الحصص المباشرة / الحضورية فقط
+            _packageCard(
+              index: 0,
+              title: 'باقة الحصص فقط (Live Only)',
+              price: '${widget.liveSessionsPriceDzd} دج / شهرياً',
+              badge: 'الحصص المباشرة',
+              badgeColor: _brightCyan,
+              features: const [
+                'حضور الحصص التفاعلية المباشرة أو الحضورية كاملة',
+                'سبورة تفاعلية ذكية ومشاركة حلول التمارين',
+                'المشاركة في محادثة ودردشة الفوج الرسمية 💬',
+              ],
+            ),
+
+            if (widget.hasLibrary) ...[
+              const SizedBox(height: 12),
+              // Option 1: باقة المكتبة الرقمية فقط
+              _packageCard(
+                index: 1,
+                title: 'باقة المكتبة الرقمية فقط (Library Only)',
+                price: '${widget.libraryPriceDzd} دج / شهرياً',
+                badge: 'التسجيلات والملفات',
+                badgeColor: const Color(0xFF10B981),
+                features: const [
+                  'وصول كامل لمكتبة الفيديوهات والتسجيلات المحمية 🎬',
+                  'تحميل الملخصات، السلاسل والحلول النموذجية 📚',
+                  'مثالية للمراجعة الحرة في أي وقت بدون التزام بمواعيد البث',
                 ],
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white60, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
+              const SizedBox(height: 12),
+              // Option 2: الباقة المتكاملة (كل شيء في واحد)
+              _packageCard(
+                index: 2,
+                title: 'الباقة المتكاملة — الكل في واحد (Full Bundle)',
+                price: '${widget.fullBundlePriceDzd} دج / شهرياً',
+                badge: 'شامل الكل • الأفضل توفيراً ⭐',
+                badgeColor: const Color(0xFFF59E0B),
+                features: const [
+                  'كل مميزات باقة الحصص التفاعلية المباشرة كاملة',
+                  'وصول غير محدود لمكتبة التسجيلات المحمية والملخصات 🎬📚',
+                  'بنك الفروض والامتحانات + خصم مدمج مقارنة بالشراء المنفصل ⭐',
+                ],
               ),
             ],
-          ),
-          const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
-          // Option 1: باقة الحصص فقط
-          _packageCard(
-            index: 0,
-            title: 'باقة الحصص فقط (Live Only)',
-            price: '2,500 دج / شهرياً',
-            badge: 'الخيار القياسي',
-            badgeColor: _brightCyan,
-            features: [
-              '8 حصص مباشرة شهرياً مع الأستاذ (بث عالي الدقة)',
-              'سبورة تفاعلية ذكية ومشاركة حلول التمارين',
-              'المشاركة في محادثة ودردشة الفوج الرسمية 💬',
-              'تنبيهات وإشعارات دورية قبل انطلاق كل حصة ⏰',
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Option 2: باقة الحصص والمكتبة
-          _packageCard(
-            index: 1,
-            title: 'باقة الحصص والمكتبة الرقمية (Live + Library)',
-            price: '3,800 دج / شهرياً',
-            badge: 'الأكثر طلباً وتفوقاً ⭐',
-            badgeColor: const Color(0xFFF59E0B),
-            features: [
-              'كل مميزات باقة الحصص التفاعلية المباشرة كاملة',
-              'وصول غير محدود لمكتبة التسجيلات المحمية بالعلامة المائية 🎬',
-              'بنك نماذج فروض وامتحانات البكالوريا مع الحلول النموذجية 📝',
-              'ملخصات حصرية وخرائط ذهنية قابلة للتحميل والقراءة 📚',
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Continue Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _proceedToPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _brightCyan,
-                foregroundColor: const Color(0xFF070B14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                elevation: 4,
-              ),
-              icon: const Icon(Icons.payment, size: 18),
-              label: Text(
-                'المتابعة إلى الدفع (${_selectedPackage == 0 ? '2,500 دج' : '3,800 دج'}) 💳',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+            // Continue Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _proceedToPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _brightCyan,
+                  foregroundColor: const Color(0xFF070B14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
+                ),
+                icon: const Icon(Icons.payment, size: 18),
+                label: Text(
+                  'المتابعة إلى الدفع ($_selectedPrice دج) 💳',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

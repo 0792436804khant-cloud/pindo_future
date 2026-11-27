@@ -68,8 +68,8 @@ class _AcademicExplorerWidgetState extends State<AcademicExplorerWidget> {
       final queryString = Uri(queryParameters: queryParams).query;
       final response = await _apiClient.get('/teachers?$queryString');
 
-      if (response.statusCode == 200 && response.data['data'] is List) {
-        final list = (response.data['data'] as List)
+      if (response is Map<String, dynamic> && response['data'] is List) {
+        final list = (response['data'] as List)
             .map((item) => TeacherDirectoryItem.fromJson(item as Map<String, dynamic>))
             .toList();
 

@@ -63,7 +63,7 @@ class AlgerianEducationConstants {
     58: '58 - المنيعة (El Meniaa)',
   };
 
-  /// Academic Levels
+  /// Full Academic Levels (All Algerian Educational Years)
   static const List<String> academicLevels = [
     '3AS BAC (السنة الثالثة ثانوي - بكالوريا)',
     '2AS (السنة الثانية ثانوي)',
@@ -73,6 +73,61 @@ class AlgerianEducationConstants {
     '2AM (السنة الثانية متوسط)',
     '1AM (السنة الأولى متوسط)',
     '5AP (السنة الخامسة ابتدائي)',
+    '4AP (السنة الرابعة ابتدائي)',
+    '3AP (السنة الثالثة ابتدائي)',
+    '2AP (السنة الثانية ابتدائي)',
+    '1AP (السنة الأولى ابتدائي)',
+    'L1 (السنة الأولى ليسانس)',
+    'L2 (السنة الثانية ليسانس)',
+    'L3 (السنة الثالثة ليسانس)',
+    'Master / Engineer (ماستر وهندسة)',
+  ];
+
+  /// Concise Arabic cohort year labels paired with registration year codes
+  static const Map<String, String> yearCodeToCohortLabel = {
+    '1AP': 'أولى ابتدائي (1AP)',
+    '2AP': 'ثانية ابتدائي (2AP)',
+    '3AP': 'ثالثة ابتدائي (3AP)',
+    '4AP': 'رابعة ابتدائي (4AP)',
+    '5AP': 'خامسة ابتدائي (5AP)',
+    '1AM': 'أولى متوسط (1AM)',
+    '2AM': 'ثانية متوسط (2AM)',
+    '3AM': 'ثالثة متوسط (3AM)',
+    '4AM (BEM)': 'رابعة متوسط (BEM)',
+    '1AS': 'أولى ثانوي (1AS)',
+    '2AS': 'ثانية ثانوي (2AS)',
+    '3AS (BAC)': 'ثالثة ثانوي (BAC)',
+    'L1': 'أولى جامعي ليسانس (L1)',
+    'L2': 'ثانية جامعي ليسانس (L2)',
+    'L3': 'ثالثة جامعي ليسانس (L3)',
+    'Master / Engineer': 'ماستر / هندسة (Master)',
+    // Alternate labels from TeacherProfileEditorModal
+    '5th Year Primary (5AP)': 'خامسة ابتدائي (5AP)',
+    '4th Middle School (BEM)': 'رابعة متوسط (BEM)',
+    '1st Year Secondary (1AS)': 'أولى ثانوي (1AS)',
+    '2nd Year Secondary (2AS)': 'ثانية ثانوي (2AS)',
+    '3rd Year Secondary (BAC)': 'ثالثة ثانوي (BAC)',
+    'License & University (L1-L3)': 'التعليم الجامعي (L1-L3)',
+  };
+
+  /// All cohort level options (in clean Arabic order)
+  static const List<String> allCohortYearLabels = [
+    'ثالثة ثانوي (BAC)',
+    'ثانية ثانوي (2AS)',
+    'أولى ثانوي (1AS)',
+    'رابعة متوسط (BEM)',
+    'ثالثة متوسط (3AM)',
+    'ثانية متوسط (2AM)',
+    'أولى متوسط (1AM)',
+    'خامسة ابتدائي (5AP)',
+    'رابعة ابتدائي (4AP)',
+    'ثالثة ابتدائي (3AP)',
+    'ثانية ابتدائي (2AP)',
+    'أولى ابتدائي (1AP)',
+    'أولى جامعي ليسانس (L1)',
+    'ثانية جامعي ليسانس (L2)',
+    'ثالثة جامعي ليسانس (L3)',
+    'ماستر / هندسة (Master)',
   ];
 
   /// Secondary Education Academic Streams (شعب البكالوريا)
@@ -85,17 +140,20 @@ class AlgerianEducationConstants {
     'لغات أجنبية (Langues Étrangères)',
   ];
 
-  /// Academic Subjects
+  /// Full bilingual Academic Subjects list
   static const List<String> subjects = [
     'الرياضيات (Mathématiques)',
     'العلوم الفيزيائية (Physique-Chimie)',
     'علوم الطبيعة والحياة (Sciences de la Nature et de la Vie)',
     'اللغة العربية وآدابها (Langue Arabe)',
+    'التاريخ والجغرافيا - الاجتماعيات (Histoire-Géographie)',
+    'العلوم الإسلامية / التربية الإسلامية (Sciences Islamiques)',
     'الفلسفة (Philosophie)',
     'اللغة الفرنسية (Français)',
     'اللغة الإنجليزية (Anglais)',
-    'التاريخ والجغرافيا (Histoire-Géographie)',
-    'العلوم الإسلامية (Sciences Islamiques)',
+    'الإعلام الآلي / المعلوماتية (Informatique)',
+    'التربية المدنية (Éducation Civique)',
+    'التربية العلمية والتكنولوجية (Sciences & Technologie)',
     'الاقتصاد والمناجمنت (Économie & Management)',
     'القانون (Droit)',
     'التسيير المحاسبي والمالي (Comptabilité & Finance)',
@@ -103,7 +161,143 @@ class AlgerianEducationConstants {
     'الهندسة الميكانيكية (Génie Mécanique)',
     'الهندسة الكهربائية (Génie Électrique)',
     'هندسة الطرائق (Génie des Procédés)',
+    'اللغة الأمازيغية (Tamazight)',
+    'اللغة الإسبانية / الألمانية / الإيطالية (3ème Langue)',
   ];
+
+  /// Complete Arabic subject names used in Cohort Creation & Teacher Profiles
+  static const List<String> arabicSubjects = [
+    'الرياضيات',
+    'الفيزياء والكيمياء',
+    'العلوم الطبيعية',
+    'اللغة العربية',
+    'التاريخ والجغرافيا (الاجتماعيات)',
+    'العلوم الإسلامية / التربية الإسلامية',
+    'الفلسفة',
+    'اللغة الفرنسية',
+    'اللغة الإنجليزية',
+    'الإعلام الآلي',
+    'التربية المدنية',
+    'التربية العلمية والتكنولوجية',
+    'التسيير المحاسبي والمالي',
+    'الاقتصاد والمناجمنت',
+    'القانون',
+    'الهندسة المدنية',
+    'الهندسة الميكانيكية',
+    'الهندسة الكهربائية',
+    'هندسة الطرائق',
+    'اللغة الأمازيغية',
+    'اللغة الإسبانية / الألمانية / الإيطالية',
+  ];
+
+  /// Maps teacher's selected registration/profile years to canonical cohort dropdown labels.
+  /// Returns ONLY matching years if [teachingYears] is non-empty.
+  static List<String> resolveTeacherCohortYears(List<String> teachingYears) {
+    if (teachingYears.isEmpty) {
+      return List<String>.from(allCohortYearLabels);
+    }
+
+    final resolved = <String>[];
+    for (final raw in teachingYears) {
+      final cleaned = raw.trim();
+      if (cleaned.isEmpty) continue;
+
+      if (yearCodeToCohortLabel.containsKey(cleaned)) {
+        final label = yearCodeToCohortLabel[cleaned]!;
+        if (!resolved.contains(label)) resolved.add(label);
+        continue;
+      }
+
+      // Partial code match (e.g. "3AS", "BEM", "4AM", "L1", "ثالثة ثانوي")
+      final matched = allCohortYearLabels.where((lbl) =>
+          lbl.toLowerCase().contains(cleaned.toLowerCase()) ||
+          cleaned.toLowerCase().contains(lbl.split('(').first.trim().toLowerCase()));
+      if (matched.isNotEmpty) {
+        for (final m in matched) {
+          if (!resolved.contains(m)) resolved.add(m);
+        }
+      } else if (!resolved.contains(cleaned)) {
+        resolved.add(cleaned);
+      }
+    }
+
+    return resolved.isEmpty ? List<String>.from(allCohortYearLabels) : resolved;
+  }
+
+  /// Resolves streams appropriate for a selected cohort year/level.
+  static List<String> streamsForYearLabel(String yearLabel) {
+    final lower = yearLabel.toLowerCase();
+    if (lower.contains('ابتدائي') || lower.contains('ap')) {
+      return const ['تعليم ابتدائي عام'];
+    }
+    if (lower.contains('متوسط') || lower.contains('am') || lower.contains('bem')) {
+      return const ['تعليم متوسط عام'];
+    }
+    if (lower.contains('أولى ثانوي') || lower.contains('1as')) {
+      return const [
+        'جذع مشترك علوم وتكنولوجيا',
+        'جذع مشترك آداب',
+      ];
+    }
+    if (lower.contains('ليسانس') ||
+        lower.contains('ماستر') ||
+        lower.contains('l1') ||
+        lower.contains('l2') ||
+        lower.contains('l3') ||
+        lower.contains('master') ||
+        lower.contains('جامعي')) {
+      return const [
+        'تخصص جامعي (LMD)',
+        'إعلام آلي ورياضيات',
+        'علوم وتكنولوجيا / هندسة',
+        'علوم طبيعية وطبية',
+        'علوم اقتصادية وتجارية',
+        'آداب ولغات وحقوق',
+      ];
+    }
+    return const [
+      'علوم تجريبية',
+      'رياضيات',
+      'تقني رياضي',
+      'تسيير واقتصاد',
+      'آداب وفلسفة',
+      'لغات أجنبية',
+    ];
+  }
+
+  /// Returns complete Arabic subjects tailored for a selected Algerian academic year.
+  static List<String> subjectsForYearLabel(String yearLabel) {
+    final lower = yearLabel.toLowerCase();
+    if (lower.contains('ابتدائي') || lower.contains('ap')) {
+      return const [
+        'الرياضيات',
+        'اللغة العربية',
+        'اللغة الفرنسية',
+        'اللغة الإنجليزية',
+        'التربية العلمية والتكنولوجية',
+        'التربية الإسلامية',
+        'التاريخ والجغرافيا (الاجتماعيات)',
+        'التربية المدنية',
+        'اللغة الأمازيغية',
+      ];
+    }
+    if (lower.contains('متوسط') || lower.contains('am') || lower.contains('bem')) {
+      return const [
+        'الرياضيات',
+        'الفيزياء والكيمياء',
+        'العلوم الطبيعية',
+        'اللغة العربية',
+        'التاريخ والجغرافيا (الاجتماعيات)',
+        'التربية الإسلامية',
+        'التربية المدنية',
+        'اللغة الفرنسية',
+        'اللغة الإنجليزية',
+        'الإعلام الآلي',
+        'اللغة الأمازيغية',
+      ];
+    }
+    return List<String>.from(arabicSubjects);
+  }
 
   static String getWilayaName(int? code) {
     if (code == null) return 'غير محدد';

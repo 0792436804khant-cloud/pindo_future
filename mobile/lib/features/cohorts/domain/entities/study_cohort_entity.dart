@@ -14,6 +14,10 @@ class StudyCohortEntity {
   final int maxStudents;
   final int enrolledCount;
   final double monthlyPrice;
+  final double liveSessionsPrice;
+  final double libraryPrice;
+  final double bundlePrice;
+  final bool includeLibrary;
   final List<Map<String, dynamic>> schedule;
   final bool isActive;
   final String? description;
@@ -33,11 +37,16 @@ class StudyCohortEntity {
     this.maxStudents = 100,
     this.enrolledCount = 0,
     this.monthlyPrice = 0.0,
+    double? liveSessionsPrice,
+    this.libraryPrice = 0.0,
+    double? bundlePrice,
+    this.includeLibrary = true,
     this.schedule = const [],
     this.isActive = true,
     this.description,
     this.sessions = const [],
-  });
+  })  : liveSessionsPrice = liveSessionsPrice ?? monthlyPrice,
+        bundlePrice = bundlePrice ?? monthlyPrice;
 
   bool get isFull => enrolledCount >= maxStudents;
 

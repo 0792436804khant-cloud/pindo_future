@@ -15,6 +15,10 @@ class StudyCohortModel extends StudyCohortEntity {
     super.maxStudents,
     super.enrolledCount,
     super.monthlyPrice,
+    super.liveSessionsPrice,
+    super.libraryPrice,
+    super.bundlePrice,
+    super.includeLibrary,
     super.schedule,
     super.isActive,
     super.description,
@@ -43,6 +47,28 @@ class StudyCohortModel extends StudyCohortEntity {
     final price = priceRaw is num
         ? priceRaw.toDouble()
         : double.tryParse(priceRaw?.toString() ?? '0') ?? 0.0;
+
+    final liveRaw = json['live_sessions_price'];
+    final livePrice = liveRaw is num
+        ? liveRaw.toDouble()
+        : double.tryParse(liveRaw?.toString() ?? '') ?? price;
+
+    final libRaw = json['library_price'];
+    final libraryPrice = libRaw is num
+        ? libRaw.toDouble()
+        : double.tryParse(libRaw?.toString() ?? '0') ?? 0.0;
+
+    final bundleRaw = json['bundle_price'];
+    final bundlePrice = bundleRaw is num
+        ? bundleRaw.toDouble()
+        : double.tryParse(bundleRaw?.toString() ?? '') ??
+            (livePrice + libraryPrice > 0 ? livePrice + libraryPrice : price);
+
+    final includeLibRaw = json['include_library'] ?? json['has_library'];
+    final includeLibrary = includeLibRaw == null ||
+        includeLibRaw == true ||
+        includeLibRaw == 1 ||
+        includeLibRaw == '1';
 
     final maxRaw = json['max_students'];
     final max = maxRaw is num
@@ -74,6 +100,10 @@ class StudyCohortModel extends StudyCohortEntity {
       maxStudents: max,
       enrolledCount: enrolled,
       monthlyPrice: price,
+      liveSessionsPrice: livePrice,
+      libraryPrice: libraryPrice,
+      bundlePrice: bundlePrice,
+      includeLibrary: includeLibrary,
       schedule: scheduleList,
       isActive: isActive,
       description: json['description'] as String?,
@@ -93,6 +123,10 @@ class StudyCohortModel extends StudyCohortEntity {
       'max_students': maxStudents,
       'enrolled_count': enrolledCount,
       'monthly_price': monthlyPrice,
+      'live_sessions_price': liveSessionsPrice,
+      'library_price': libraryPrice,
+      'bundle_price': bundlePrice,
+      'include_library': includeLibrary,
       'schedule': schedule,
       'is_active': isActive,
       'description': description,

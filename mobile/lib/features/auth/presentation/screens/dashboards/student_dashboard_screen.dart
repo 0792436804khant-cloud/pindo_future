@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../../../auth/data/datasources/auth_local_datasource.dart';
 import '../../../../../core/widgets/pindo_brand_logo.dart';
 import '../../../../classroom/data/datasources/classroom_remote_datasource.dart';
 import '../../../../classroom/data/datasources/whiteboard_remote_datasource.dart';
@@ -69,11 +70,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   Future<void> _loadDashboardData() async {
     setState(() => _isLoading = true);
     try {
-      final response = await _apiClient.get('/student/dashboard');
-      if (response.statusCode == 200 && response.data != null && response.data['data'] != null) {
+      final token = widget.user.token ?? await AuthLocalDataSourceImpl().getToken();
+      final response = await _apiClient.get('/student/dashboard', token: token);
+      if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
         if (mounted) {
           setState(() {
-            _dashboardData = StudentDashboardData.fromJson(response.data['data'] as Map<String, dynamic>);
+            _dashboardData = StudentDashboardData.fromJson(response['data'] as Map<String, dynamic>);
             _isLoading = false;
           });
         }

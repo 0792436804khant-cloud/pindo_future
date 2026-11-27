@@ -211,7 +211,8 @@ void main() {
 
       expect(find.textContaining('اختر باقة الاشتراك المناسبة'), findsOneWidget);
       expect(find.textContaining('باقة الحصص فقط'), findsWidgets);
-      expect(find.textContaining('باقة الحصص والمكتبة'), findsWidgets);
+      expect(find.textContaining('باقة المكتبة الرقمية فقط'), findsWidgets);
+      expect(find.textContaining('الباقة المتكاملة'), findsWidgets);
 
       // Close modal
       await tester.tap(find.byIcon(Icons.close));

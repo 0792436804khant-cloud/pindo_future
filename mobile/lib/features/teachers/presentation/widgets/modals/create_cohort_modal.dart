@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
+import '../../../../../core/config/platform_payment_config.dart';
+import '../../../../../core/constants/algerian_education_constants.dart';
 
 class CreateCohortModal extends StatefulWidget {
   final Future<void> Function(Map<String, dynamic> payload)? onSave;
+  final List<String> allowedTeachingYears;
+  final List<String> allowedTeachingSubjects;
 
   const CreateCohortModal({
     super.key,
     this.onSave,
+    this.allowedTeachingYears = const [],
+    this.allowedTeachingSubjects = const [],
   });
 
-  static Future<void> show(BuildContext context, {Future<void> Function(Map<String, dynamic> payload)? onSave}) {
+  static Future<void> show(
+    BuildContext context, {
+    Future<void> Function(Map<String, dynamic> payload)? onSave,
+    List<String> allowedTeachingYears = const [],
+    List<String> allowedTeachingSubjects = const [],
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CreateCohortModal(onSave: onSave),
+      builder: (_) => CreateCohortModal(
+        onSave: onSave,
+        allowedTeachingYears: allowedTeachingYears,
+        allowedTeachingSubjects: allowedTeachingSubjects,
+      ),
     );
   }
 
@@ -25,12 +40,18 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _priceController = TextEditingController(text: '3500');
+  final _livePriceController = TextEditingController(text: '2500');
+  final _libraryPriceController = TextEditingController(text: '1500');
+  final _bundlePriceController = TextEditingController(text: '3500');
   final _maxStudentsController = TextEditingController(text: '50');
 
-  String _selectedSubject = 'الرياضيات';
-  String _selectedLevel = 'ثالثة ثانوي';
-  String _selectedStream = 'علوم تجريبية';
+  late List<String> _levels;
+  late List<String> _streams;
+  late List<String> _subjects;
+
+  late String _selectedLevel;
+  late String _selectedStream;
+  late String _selectedSubject;
   bool _includeLibrary = true;
   bool _isOpenRegistration = true;
   bool _isSubmitting = false;
@@ -38,45 +59,74 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
   static const Color _brightCyan = Color(0xFF00E5FF);
   static const Color _electricPurple = Color(0xFF7C4DFF);
 
-  final List<String> _subjects = const [
-    'الرياضيات',
-    'الفيزياء',
-    'العلوم الطبيعية',
-    'اللغة العربية',
-    'اللغة الفرنسية',
-    'اللغة الإنجليزية',
-    'الفلسفة',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _levels = AlgerianEducationConstants.resolveTeacherCohortYears(
+      widget.allowedTeachingYears,
+    );
+    _selectedLevel = _levels.first;
+    _streams = AlgerianEducationConstants.streamsForYearLabel(_selectedLevel);
+    _selectedStream = _streams.first;
+    _subjects = _buildSubjectOptions(_selectedLevel);
+    _selectedSubject = _subjects.first;
 
-  final List<String> _levels = const [
-    'ثالثة ثانوي',
-    'ثانية ثانوي',
-    'أولى ثانوي',
-    'رابعة متوسط (BEM)',
-    'ثالثة متوسط',
-  ];
+    _livePriceController.addListener(_refreshPricingPreview);
+    _libraryPriceController.addListener(_refreshPricingPreview);
+    _bundlePriceController.addListener(_refreshPricingPreview);
+  }
 
-  final List<String> _streams = const [
-    'علوم تجريبية',
-    'رياضيات',
-    'تقني رياضي',
-    'تسيير واقتصاد',
-    'آداب وفلسفة',
-    'لغات أجنبية',
-    'تعليم متوسط عام',
-  ];
+  void _refreshPricingPreview() {
+    if (mounted) setState(() {});
+  }
+
+  List<String> _buildSubjectOptions(String level) {
+    final base = AlgerianEducationConstants.subjectsForYearLabel(level);
+    final merged = <String>[...base];
+    for (final s in widget.allowedTeachingSubjects) {
+      final clean = s.trim();
+      if (clean.isNotEmpty && !merged.any((m) => m.contains(clean) || clean.contains(m))) {
+        merged.insert(0, clean);
+      }
+    }
+    return merged;
+  }
+
+  void _onLevelChanged(String newLevel) {
+    final newStreams = AlgerianEducationConstants.streamsForYearLabel(newLevel);
+    final newSubjects = _buildSubjectOptions(newLevel);
+    setState(() {
+      _selectedLevel = newLevel;
+      _streams = newStreams;
+      if (!_streams.contains(_selectedStream)) {
+        _selectedStream = _streams.first;
+      }
+      _subjects = newSubjects;
+      if (!_subjects.contains(_selectedSubject)) {
+        _selectedSubject = _subjects.first;
+      }
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _priceController.dispose();
+    _livePriceController.dispose();
+    _libraryPriceController.dispose();
+    _bundlePriceController.dispose();
     _maxStudentsController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final livePrice = double.tryParse(_livePriceController.text.trim()) ?? 2500.0;
+    final libPrice = _includeLibrary ? (double.tryParse(_libraryPriceController.text.trim()) ?? 1500.0) : 0.0;
+    final bundlePrice = _includeLibrary
+        ? (double.tryParse(_bundlePriceController.text.trim()) ?? (livePrice + libPrice))
+        : livePrice;
 
     setState(() => _isSubmitting = true);
     final payload = {
@@ -85,30 +135,65 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
       'academic_level': _selectedLevel,
       'stream': _selectedStream,
       'description': _descriptionController.text.trim(),
-      'monthly_price': double.tryParse(_priceController.text) ?? 3500.0,
+      'monthly_price': bundlePrice,
+      'live_sessions_price': livePrice,
+      'library_price': libPrice,
+      'bundle_price': bundlePrice,
       'max_students': int.tryParse(_maxStudentsController.text) ?? 50,
       'include_library': _includeLibrary,
       'is_active': _isOpenRegistration,
     };
 
-    if (widget.onSave != null) {
-      await widget.onSave!(payload);
-    }
-
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم إنشاء الفوج الدراسي بنجاح وإضافته إلى قائمة أفواجك.'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
+    try {
+      if (widget.onSave != null) {
+        await widget.onSave!(payload);
+      }
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنشاء الفوج الدراسي بنجاح وإضافته إلى قائمة أفواجك.'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر حفظ الفوج: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final liveInt = int.tryParse(_livePriceController.text.trim()) ?? 0;
+    final libInt = _includeLibrary ? (int.tryParse(_libraryPriceController.text.trim()) ?? 0) : 0;
+    final bundleInt = _includeLibrary ? (int.tryParse(_bundlePriceController.text.trim()) ?? (liveInt + libInt)) : liveInt;
+    final liveNet = PlatformPaymentConfig.calculateCommission(
+      totalPriceDzd: liveInt,
+      packageName: 'live_only',
+      packageType: PlatformPaymentConfig.packageLiveOnly,
+    ).teacherPayoutDzd;
+    final libNet = PlatformPaymentConfig.calculateCommission(
+      totalPriceDzd: libInt,
+      packageName: 'library_only',
+      packageType: PlatformPaymentConfig.packageLibraryOnly,
+    ).teacherPayoutDzd;
+    final bundleNet = PlatformPaymentConfig.calculateCommission(
+      totalPriceDzd: bundleInt,
+      packageName: 'full_bundle',
+      packageType: PlatformPaymentConfig.packageFullBundle,
+      livePriceDzd: liveInt,
+      libraryPriceDzd: libInt,
+    ).teacherPayoutDzd;
+
     return Container(
       padding: EdgeInsets.only(
         top: 20,
@@ -117,7 +202,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.90,
+        maxHeight: MediaQuery.of(context).size.height * 0.92,
       ),
       decoration: const BoxDecoration(
         color: Color(0xFF0F172A),
@@ -145,12 +230,14 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                 children: [
                   Icon(Icons.group_add_rounded, color: _brightCyan, size: 24),
                   SizedBox(width: 8),
-                  Text(
-                    'إنشاء فوج دراسي جديد',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      'إنشاء فوج دراسي جديد',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -167,9 +254,25 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
               ),
               const SizedBox(height: 14),
 
-              // المادة والمستوى
+              // المستوى (مصفى حسب سنوات الأستاذ المختارة عند التسجيل) والمادة
               Row(
                 children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('السنة / المستوى'),
+                        _buildDropdown(
+                          value: _selectedLevel,
+                          items: _levels,
+                          onChanged: (val) {
+                            if (val != null) _onLevelChanged(val);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,53 +286,37 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('المستوى'),
-                        _buildDropdown(
-                          value: _selectedLevel,
-                          items: _levels,
-                          onChanged: (val) => setState(() => _selectedLevel = val!),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
+              if (widget.allowedTeachingYears.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                const Text(
+                  '✓ السنوات المعروضة مفلترة تلقائياً حسب سنوات التدريس التي اخترتها في حسابك.',
+                  style: TextStyle(color: Color(0xFF34D399), fontSize: 10.5),
+                ),
+              ],
               const SizedBox(height: 14),
 
-              // الشعبة
-              _buildLabel('الشعبة الدراسية'),
-              _buildDropdown(
-                value: _selectedStream,
-                items: _streams,
-                onChanged: (val) => setState(() => _selectedStream = val!),
-              ),
-              const SizedBox(height: 14),
-
-              // السعر والحد الأقصى
+              // الشعبة والحد الأقصى للطلاب
               Row(
                 children: [
                   Expanded(
+                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildLabel('سعر الاشتراك الشهري (دج) *'),
-                        TextFormField(
-                          controller: _priceController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _inputDecoration(hint: '3500'),
-                          validator: (val) => val == null || val.isEmpty ? 'مطلوب' : null,
+                        _buildLabel('الشعبة الدراسية'),
+                        _buildDropdown(
+                          value: _selectedStream,
+                          items: _streams,
+                          onChanged: (val) => setState(() => _selectedStream = val!),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
+                    flex: 2,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -245,6 +332,149 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // هيكلة التسعير المقسمة (حصص حضورية/مباشرة vs مكتبة رقمية vs باقة متكاملة)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _brightCyan.withValues(alpha: 0.25)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.payments_outlined, color: _brightCyan, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'تقسيم الأسعار الشهرية والباقة المتكاملة (دج)',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    _buildLabel('1. سعر الحصص المباشرة / الحضورية فقط (دج) *'),
+                    TextFormField(
+                      controller: _livePriceController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration(hint: '2500'),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'مطلوب';
+                        if (double.tryParse(val.trim()) == null) return 'رقم غير صالح';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: _brightCyan,
+                      title: const Text(
+                        'إتاحة مكتبة التسجيلات الإلكترونية للطلاب',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      subtitle: const Text(
+                        'تمكين خيار شراء المكتبة منفردة أو ضمن الباقة المتكاملة',
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      value: _includeLibrary,
+                      onChanged: (val) => setState(() => _includeLibrary = val),
+                    ),
+
+                    if (_includeLibrary) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('2. سعر المكتبة فقط (دج) *'),
+                                TextFormField(
+                                  controller: _libraryPriceController,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(hint: '1500'),
+                                  validator: (val) {
+                                    if (!_includeLibrary) return null;
+                                    if (val == null || val.trim().isEmpty) return 'مطلوب';
+                                    if (double.tryParse(val.trim()) == null) return 'رقم غير صالح';
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLabel('3. الباقة المتكاملة (الكل) *'),
+                                TextFormField(
+                                  controller: _bundlePriceController,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _inputDecoration(hint: '3500'),
+                                  validator: (val) {
+                                    if (!_includeLibrary) return null;
+                                    if (val == null || val.trim().isEmpty) return 'مطلوب';
+                                    if (double.tryParse(val.trim()) == null) return 'رقم غير صالح';
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+
+                    // ملخص صافي أرباح الأستاذ والمنصة بدقة
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.25)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'صافي ربحك التقديري لكل تلميذ بعد عمولة المنصة:',
+                            style: TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 4,
+                            children: [
+                              Text('الحصص (85%): $liveNet دج', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                              if (_includeLibrary) ...[
+                                Text('المكتبة (90%): $libNet دج', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                Text('المتكاملة: $bundleNet دج', style: const TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 14),
 
               // وصف البرنامج
@@ -255,17 +485,8 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                 style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration(hint: 'حصة أسبوعية كل جمعة 18:00 تتضمن مراجعة وحل مواضيع وزارية.'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // خيارات إضافية (مكتبة + تسجيل مفتوح)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                activeColor: _brightCyan,
-                title: const Text('إتاحة مكتبة التسجيلات الإلكترونية للطلاب', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-                subtitle: const Text('تمكين المشتركين من مراجعة الحصص المسجلة مع علامة مائية', style: TextStyle(color: Colors.white54, fontSize: 11.5)),
-                value: _includeLibrary,
-                onChanged: (val) => setState(() => _includeLibrary = val),
-              ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeColor: _brightCyan,
@@ -274,7 +495,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                 value: _isOpenRegistration,
                 onChanged: (val) => setState(() => _isOpenRegistration = val),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // زر التأكيد
               SizedBox(
@@ -302,7 +523,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w600)),
+      child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -330,6 +551,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
     required List<String> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final safeValue = items.contains(value) ? value : items.first;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -339,12 +561,19 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: safeValue,
           isExpanded: true,
           dropdownColor: const Color(0xFF0F172A),
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          style: const TextStyle(color: Colors.white, fontSize: 12.5),
           icon: const Icon(Icons.arrow_drop_down, color: _brightCyan),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: items
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e, overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
           onChanged: onChanged,
         ),
       ),

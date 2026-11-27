@@ -117,8 +117,12 @@ class AdminPanelController extends Controller
         $activeSessionsCount = ClassroomSession::where('status', ClassroomSession::STATUS_ACTIVE)->count();
         $totalCohorts = StudyCohort::count();
 
-        // 3. Financial Metrics
+        // 3. Financial Metrics (With Live Sessions vs Digital Library Split)
         $grossRevenue = (float) TeacherEarning::sum('gross_amount');
+        $liveGrossRevenue = (float) TeacherEarning::sum('live_gross_amount');
+        $libraryGrossRevenue = (float) TeacherEarning::sum('library_gross_amount');
+        $livePlatformFee = (float) TeacherEarning::sum('live_platform_fee');
+        $libraryPlatformFee = (float) TeacherEarning::sum('library_platform_fee');
         $platformFee = (float) TeacherEarning::sum('platform_fee');
         $teacherNet = (float) TeacherEarning::sum('net_amount');
 
@@ -231,6 +235,10 @@ class AdminPanelController extends Controller
                 'active_sessions_count' => $activeSessionsCount,
                 'total_cohorts' => $totalCohorts,
                 'gross_revenue' => $grossRevenue,
+                'live_gross_revenue' => $liveGrossRevenue,
+                'library_gross_revenue' => $libraryGrossRevenue,
+                'live_platform_fee' => $livePlatformFee,
+                'library_platform_fee' => $libraryPlatformFee,
                 'platform_fee' => $platformFee,
                 'teacher_net' => $teacherNet,
                 'pending_subscriptions_count' => $pendingSubscriptionsCount,

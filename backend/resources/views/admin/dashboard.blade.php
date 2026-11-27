@@ -204,11 +204,13 @@
                     <div class="text-[10px] text-slate-400 mt-1">حجم التداولات الإجمالي</div>
                 </div>
 
-                <!-- Platform Commission (20%) -->
+                <!-- Platform Commission (Live 15% + Library 10%) -->
                 <div class="glass-card rounded-2xl p-4 border border-emerald-500/30 relative overflow-hidden bg-gradient-to-b from-emerald-500/10 to-transparent">
                     <div class="text-xs font-bold text-emerald-300 mb-1">عمولة المنصة الصافية</div>
                     <div id="kpiPlatformFee" class="text-2xl font-black text-emerald-400 font-mono">-- دج</div>
-                    <div class="text-[10px] text-emerald-300 mt-1">نسبة 20% القانونية</div>
+                    <div class="text-[10px] text-emerald-300 mt-1">
+                        مباشر: <span id="kpiLivePlatformFee">0</span> • مكتبة: <span id="kpiLibraryPlatformFee">0</span> دج
+                    </div>
                 </div>
 
                 <!-- Pending Subscriptions Queue -->
@@ -617,6 +619,10 @@
                 document.getElementById('kpiActiveSessions').textContent = kpis.active_sessions_count;
                 document.getElementById('kpiGrossRevenue').textContent = Number(kpis.gross_revenue).toLocaleString('fr-DZ') + ' دج';
                 document.getElementById('kpiPlatformFee').textContent = Number(kpis.platform_fee).toLocaleString('fr-DZ') + ' دج';
+                const liveFeeEl = document.getElementById('kpiLivePlatformFee');
+                const libFeeEl = document.getElementById('kpiLibraryPlatformFee');
+                if (liveFeeEl) liveFeeEl.textContent = Number(kpis.live_platform_fee || 0).toLocaleString('fr-DZ');
+                if (libFeeEl) libFeeEl.textContent = Number(kpis.library_platform_fee || 0).toLocaleString('fr-DZ');
                 document.getElementById('kpiPendingSubs').textContent = kpis.pending_subscriptions_count;
                 document.getElementById('kpiPendingSubsSum').textContent = Number(kpis.pending_subscriptions_sum).toLocaleString('fr-DZ');
 

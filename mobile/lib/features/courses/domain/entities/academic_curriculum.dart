@@ -389,6 +389,38 @@ class AcademicCurriculumCatalog {
         color: coralRose,
         categoryTag: 'Humanities',
       ),
+      const AcademicSubject(
+        id: 'prim_history_geo',
+        title: 'History & Geography',
+        arabicTitle: 'التاريخ والجغرافيا (الاجتماعيات)',
+        icon: Icons.map_rounded,
+        color: warmAmber,
+        categoryTag: 'Social Studies',
+      ),
+      const AcademicSubject(
+        id: 'prim_civic',
+        title: 'Civic Education',
+        arabicTitle: 'التربية المدنية',
+        icon: Icons.account_balance_outlined,
+        color: neonEmerald,
+        categoryTag: 'Humanities',
+      ),
+      const AcademicSubject(
+        id: 'prim_english',
+        title: 'English Language',
+        arabicTitle: 'اللغة الإنجليزية',
+        icon: Icons.public_rounded,
+        color: brightCyan,
+        categoryTag: 'Languages',
+      ),
+      const AcademicSubject(
+        id: 'prim_amazigh',
+        title: 'Tamazight Language',
+        arabicTitle: 'اللغة الأمازيغية',
+        icon: Icons.translate_rounded,
+        color: electricPurple,
+        categoryTag: 'Languages',
+      ),
     ];
   }
 
@@ -445,10 +477,26 @@ class AcademicCurriculumCatalog {
       const AcademicSubject(
         id: 'mid_history',
         title: 'History & Geography',
-        arabicTitle: 'التاريخ والجغرافيا',
+        arabicTitle: 'التاريخ والجغرافيا (الاجتماعيات)',
         icon: Icons.map_rounded,
         color: warmAmber,
         categoryTag: 'Social Studies',
+      ),
+      const AcademicSubject(
+        id: 'mid_islamic',
+        title: 'Islamic Education',
+        arabicTitle: 'التربية الإسلامية',
+        icon: Icons.brightness_medium_rounded,
+        color: neonEmerald,
+        categoryTag: 'Humanities',
+      ),
+      const AcademicSubject(
+        id: 'mid_civic',
+        title: 'Civic Education',
+        arabicTitle: 'التربية المدنية',
+        icon: Icons.gavel_rounded,
+        color: coralRose,
+        categoryTag: 'Humanities',
       ),
       const AcademicSubject(
         id: 'mid_cs',
@@ -457,6 +505,14 @@ class AcademicCurriculumCatalog {
         icon: Icons.computer_rounded,
         color: electricPurple,
         categoryTag: 'Technology',
+      ),
+      const AcademicSubject(
+        id: 'mid_amazigh',
+        title: 'Tamazight Language',
+        arabicTitle: 'اللغة الأمازيغية',
+        icon: Icons.translate_rounded,
+        color: brightCyan,
+        categoryTag: 'Languages',
       ),
     ];
   }
@@ -521,11 +577,43 @@ class AcademicCurriculumCatalog {
       ),
       const AcademicSubject(
         id: 'high_economics',
-        title: 'Economics & Accounting',
-        arabicTitle: 'التسيير المحاسبي والاقتصاد',
+        title: 'Economics, Accounting & Law',
+        arabicTitle: 'التسيير المحاسبي والاقتصاد والقانون',
         icon: Icons.trending_up_rounded,
         color: neonEmerald,
         categoryTag: 'Economics',
+      ),
+      const AcademicSubject(
+        id: 'high_history_geo',
+        title: 'History & Geography',
+        arabicTitle: 'التاريخ والجغرافيا (الاجتماعيات)',
+        icon: Icons.map_rounded,
+        color: warmAmber,
+        categoryTag: 'Social Studies',
+      ),
+      const AcademicSubject(
+        id: 'high_islamic',
+        title: 'Islamic Sciences',
+        arabicTitle: 'العلوم الإسلامية',
+        icon: Icons.brightness_medium_rounded,
+        color: neonEmerald,
+        categoryTag: 'Humanities',
+      ),
+      const AcademicSubject(
+        id: 'high_engineering',
+        title: 'Technical Engineering (Civil/Elec/Mech/Process)',
+        arabicTitle: 'التكنولوجيا والهندسة (مدنية / كهربائية / ميكانيكية / طرائق)',
+        icon: Icons.precision_manufacturing_rounded,
+        color: brightCyan,
+        categoryTag: 'Engineering',
+      ),
+      const AcademicSubject(
+        id: 'high_third_lang',
+        title: '3rd Foreign Languages (ES/DE/IT) & Tamazight',
+        arabicTitle: 'اللغات (إسبانية / ألمانية / إيطالية / أمازيغية)',
+        icon: Icons.public_rounded,
+        color: coralRose,
+        categoryTag: 'Foreign Languages',
       ),
     ];
   }

@@ -85,8 +85,20 @@ class CohortRepositoryImpl implements CohortRepository {
   }
 
   @override
-  Future<StudyCohortEntity> joinCohort(String token, int cohortId) async {
-    final raw = await remoteDataSource.joinCohort(token, cohortId);
+  Future<StudyCohortEntity> joinCohort(
+    String token,
+    int cohortId, {
+    String packageType = 'full_bundle',
+    String? paymentMethod,
+    String? txReference,
+  }) async {
+    final raw = await remoteDataSource.joinCohort(
+      token,
+      cohortId,
+      packageType: packageType,
+      paymentMethod: paymentMethod,
+      txReference: txReference,
+    );
     return StudyCohortModel.fromJson(raw);
   }
 

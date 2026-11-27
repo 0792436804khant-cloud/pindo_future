@@ -30,7 +30,9 @@ class TeacherDashboardController extends Controller
             \App\Services\CacheManagerService::TTL_TEACHER_DASHBOARD,
             function () use ($teacher) {
                 // 1. Cohorts and Students Metrics
-                $cohorts = StudyCohort::where('teacher_id', $teacher->id)->get();
+                $cohorts = StudyCohort::where('teacher_id', $teacher->id)
+                    ->orderByDesc('created_at')
+                    ->get();
         $cohortIds = $cohorts->pluck('id')->toArray();
 
         $enrolledStudentsCount = CohortMember::whereIn('cohort_id', $cohortIds)
@@ -67,6 +69,11 @@ class TeacherDashboardController extends Controller
         $earningsQuery = TeacherEarning::where('teacher_id', $teacher->id);
         $totalEarnings = (float) (clone $earningsQuery)->sum('net_amount');
         $grossSales = (float) (clone $earningsQuery)->sum('gross_amount');
+        $liveGrossSales = (float) (clone $earningsQuery)->sum('live_gross_amount');
+        $libraryGrossSales = (float) (clone $earningsQuery)->sum('library_gross_amount');
+        $livePlatformFees = (float) (clone $earningsQuery)->sum('live_platform_fee');
+        $libraryPlatformFees = (float) (clone $earningsQuery)->sum('library_platform_fee');
+        $totalPlatformFees = (float) (clone $earningsQuery)->sum('platform_fee');
         $pendingEarnings = (float) TeacherEarning::where('teacher_id', $teacher->id)
             ->where('status', TeacherEarning::STATUS_PENDING)
             ->sum('net_amount');
@@ -154,6 +161,10 @@ class TeacherDashboardController extends Controller
 
         // 9. Cohorts Summary
         $cohortsList = $cohorts->map(function ($c) {
+            $livePrice = (float) ($c->live_sessions_price > 0 ? $c->live_sessions_price : $c->monthly_price);
+            $libPrice = $c->include_library ? (float) $c->library_price : 0.0;
+            $bundlePrice = (float) ($c->bundle_price > 0 ? $c->bundle_price : ($livePrice + $libPrice));
+
             return [
                 'id' => $c->id,
                 'cohort_code' => $c->cohort_code,
@@ -163,9 +174,12 @@ class TeacherDashboardController extends Controller
                 'stream' => $c->stream,
                 'enrolled_count' => $c->enrolled_count,
                 'max_students' => $c->max_students,
-                'monthly_price' => (float) $c->monthly_price,
+                'monthly_price' => (float) ($c->monthly_price > 0 ? $c->monthly_price : $bundlePrice),
+                'live_sessions_price' => $livePrice,
+                'library_price' => $libPrice,
+                'bundle_price' => $bundlePrice,
                 'is_active' => $c->is_active,
-                'has_library' => true,
+                'has_library' => (bool) $c->include_library,
             ];
         });
 
@@ -201,6 +215,7 @@ class TeacherDashboardController extends Controller
                         'headline' => $teacher->teacherPlatform?->headline ?? '',
                         'subjects' => $teacher->teaching_subjects ?? [],
                         'levels' => $teacher->teaching_levels ?? [],
+                        'teaching_years' => $teacher->teaching_years ?? [],
                     ],
                     'stats' => [
                         'enrolled_students_count' => $enrolledStudentsCount,
@@ -210,6 +225,11 @@ class TeacherDashboardController extends Controller
                         'expired_credits_students_count' => $expiredCreditsCount,
                         'total_earnings' => $totalEarnings,
                         'gross_sales' => $grossSales,
+                        'live_gross_sales' => $liveGrossSales,
+                        'library_gross_sales' => $libraryGrossSales,
+                        'live_platform_fees' => $livePlatformFees,
+                        'library_platform_fees' => $libraryPlatformFees,
+                        'total_platform_fees' => $totalPlatformFees,
                         'pending_earnings' => $pendingEarnings,
                         'library_recordings_count' => $libraryRecordingsCount,
                     ],

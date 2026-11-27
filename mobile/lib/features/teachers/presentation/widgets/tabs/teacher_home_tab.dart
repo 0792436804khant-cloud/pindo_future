@@ -8,12 +8,18 @@ class TeacherHomeTab extends StatelessWidget {
   final TeacherDashboardModel dashboard;
   final VoidCallback onStartLiveSession;
   final ValueChanged<int> onNavigateToTab;
+  final Future<void> Function(Map<String, dynamic> payload)? onCreateCohort;
+  final List<String> allowedTeachingYears;
+  final List<String> allowedTeachingSubjects;
 
   const TeacherHomeTab({
     super.key,
     required this.dashboard,
     required this.onStartLiveSession,
     required this.onNavigateToTab,
+    this.onCreateCohort,
+    this.allowedTeachingYears = const [],
+    this.allowedTeachingSubjects = const [],
   });
 
   static const Color _brightCyan = Color(0xFF00E5FF);
@@ -338,7 +344,16 @@ class TeacherHomeTab extends StatelessWidget {
             title: 'إنشاء فوج',
             icon: Icons.group_add_rounded,
             color: const Color(0xFF10B981),
-            onTap: () => CreateCohortModal.show(context),
+            onTap: () => CreateCohortModal.show(
+              context,
+              onSave: onCreateCohort,
+              allowedTeachingYears: allowedTeachingYears.isNotEmpty
+                  ? allowedTeachingYears
+                  : dashboard.teacherProfile.teachingYears,
+              allowedTeachingSubjects: allowedTeachingSubjects.isNotEmpty
+                  ? allowedTeachingSubjects
+                  : dashboard.teacherProfile.subjects,
+            ),
           ),
         ),
         const SizedBox(width: 10),

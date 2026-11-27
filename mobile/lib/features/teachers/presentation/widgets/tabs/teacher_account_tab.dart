@@ -1020,7 +1020,22 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Subjects & Levels chips
+                      // Subjects, Teaching Years & Levels chips
+                      if (profile.teachingYears.isNotEmpty) ...[
+                        const Text(
+                          'السنوات الدراسية المختارة:',
+                          style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: profile.teachingYears
+                              .map((y) => _buildChip(y, const Color(0xFF10B981)))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,

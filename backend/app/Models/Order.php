@@ -21,6 +21,8 @@ class Order extends Model
         'order_number',
         'user_id',
         'course_id',
+        'cohort_id',
+        'package_type',
         'amount',
         'currency',
         'status',
@@ -68,6 +70,11 @@ class Order extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function cohort(): BelongsTo
+    {
+        return $this->belongsTo(StudyCohort::class, 'cohort_id');
     }
 
     public function earning(): HasOne

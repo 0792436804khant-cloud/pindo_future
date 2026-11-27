@@ -81,6 +81,21 @@ class TeacherFinanceTab extends StatelessWidget {
     );
   }
 
+  Widget _miniSplitBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 10.5, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
   Widget _buildEarningsHeroCard(BuildContext context, TeacherStats stats) {
     return Container(
       decoration: BoxDecoration(
@@ -148,7 +163,17 @@ class TeacherFinanceTab extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _miniSplitBadge('مداخيل الحصص (85%): ${stats.liveGrossSales.toStringAsFixed(0)} دج', _brightCyan),
+              _miniSplitBadge('مداخيل المكتبة (90%): ${stats.libraryGrossSales.toStringAsFixed(0)} دج', _electricPurple),
+              _miniSplitBadge('عمولة المنصة: ${stats.totalPlatformFees.toStringAsFixed(0)} دج', Colors.white54),
+            ],
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             height: 44,
@@ -183,21 +208,31 @@ class TeacherFinanceTab extends StatelessWidget {
           children: [
             Expanded(
               child: _buildPackageCard(
-                title: 'باقة دروس فقط',
-                subtitle: '4 حصص مباشرة شهرياً',
-                price: '2,500 دج',
+                title: 'باقة الحصص فقط',
+                subtitle: 'الحصص المباشرة / الحضورية',
+                price: '85% للأستاذ • 15% منصة',
                 color: _brightCyan,
-                features: ['حضور الحصص المباشرة', 'المحادثة والسبورة'],
+                features: ['حضور الحصص التفاعلية', 'المحادثة والسبورة'],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               child: _buildPackageCard(
-                title: 'دروس + مكتبة',
-                subtitle: 'حصص + تسجيلات محمية',
-                price: '3,500 دج',
+                title: 'المكتبة الرقمية فقط',
+                subtitle: 'التسجيلات والملفات المحمية',
+                price: '90% للأستاذ • 10% منصة',
+                color: const Color(0xFF10B981),
+                features: ['مراجعة كل الدروس المسجلة', 'الملخصات وحلول المواضيع'],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildPackageCard(
+                title: 'الباقة المتكاملة',
+                subtitle: 'حصص + مكتبة شاملة',
+                price: 'تسعير مخصص حسب الفوج',
                 color: _electricPurple,
-                features: ['حصص مباشرة كاملة', 'مكتبة التسجيلات والملفات'],
+                features: ['حصص مباشرة كاملة', 'وصول كامل للمكتبة الرقمية'],
               ),
             ),
           ],
@@ -235,7 +270,9 @@ class TeacherFinanceTab extends StatelessWidget {
                   children: [
                     Icon(Icons.check, size: 12, color: color),
                     const SizedBox(width: 4),
-                    Text(f, style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
+                    Flexible(
+                      child: Text(f, style: const TextStyle(color: Colors.white70, fontSize: 10.5)),
+                    ),
                   ],
                 ),
               )),

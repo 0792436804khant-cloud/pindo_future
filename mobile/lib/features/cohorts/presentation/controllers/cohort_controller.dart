@@ -203,13 +203,25 @@ class CohortController extends ChangeNotifier {
   }
 
   /// Join a cohort
-  Future<bool> joinCohort(String token, int cohortId) async {
+  Future<bool> joinCohort(
+    String token,
+    int cohortId, {
+    String packageType = 'full_bundle',
+    String? paymentMethod,
+    String? txReference,
+  }) async {
     _isJoining = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final cohort = await cohortRepository.joinCohort(token, cohortId);
+      final cohort = await cohortRepository.joinCohort(
+        token,
+        cohortId,
+        packageType: packageType,
+        paymentMethod: paymentMethod,
+        txReference: txReference,
+      );
       _studentCohorts = [cohort, ..._studentCohorts];
       _successMessage = 'تم الانضمام إلى الفوج بنجاح!';
       _isJoining = false;

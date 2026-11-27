@@ -107,9 +107,13 @@ class _TeacherProfileEditorModalState extends State<TeacherProfileEditorModal> {
     'Computer Science & Algorithms',
     'Natural & Life Sciences',
     'Arabic Language & Literature',
+    'History & Geography (الاجتماعيات)',
+    'Islamic Sciences (العلوم الإسلامية)',
     'English Language & TOEFL',
     'French Language',
     'Philosophy',
+    'Economics & Accounting',
+    'Technical Engineering',
   ];
 
   @override

@@ -19,7 +19,13 @@ abstract class CohortRepository {
   });
 
   Future<List<StudyCohortEntity>> getStudentCohorts(String token);
-  Future<StudyCohortEntity> joinCohort(String token, int cohortId);
+  Future<StudyCohortEntity> joinCohort(
+    String token,
+    int cohortId, {
+    String packageType = 'full_bundle',
+    String? paymentMethod,
+    String? txReference,
+  });
   Future<void> leaveCohort(String token, int cohortId);
   Future<Map<String, dynamic>> requestVerification(String token, String document);
 }

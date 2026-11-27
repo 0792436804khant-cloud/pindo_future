@@ -20,6 +20,26 @@ class TeacherDashboardModel {
     required this.recentTransactions,
   });
 
+  TeacherDashboardModel copyWith({
+    TeacherProfileInfo? teacherProfile,
+    TeacherStats? stats,
+    TeacherUpcomingSession? upcomingSession,
+    List<TeacherScheduleItem>? todaySchedule,
+    List<TeacherNotificationItem>? notifications,
+    List<TeacherCohortItem>? cohorts,
+    List<TeacherTransactionItem>? recentTransactions,
+  }) {
+    return TeacherDashboardModel(
+      teacherProfile: teacherProfile ?? this.teacherProfile,
+      stats: stats ?? this.stats,
+      upcomingSession: upcomingSession ?? this.upcomingSession,
+      todaySchedule: todaySchedule ?? this.todaySchedule,
+      notifications: notifications ?? this.notifications,
+      cohorts: cohorts ?? this.cohorts,
+      recentTransactions: recentTransactions ?? this.recentTransactions,
+    );
+  }
+
   factory TeacherDashboardModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? json;
 
@@ -423,6 +443,7 @@ class TeacherProfileInfo {
   final String bio;
   final List<String> subjects;
   final List<String> levels;
+  final List<String> teachingYears;
   final List<TeacherStoryItem> stories;
   final List<TeacherWorkplaceItem> workplaces;
   final List<TeacherCohortScheduleItem> cohortSchedules;
@@ -446,6 +467,7 @@ class TeacherProfileInfo {
     this.bio = 'أستاذ متميز في المنهاج الجزائري ومؤطر دورات التفوق للبكالوريا.',
     required this.subjects,
     required this.levels,
+    this.teachingYears = const [],
     this.stories = const [],
     this.workplaces = const [],
     this.cohortSchedules = const [],
@@ -470,6 +492,7 @@ class TeacherProfileInfo {
     String? bio,
     List<String>? subjects,
     List<String>? levels,
+    List<String>? teachingYears,
     List<TeacherStoryItem>? stories,
     List<TeacherWorkplaceItem>? workplaces,
     List<TeacherCohortScheduleItem>? cohortSchedules,
@@ -493,6 +516,7 @@ class TeacherProfileInfo {
       bio: bio ?? this.bio,
       subjects: subjects ?? this.subjects,
       levels: levels ?? this.levels,
+      teachingYears: teachingYears ?? this.teachingYears,
       stories: stories ?? this.stories,
       workplaces: workplaces ?? this.workplaces,
       cohortSchedules: cohortSchedules ?? this.cohortSchedules,
@@ -522,6 +546,9 @@ class TeacherProfileInfo {
           .map((e) => e.toString())
           .toList(),
       levels: (json['levels'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      teachingYears: (json['teaching_years'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList(),
       stories: (json['stories'] as List<dynamic>? ?? [])
@@ -738,6 +765,11 @@ class TeacherStats {
   final double totalEarnings;
   final double grossSales;
   final double pendingEarnings;
+  final double liveGrossSales;
+  final double libraryGrossSales;
+  final double livePlatformFees;
+  final double libraryPlatformFees;
+  final double totalPlatformFees;
   final int libraryRecordingsCount;
 
   const TeacherStats({
@@ -749,6 +781,11 @@ class TeacherStats {
     required this.totalEarnings,
     required this.grossSales,
     required this.pendingEarnings,
+    this.liveGrossSales = 0.0,
+    this.libraryGrossSales = 0.0,
+    this.livePlatformFees = 0.0,
+    this.libraryPlatformFees = 0.0,
+    this.totalPlatformFees = 0.0,
     required this.libraryRecordingsCount,
   });
 
@@ -777,6 +814,21 @@ class TeacherStats {
           : 0.0,
       pendingEarnings: json['pending_earnings'] is num
           ? (json['pending_earnings'] as num).toDouble()
+          : 0.0,
+      liveGrossSales: json['live_gross_sales'] is num
+          ? (json['live_gross_sales'] as num).toDouble()
+          : 0.0,
+      libraryGrossSales: json['library_gross_sales'] is num
+          ? (json['library_gross_sales'] as num).toDouble()
+          : 0.0,
+      livePlatformFees: json['live_platform_fees'] is num
+          ? (json['live_platform_fees'] as num).toDouble()
+          : 0.0,
+      libraryPlatformFees: json['library_platform_fees'] is num
+          ? (json['library_platform_fees'] as num).toDouble()
+          : 0.0,
+      totalPlatformFees: json['total_platform_fees'] is num
+          ? (json['total_platform_fees'] as num).toDouble()
           : 0.0,
       libraryRecordingsCount: json['library_recordings_count'] is num
           ? (json['library_recordings_count'] as num).toInt()
@@ -908,6 +960,9 @@ class TeacherCohortItem {
   final int enrolledCount;
   final int maxStudents;
   final double monthlyPrice;
+  final double liveSessionsPrice;
+  final double libraryPrice;
+  final double bundlePrice;
   final bool isActive;
   final bool hasLibrary;
 
@@ -921,11 +976,20 @@ class TeacherCohortItem {
     required this.enrolledCount,
     required this.maxStudents,
     required this.monthlyPrice,
+    double? liveSessionsPrice,
+    this.libraryPrice = 0.0,
+    double? bundlePrice,
     required this.isActive,
     required this.hasLibrary,
-  });
+  })  : liveSessionsPrice = liveSessionsPrice ?? monthlyPrice,
+        bundlePrice = bundlePrice ?? monthlyPrice;
 
   factory TeacherCohortItem.fromJson(Map<String, dynamic> json) {
+    final monthly = json['monthly_price'] is num ? (json['monthly_price'] as num).toDouble() : 0.0;
+    final live = json['live_sessions_price'] is num ? (json['live_sessions_price'] as num).toDouble() : monthly;
+    final library = json['library_price'] is num ? (json['library_price'] as num).toDouble() : 0.0;
+    final bundle = json['bundle_price'] is num ? (json['bundle_price'] as num).toDouble() : (live + library > 0 ? live + library : monthly);
+
     return TeacherCohortItem(
       id: json['id'] is num ? (json['id'] as num).toInt() : 0,
       cohortCode: json['cohort_code']?.toString() ?? '',
@@ -935,9 +999,12 @@ class TeacherCohortItem {
       stream: json['stream']?.toString(),
       enrolledCount: json['enrolled_count'] is num ? (json['enrolled_count'] as num).toInt() : 0,
       maxStudents: json['max_students'] is num ? (json['max_students'] as num).toInt() : 50,
-      monthlyPrice: json['monthly_price'] is num ? (json['monthly_price'] as num).toDouble() : 0.0,
+      monthlyPrice: monthly,
+      liveSessionsPrice: live,
+      libraryPrice: library,
+      bundlePrice: bundle,
       isActive: json['is_active'] != false,
-      hasLibrary: json['has_library'] != false,
+      hasLibrary: json['has_library'] != false && json['include_library'] != false,
     );
   }
 }

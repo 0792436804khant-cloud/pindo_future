@@ -19,7 +19,13 @@ abstract class CohortRemoteDataSource {
   });
 
   Future<List<dynamic>> fetchStudentCohorts(String token);
-  Future<Map<String, dynamic>> joinCohort(String token, int cohortId);
+  Future<Map<String, dynamic>> joinCohort(
+    String token,
+    int cohortId, {
+    String packageType = 'full_bundle',
+    String? paymentMethod,
+    String? txReference,
+  });
   Future<void> leaveCohort(String token, int cohortId);
   Future<Map<String, dynamic>> requestVerification(String token, String document);
 }
@@ -120,8 +126,23 @@ class CohortRemoteDataSourceImpl implements CohortRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> joinCohort(String token, int cohortId) async {
-    final response = await apiClient.post('/student/cohorts/$cohortId/join', body: {}, token: token);
+  Future<Map<String, dynamic>> joinCohort(
+    String token,
+    int cohortId, {
+    String packageType = 'full_bundle',
+    String? paymentMethod,
+    String? txReference,
+  }) async {
+    final body = <String, dynamic>{
+      'package_type': packageType,
+    };
+    if (paymentMethod != null && paymentMethod.trim().isNotEmpty) {
+      body['payment_method'] = paymentMethod.trim();
+    }
+    if (txReference != null && txReference.trim().isNotEmpty) {
+      body['tx_reference'] = txReference.trim();
+    }
+    final response = await apiClient.post('/student/cohorts/$cohortId/join', body: body, token: token);
     return (response['data'] as Map<String, dynamic>?) ?? {};
   }
 

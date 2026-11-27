@@ -7,6 +7,7 @@ use App\Models\ClassroomSession;
 use App\Models\CohortMember;
 use App\Models\StudyCohort;
 use App\Models\User;
+use App\Services\CacheManagerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -44,11 +45,30 @@ class CohortController extends Controller
             'stream' => ['nullable', 'string', 'max:100'],
             'max_students' => ['nullable', 'integer', 'min:1', 'max:5000'],
             'monthly_price' => ['nullable', 'numeric', 'min:0'],
+            'live_sessions_price' => ['nullable', 'numeric', 'min:0'],
+            'library_price' => ['nullable', 'numeric', 'min:0'],
+            'bundle_price' => ['nullable', 'numeric', 'min:0'],
+            'include_library' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
             'schedule' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],
         ]);
 
         $teacher = $request->user();
+
+        $includeLibrary = (bool) ($validated['include_library'] ?? true);
+        $livePrice = isset($validated['live_sessions_price'])
+            ? (float) $validated['live_sessions_price']
+            : (float) ($validated['monthly_price'] ?? 0.00);
+        $libraryPrice = $includeLibrary
+            ? (float) ($validated['library_price'] ?? 0.00)
+            : 0.00;
+        $bundlePrice = isset($validated['bundle_price'])
+            ? (float) $validated['bundle_price']
+            : ($livePrice + $libraryPrice > 0 ? $livePrice + $libraryPrice : (float) ($validated['monthly_price'] ?? 0.00));
+        $primaryMonthlyPrice = isset($validated['monthly_price'])
+            ? (float) $validated['monthly_price']
+            : ($bundlePrice > 0 ? $bundlePrice : $livePrice);
 
         $cohort = $teacher->cohorts()->create([
             'name' => $validated['name'],
@@ -57,11 +77,17 @@ class CohortController extends Controller
             'stream' => $validated['stream'] ?? null,
             'max_students' => $validated['max_students'] ?? 100,
             'enrolled_count' => 0,
-            'monthly_price' => $validated['monthly_price'] ?? 0.00,
+            'monthly_price' => $primaryMonthlyPrice,
+            'live_sessions_price' => $livePrice,
+            'library_price' => $libraryPrice,
+            'bundle_price' => $bundlePrice,
+            'include_library' => $includeLibrary,
             'schedule' => $validated['schedule'] ?? [],
             'description' => $validated['description'] ?? null,
-            'is_active' => true,
+            'is_active' => $validated['is_active'] ?? true,
         ]);
+
+        app(CacheManagerService::class)->invalidateTeacher($teacher->id);
 
         return response()->json([
             'status' => 'success',
@@ -102,12 +128,17 @@ class CohortController extends Controller
             'stream' => ['nullable', 'string', 'max:100'],
             'max_students' => ['sometimes', 'integer', 'min:1', 'max:5000'],
             'monthly_price' => ['sometimes', 'numeric', 'min:0'],
+            'live_sessions_price' => ['sometimes', 'numeric', 'min:0'],
+            'library_price' => ['sometimes', 'numeric', 'min:0'],
+            'bundle_price' => ['sometimes', 'numeric', 'min:0'],
+            'include_library' => ['sometimes', 'boolean'],
             'schedule' => ['nullable', 'array'],
             'is_active' => ['sometimes', 'boolean'],
             'description' => ['nullable', 'string'],
         ]);
 
         $cohort->update($validated);
+        app(CacheManagerService::class)->invalidateTeacher($teacher->id);
 
         return response()->json([
             'status' => 'success',
@@ -125,6 +156,7 @@ class CohortController extends Controller
         $cohort = $teacher->cohorts()->findOrFail($id);
 
         $cohort->delete();
+        app(CacheManagerService::class)->invalidateTeacher($teacher->id);
 
         return response()->json([
             'status' => 'success',

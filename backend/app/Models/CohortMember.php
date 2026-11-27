@@ -16,11 +16,18 @@ class CohortMember extends Model
         'cohort_id',
         'student_id',
         'status',
+        'package_type',
+        'price_paid_dzd',
+        'live_access',
+        'library_access',
         'joined_at',
         'ends_at',
     ];
 
     protected $casts = [
+        'price_paid_dzd' => 'float',
+        'live_access' => 'boolean',
+        'library_access' => 'boolean',
         'joined_at' => 'datetime',
         'ends_at' => 'datetime',
     ];

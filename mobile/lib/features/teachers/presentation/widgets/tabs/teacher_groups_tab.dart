@@ -7,10 +7,16 @@ import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_ch
 
 class TeacherGroupsTab extends StatefulWidget {
   final List<TeacherCohortItem> cohorts;
+  final Future<void> Function(Map<String, dynamic> payload)? onCreateCohort;
+  final List<String> allowedTeachingYears;
+  final List<String> allowedTeachingSubjects;
 
   const TeacherGroupsTab({
     super.key,
     required this.cohorts,
+    this.onCreateCohort,
+    this.allowedTeachingYears = const [],
+    this.allowedTeachingSubjects = const [],
   });
 
   @override
@@ -86,7 +92,12 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () => CreateCohortModal.show(context),
+                    onPressed: () => CreateCohortModal.show(
+                      context,
+                      onSave: widget.onCreateCohort,
+                      allowedTeachingYears: widget.allowedTeachingYears,
+                      allowedTeachingSubjects: widget.allowedTeachingSubjects,
+                    ),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: const Text('فوج جديد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     style: ElevatedButton.styleFrom(
@@ -250,15 +261,21 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
                 ),
                 _buildMetric(
                   icon: Icons.payments_rounded,
-                  label: 'الاشتراك الشهري',
-                  value: '${cohort.monthlyPrice.toStringAsFixed(0)} دج',
+                  label: 'الحصص المباشرة',
+                  value: '${cohort.liveSessionsPrice.toStringAsFixed(0)} دج',
                   color: Colors.amber,
                 ),
                 _buildMetric(
                   icon: Icons.video_library_rounded,
-                  label: 'المكتبة الرقمية',
-                  value: cohort.hasLibrary ? 'متاحة ✓' : 'غير متاحة',
+                  label: cohort.hasLibrary ? 'المكتبة فقط' : 'المكتبة الرقمية',
+                  value: cohort.hasLibrary ? '${cohort.libraryPrice.toStringAsFixed(0)} دج' : 'غير متاحة',
                   color: cohort.hasLibrary ? _brightCyan : Colors.white38,
+                ),
+                _buildMetric(
+                  icon: Icons.all_inclusive_rounded,
+                  label: 'الباقة المتكاملة',
+                  value: '${cohort.bundlePrice.toStringAsFixed(0)} دج',
+                  color: const Color(0xFFA855F7),
                 ),
               ],
             ),
