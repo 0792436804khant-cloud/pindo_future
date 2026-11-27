@@ -197,14 +197,15 @@ void main() {
       expect(liveOnly.teacherPayoutDzd, equals(2125));
       expect(liveOnly.isLibraryIncluded, isFalse);
 
-      // 2. Live + Library Bundle: 3,500 DZD -> 15% platform cut (525 DZD), teacher gets 2,975 DZD
+      // 2. Live + Library: 3,800 DZD (2500 live + 1300 library)
+      // 15% on 2500 = 375 DZD, 10% on 1300 = 130 DZD -> Total platform: 505 DZD, teacher gets 3,295 DZD
       final liveAndLibrary = PlatformPaymentConfig.calculateCommission(
-        totalPriceDzd: 3500,
+        totalPriceDzd: 3800,
         packageName: 'باقة الحصص والمكتبة الرقمية',
       );
-      expect(liveAndLibrary.grossPriceDzd, equals(3500));
-      expect(liveAndLibrary.platformCommissionDzd, equals(525));
-      expect(liveAndLibrary.teacherPayoutDzd, equals(2975));
+      expect(liveAndLibrary.grossPriceDzd, equals(3800));
+      expect(liveAndLibrary.platformCommissionDzd, equals(505));
+      expect(liveAndLibrary.teacherPayoutDzd, equals(3295));
       expect(liveAndLibrary.isLibraryIncluded, isTrue);
     });
 

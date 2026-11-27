@@ -35,9 +35,10 @@ class PlatformPaymentConfig {
   static const String packageFullBundle = 'full_bundle';
 
   /// Calculates exact platform commission and net teacher payout for:
-  /// - `live_only`: 15% platform cut (85% teacher payout)
-  /// - `library_only`: 10% platform cut (90% teacher payout)
-  /// - `full_bundle`: 15% flat platform cut (85% teacher payout — e.g. 3500 -> 2975 DZD)
+  /// - `live_only`: 15% platform cut on live price (85% teacher payout)
+  /// - `library_only`: 10% platform cut on library price (90% teacher payout)
+  /// - `full_bundle`: 15% of live price + 10% of library price = total platform fee,
+  ///   subtracted from bundle price = net teacher payout (e.g. 3500 - (375 + 150) = 2975 DZD)
   static CommissionBreakdown calculateCommission({
     required int totalPriceDzd,
     required String packageName,
@@ -59,21 +60,22 @@ class PlatformPaymentConfig {
       livePart = totalPriceDzd;
       liveCommission = (totalPriceDzd * liveSessionsCommissionRate).round();
     } else {
-      // Full bundle: flat 15% platform fee (85% net teacher payout)
-      final explicitLive = livePriceDzd ?? 0;
-      final explicitLib = libraryPriceDzd ?? 0;
-      if (explicitLive > 0 && explicitLib > 0 && (explicitLive + explicitLib) > 0) {
-        livePart = ((totalPriceDzd * explicitLive) / (explicitLive + explicitLib)).round();
-        libraryPart = totalPriceDzd - livePart;
-      } else {
-        livePart = totalPriceDzd;
-        libraryPart = 0;
-      }
-      liveCommission = (totalPriceDzd * liveSessionsCommissionRate).round();
-      libraryCommission = 0;
+      // Full bundle: platform fee = (15% of live price) + (10% of library price)
+      final int liveRef = (livePriceDzd != null && livePriceDzd > 0)
+          ? livePriceDzd
+          : (totalPriceDzd > baseLiveSessionPriceDzd ? baseLiveSessionPriceDzd : totalPriceDzd);
+      final int libRef = (libraryPriceDzd != null && libraryPriceDzd >= 0)
+          ? libraryPriceDzd
+          : (totalPriceDzd > liveRef ? totalPriceDzd - liveRef : 0);
+
+      livePart = liveRef;
+      libraryPart = libRef;
+      liveCommission = (liveRef * liveSessionsCommissionRate).round();
+      libraryCommission = (libRef * libraryCommissionRate).round();
     }
 
-    final totalCommission = liveCommission + libraryCommission;
+    final rawTotalCommission = liveCommission + libraryCommission;
+    final totalCommission = rawTotalCommission > totalPriceDzd ? totalPriceDzd : rawTotalCommission;
     final teacherPayout = totalPriceDzd - totalCommission;
 
     return CommissionBreakdown(

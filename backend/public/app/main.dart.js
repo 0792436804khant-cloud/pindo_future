@@ -34930,13 +34930,14 @@ aGG:function aGG(){},
 aEP:function aEP(){},
 aGW(a,b,c,d,e){var s,r,q,p,o,n,m=d==null?A.bO0(c,e):d
 if(m==="library_only"){s=B.k.aN(e*0.1)
-r=0}else{if(m==="live_only")r=B.k.aN(e*0.15)
-else{q=b==null?0:b
-p=a==null?0:a
-if(q>0)o=p>0
-else o=!1
-if(o)B.k.aN(e*q/(q+p))
-r=B.k.aN(e*0.15)}s=0}n=r+s
+r=0}else if(m==="live_only"){r=B.k.aN(e*0.15)
+s=0}else{if(b!=null&&b>0)q=b
+else q=e>2500?2500:e
+if(a!=null&&a>=0)p=a
+else p=e>q?e-q:0
+r=B.k.aN(q*0.15)
+s=B.k.aN(p*0.1)}o=r+s
+n=o>e?e:o
 return new A.arG(n,e-n)},
 bO0(a,b){var s=a.toLowerCase(),r=B.f.n(a,"\u062d\u0635\u0635")||B.f.n(a,"\u062d\u0636\u0648\u0631")||B.f.n(s,"live")||B.f.n(a,"\u0645\u062a\u0643\u0627\u0645\u0644\u0629")||B.f.n(s,"bundle"),q=B.f.n(a,"\u0645\u0643\u062a\u0628\u0629")||B.f.n(a,"\u062a\u0633\u062c\u064a\u0644\u0627\u062a")||B.f.n(s,"library")
 if(q&&!r)return"library_only"
@@ -138863,7 +138864,7 @@ h=B.u.k(0.1)
 g=A.n(10)
 e=A.O(B.u.k(0.25),1)
 s=A.a([A.o("\u0627\u0644\u062d\u0635\u0635 (85%): "+s.r+" \u062f\u062c",c,c,c,c,B.e3,c,c,c)],f)
-if(d.ch)B.b.G(s,A.a([A.o("\u0627\u0644\u0645\u0643\u062a\u0628\u0629 (90%): "+p.r+" \u062f\u062c",c,c,c,c,B.e3,c,c,c),A.o("\u0627\u0644\u0645\u062a\u0643\u0627\u0645\u0644\u0629 (85%): "+o.r+" \u062f\u062c",c,c,c,c,B.ho,c,c,c)],f))
+if(d.ch)B.b.G(s,A.a([A.o("\u0627\u0644\u0645\u0643\u062a\u0628\u0629 (90%): "+p.r+" \u062f\u062c",c,c,c,c,B.e3,c,c,c),A.o("\u0627\u0644\u0645\u062a\u0643\u0627\u0645\u0644\u0629 (\u0635\u0627\u0641\u064a \u0627\u0644\u0631\u0628\u062d): "+o.r+" \u062f\u062c",c,c,c,c,B.ho,c,c,c)],f))
 a1.push(A.q(c,A.F(A.a([B.aG1,B.af,A.eI(B.be,s,B.bv,4,10)],f),B.p,c,B.d,B.e,0,B.j),B.h,c,c,new A.w(h,c,e,g,c,c,B.m),c,c,c,B.ch,c,c,c))
 i.push(A.q(c,A.F(a1,B.p,c,B.d,B.e,0,B.j),B.h,c,c,new A.w(k,c,l,j,c,c,B.m),c,c,c,B.bl,c,c,c))
 i.push(B.M)

@@ -145,9 +145,9 @@ class StudyCohort extends Model
 
     /**
      * Resolve authoritative package pricing & platform/teacher split breakdown for a cohort.
-     * - live_only: 15% platform / 85% teacher
-     * - library_only: 10% platform / 90% teacher
-     * - full_bundle: 15% platform / 85% teacher (e.g. 3500 -> 2975 DZD net)
+     * - live_only: 15% platform fee on live price / 85% teacher
+     * - library_only: 10% platform fee on library price / 90% teacher
+     * - full_bundle: (15% of live price + 10% of library price) subtracted from bundle price
      */
     public function resolvePackagePricing(string $packageType = self::PACKAGE_FULL_BUNDLE): array
     {
@@ -174,25 +174,16 @@ class StudyCohort extends Model
         } else {
             $packageType = self::PACKAGE_FULL_BUNDLE;
             $gross = $bundlePrice > 0 ? $bundlePrice : ($livePrice + $libPrice);
-            $componentSum = $livePrice + $libPrice;
-            if ($gross > 0 && $componentSum > 0 && $libPrice > 0) {
-                $liveGross = round($gross * ($livePrice / $componentSum), 2);
-                $libraryGross = round($gross - $liveGross, 2);
-            } elseif ($gross > 0 && $libPrice > 0) {
-                $liveGross = round($gross * 0.65, 2);
-                $libraryGross = round($gross - $liveGross, 2);
-            } else {
-                $liveGross = $gross;
-                $libraryGross = 0.0;
-            }
-            $liveFee = round($gross * self::LIVE_PLATFORM_FEE_RATE, 2);
-            $libraryFee = 0.0;
+            $liveGross = $livePrice;
+            $libraryGross = $libPrice;
+            $liveFee = round($livePrice * self::LIVE_PLATFORM_FEE_RATE, 2);
+            $libraryFee = round($libPrice * self::LIBRARY_PLATFORM_FEE_RATE, 2);
             $liveAccess = true;
             $libraryAccess = $this->include_library;
         }
 
-        $platformFee = round($liveFee + $libraryFee, 2);
-        $teacherNet = round($gross - $platformFee, 2);
+        $platformFee = min($gross, round($liveFee + $libraryFee, 2));
+        $teacherNet = max(0.0, round($gross - $platformFee, 2));
 
         return [
             'package_type' => $packageType,

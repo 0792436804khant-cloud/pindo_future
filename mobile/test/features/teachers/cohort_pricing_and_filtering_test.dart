@@ -61,9 +61,20 @@ void main() {
       livePriceDzd: 2500,
       libraryPriceDzd: 1500,
     );
-    // 3500 * 15% = 525 => teacher = 2975
+    // 2500 * 15% (375) + 1500 * 10% (150) = 525 => teacher = 3500 - 525 = 2975
     expect(bundle.platformCommissionDzd, equals(525));
     expect(bundle.teacherPayoutDzd, equals(2975));
+
+    // Distinct custom component formula check: 2000 * 15% (300) + 1000 * 10% (100) = 400 => 2700 - 400 = 2300
+    final discountedBundle = PlatformPaymentConfig.calculateCommission(
+      totalPriceDzd: 2700,
+      packageName: 'الباقة المتكاملة',
+      packageType: PlatformPaymentConfig.packageFullBundle,
+      livePriceDzd: 2000,
+      libraryPriceDzd: 1000,
+    );
+    expect(discountedBundle.platformCommissionDzd, equals(400));
+    expect(discountedBundle.teacherPayoutDzd, equals(2300));
   });
 
   testWidgets('CreateCohortModal filters by teacher years and submits split pricing payload', (tester) async {

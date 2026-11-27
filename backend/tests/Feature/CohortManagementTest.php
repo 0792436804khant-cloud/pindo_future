@@ -313,13 +313,13 @@ class CohortManagementTest extends TestCase
             ->assertJsonPath('membership.live_access', false)
             ->assertJsonPath('membership.library_access', true);
 
-        // Student 3 chooses full_bundle (2700 @ 15% flat fee = 405, net = 2295)
+        // Student 3 chooses full_bundle (2700 - (15% of 2000 + 10% of 1000) = 2700 - 400 = 2300)
         $this->actingAs($student3)->postJson("/api/v1/student/cohorts/{$cohortId}/join", [
             'package_type' => StudyCohort::PACKAGE_FULL_BUNDLE,
         ])->assertStatus(201)
             ->assertJsonPath('pricing_breakdown.gross_amount', 2700)
-            ->assertJsonPath('pricing_breakdown.platform_fee', 405)
-            ->assertJsonPath('pricing_breakdown.teacher_net_amount', 2295)
+            ->assertJsonPath('pricing_breakdown.platform_fee', 400)
+            ->assertJsonPath('pricing_breakdown.teacher_net_amount', 2300)
             ->assertJsonPath('membership.live_access', true)
             ->assertJsonPath('membership.library_access', true);
 
@@ -327,11 +327,11 @@ class CohortManagementTest extends TestCase
         $this->actingAs($teacher)->getJson('/api/v1/teacher/earnings')
             ->assertStatus(200)
             ->assertJsonPath('summary.gross_sales', 5700)
-            ->assertJsonPath('summary.live_gross_sales', 3800)
-            ->assertJsonPath('summary.library_gross_sales', 1900)
-            ->assertJsonPath('summary.live_platform_fees', 705)
-            ->assertJsonPath('summary.library_platform_fees', 100)
-            ->assertJsonPath('summary.platform_fees', 805)
-            ->assertJsonPath('summary.total_net_earned', 4895);
+            ->assertJsonPath('summary.live_gross_sales', 4000)
+            ->assertJsonPath('summary.library_gross_sales', 2000)
+            ->assertJsonPath('summary.live_platform_fees', 600)
+            ->assertJsonPath('summary.library_platform_fees', 200)
+            ->assertJsonPath('summary.platform_fees', 800)
+            ->assertJsonPath('summary.total_net_earned', 4900);
     }
 }
