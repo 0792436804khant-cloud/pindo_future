@@ -313,23 +313,25 @@ class CohortManagementTest extends TestCase
             ->assertJsonPath('membership.live_access', false)
             ->assertJsonPath('membership.library_access', true);
 
-        // Student 3 chooses full_bundle (2700: 1800 live @15% = 270 + 900 lib @10% = 90 -> fee = 360, net = 2340)
+        // Student 3 chooses full_bundle (2700 @ 15% flat fee = 405, net = 2295)
         $this->actingAs($student3)->postJson("/api/v1/student/cohorts/{$cohortId}/join", [
             'package_type' => StudyCohort::PACKAGE_FULL_BUNDLE,
         ])->assertStatus(201)
             ->assertJsonPath('pricing_breakdown.gross_amount', 2700)
+            ->assertJsonPath('pricing_breakdown.platform_fee', 405)
+            ->assertJsonPath('pricing_breakdown.teacher_net_amount', 2295)
             ->assertJsonPath('membership.live_access', true)
             ->assertJsonPath('membership.library_access', true);
 
-        // Verify accurate split revenue breakdown on teacher earnings endpoint
+        // Verify accurate revenue breakdown on teacher earnings endpoint
         $this->actingAs($teacher)->getJson('/api/v1/teacher/earnings')
             ->assertStatus(200)
             ->assertJsonPath('summary.gross_sales', 5700)
             ->assertJsonPath('summary.live_gross_sales', 3800)
             ->assertJsonPath('summary.library_gross_sales', 1900)
-            ->assertJsonPath('summary.live_platform_fees', 570)
-            ->assertJsonPath('summary.library_platform_fees', 190)
-            ->assertJsonPath('summary.platform_fees', 760)
-            ->assertJsonPath('summary.total_net_earned', 4940);
+            ->assertJsonPath('summary.live_platform_fees', 705)
+            ->assertJsonPath('summary.library_platform_fees', 100)
+            ->assertJsonPath('summary.platform_fees', 805)
+            ->assertJsonPath('summary.total_net_earned', 4895);
     }
 }

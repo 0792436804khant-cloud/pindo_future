@@ -431,6 +431,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               TeacherGroupsTab(
                 cohorts: _dashboard.cohorts,
                 onCreateCohort: _createCohort,
+                onRefresh: _fetchDashboardData,
+                teacherName: _currentUser.name,
                 allowedTeachingYears: _dashboard.teacherProfile.teachingYears.isNotEmpty
                     ? _dashboard.teacherProfile.teachingYears
                     : _currentUser.teachingYears,

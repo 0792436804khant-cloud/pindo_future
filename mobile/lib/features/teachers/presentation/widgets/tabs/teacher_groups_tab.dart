@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashboard_model.dart';
 import '../modals/create_cohort_modal.dart';
 import '../modals/attendance_excel_sheet_modal.dart';
+import '../modals/cohort_members_modal.dart';
 import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chat_room_modal.dart';
 import 'package:pindo_future_mobile/features/chat/presentation/widgets/cohort_chats_hub_modal.dart';
 
 class TeacherGroupsTab extends StatefulWidget {
   final List<TeacherCohortItem> cohorts;
   final Future<void> Function(Map<String, dynamic> payload)? onCreateCohort;
+  final VoidCallback? onRefresh;
+  final String? teacherName;
   final List<String> allowedTeachingYears;
   final List<String> allowedTeachingSubjects;
 
@@ -15,6 +18,8 @@ class TeacherGroupsTab extends StatefulWidget {
     super.key,
     required this.cohorts,
     this.onCreateCohort,
+    this.onRefresh,
+    this.teacherName,
     this.allowedTeachingYears = const [],
     this.allowedTeachingSubjects = const [],
   });
@@ -289,10 +294,10 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
             child: ElevatedButton.icon(
               onPressed: () => CohortChatRoomModal.show(
                 context,
-                cohortId: cohort.cohortCode.isNotEmpty ? cohort.cohortCode : cohort.id.toString(),
+                cohortId: cohort.id.toString(),
                 cohortName: cohort.name,
                 academicLevel: cohort.academicLevel,
-                currentUserName: 'الأستاذ محمد أمين بن عيسى',
+                currentUserName: widget.teacherName ?? 'الأستاذ',
                 currentUserRole: 'teacher',
               ),
               icon: const Icon(Icons.forum_rounded, size: 17),
@@ -323,7 +328,11 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => AttendanceExcelSheetModal.show(context, cohortName: cohort.name),
+                  onPressed: () => AttendanceExcelSheetModal.show(
+                    context,
+                    cohortId: cohort.id,
+                    cohortName: cohort.name,
+                  ),
                   icon: const Icon(Icons.table_chart_rounded, size: 16, color: Color(0xFF10B981)),
                   label: const Text('جدول الحضور Excel', style: TextStyle(color: Colors.white, fontSize: 12)),
                   style: OutlinedButton.styleFrom(
@@ -336,14 +345,12 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('عرض قائمة ${cohort.enrolledCount} طالباً في «${cohort.name}».'),
-                        backgroundColor: const Color(0xFF0F172A),
-                      ),
-                    );
-                  },
+                  onPressed: () => CohortMembersModal.show(
+                    context,
+                    cohortId: cohort.id,
+                    cohortName: cohort.name,
+                    onMembersChanged: widget.onRefresh,
+                  ),
                   icon: const Icon(Icons.badge_rounded, size: 16),
                   label: const Text('قائمة الطلاب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   style: ElevatedButton.styleFrom(

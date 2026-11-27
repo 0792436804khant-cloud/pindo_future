@@ -147,7 +147,7 @@ class StudyCohort extends Model
      * Resolve authoritative package pricing & platform/teacher split breakdown for a cohort.
      * - live_only: 15% platform / 85% teacher
      * - library_only: 10% platform / 90% teacher
-     * - full_bundle: proportional live (15%) + library (10%) split based on component prices
+     * - full_bundle: 15% platform / 85% teacher (e.g. 3500 -> 2975 DZD net)
      */
     public function resolvePackagePricing(string $packageType = self::PACKAGE_FULL_BUNDLE): array
     {
@@ -159,12 +159,16 @@ class StudyCohort extends Model
             $gross = $livePrice;
             $liveGross = $gross;
             $libraryGross = 0.0;
+            $liveFee = round($gross * self::LIVE_PLATFORM_FEE_RATE, 2);
+            $libraryFee = 0.0;
             $liveAccess = true;
             $libraryAccess = false;
         } elseif ($packageType === self::PACKAGE_LIBRARY_ONLY) {
             $gross = $libPrice > 0 ? $libPrice : $bundlePrice;
             $liveGross = 0.0;
             $libraryGross = $gross;
+            $liveFee = 0.0;
+            $libraryFee = round($gross * self::LIBRARY_PLATFORM_FEE_RATE, 2);
             $liveAccess = false;
             $libraryAccess = true;
         } else {
@@ -181,12 +185,12 @@ class StudyCohort extends Model
                 $liveGross = $gross;
                 $libraryGross = 0.0;
             }
+            $liveFee = round($gross * self::LIVE_PLATFORM_FEE_RATE, 2);
+            $libraryFee = 0.0;
             $liveAccess = true;
             $libraryAccess = $this->include_library;
         }
 
-        $liveFee = round($liveGross * self::LIVE_PLATFORM_FEE_RATE, 2);
-        $libraryFee = round($libraryGross * self::LIBRARY_PLATFORM_FEE_RATE, 2);
         $platformFee = round($liveFee + $libraryFee, 2);
         $teacherNet = round($gross - $platformFee, 2);
 

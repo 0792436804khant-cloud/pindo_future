@@ -83,6 +83,12 @@ Route::middleware(['auth:sanctum', 'teacher'])->prefix('teacher')->group(functio
     Route::delete('/cohorts/{id}/members/{studentId}', [CohortController::class, 'removeMember'])->name('api.v1.teacher.cohorts.members.remove');
     Route::post('/cohorts/{id}/sessions', [CohortController::class, 'createSession'])->name('api.v1.teacher.cohorts.sessions.store');
 
+    // Cohort Real Attendance Sheet & Sessions
+    Route::get('/cohorts/{id}/attendance', [\App\Http\Controllers\Api\Teacher\CohortAttendanceController::class, 'index'])->name('api.v1.teacher.cohorts.attendance.index');
+    Route::post('/cohorts/{id}/attendance/sessions', [\App\Http\Controllers\Api\Teacher\CohortAttendanceController::class, 'storeSession'])->name('api.v1.teacher.cohorts.attendance.sessions.store');
+    Route::delete('/cohorts/{id}/attendance/sessions/{sessionId}', [\App\Http\Controllers\Api\Teacher\CohortAttendanceController::class, 'destroySession'])->name('api.v1.teacher.cohorts.attendance.sessions.destroy');
+    Route::post('/cohorts/{id}/attendance/records', [\App\Http\Controllers\Api\Teacher\CohortAttendanceController::class, 'saveRecords'])->name('api.v1.teacher.cohorts.attendance.records.save');
+
     // Phase 3: Protected Educational Media & Recording Library
     Route::get('/cohorts/{id}/recordings', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'getRecordings'])->name('api.v1.teacher.cohorts.recordings.index');
     Route::post('/cohorts/{id}/recordings', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'publishRecording'])->name('api.v1.teacher.cohorts.recordings.store');
@@ -135,6 +141,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/cohorts', [CohortEnrollmentController::class, 'myCohorts'])->name('api.v1.student.cohorts.index');
     Route::post('/student/cohorts/{id}/join', [CohortEnrollmentController::class, 'join'])->name('api.v1.student.cohorts.join');
     Route::delete('/student/cohorts/{id}/leave', [CohortEnrollmentController::class, 'leave'])->name('api.v1.student.cohorts.leave');
+
+    // Real-Time Cohort Chat & Social Read Receipts
+    Route::prefix('cohorts/{cohortIdentifier}/chat')->group(function () {
+        Route::get('/messages', [\App\Http\Controllers\Api\CohortChatController::class, 'index'])->name('api.v1.cohorts.chat.index');
+        Route::post('/messages', [\App\Http\Controllers\Api\CohortChatController::class, 'store'])->name('api.v1.cohorts.chat.store');
+        Route::post('/messages/{messageId}/read', [\App\Http\Controllers\Api\CohortChatController::class, 'markRead'])->name('api.v1.cohorts.chat.read');
+        Route::post('/messages/{messageId}/react', [\App\Http\Controllers\Api\CohortChatController::class, 'toggleReaction'])->name('api.v1.cohorts.chat.react');
+        Route::post('/messages/{messageId}/pin', [\App\Http\Controllers\Api\CohortChatController::class, 'togglePin'])->name('api.v1.cohorts.chat.pin');
+    });
 
     // Phase 3: Student Protected Library Access (Recordings & Materials)
     Route::get('/student/cohorts/{id}/library', [\App\Http\Controllers\Api\Student\CohortLibraryController::class, 'index'])->name('api.v1.student.cohorts.library.index');

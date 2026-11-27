@@ -37,7 +37,7 @@ class PlatformPaymentConfig {
   /// Calculates exact platform commission and net teacher payout for:
   /// - `live_only`: 15% platform cut (85% teacher payout)
   /// - `library_only`: 10% platform cut (90% teacher payout)
-  /// - `full_bundle`: proportional 15% on live portion + 10% on library portion
+  /// - `full_bundle`: 15% flat platform cut (85% teacher payout — e.g. 3500 -> 2975 DZD)
   static CommissionBreakdown calculateCommission({
     required int totalPriceDzd,
     required String packageName,
@@ -49,31 +49,30 @@ class PlatformPaymentConfig {
 
     int livePart = 0;
     int libraryPart = 0;
+    int liveCommission = 0;
+    int libraryCommission = 0;
 
-    if (resolvedType == packageLiveOnly) {
-      livePart = totalPriceDzd;
-      libraryPart = 0;
-    } else if (resolvedType == packageLibraryOnly) {
-      livePart = 0;
+    if (resolvedType == packageLibraryOnly) {
       libraryPart = totalPriceDzd;
+      libraryCommission = (totalPriceDzd * libraryCommissionRate).round();
+    } else if (resolvedType == packageLiveOnly) {
+      livePart = totalPriceDzd;
+      liveCommission = (totalPriceDzd * liveSessionsCommissionRate).round();
     } else {
-      // Integrated bundle: split proportionally using explicit livePriceDzd & libraryPriceDzd when given
-      final liveRef = livePriceDzd ?? baseLiveSessionPriceDzd;
-      final libRef = libraryPriceDzd ??
-          (totalPriceDzd > liveRef ? totalPriceDzd - liveRef : (totalPriceDzd * 0.35).round());
-      final refSum = liveRef + libRef;
-
-      if (refSum > 0 && libRef > 0) {
-        livePart = ((totalPriceDzd * liveRef) / refSum).round();
+      // Full bundle: flat 15% platform fee (85% net teacher payout)
+      final explicitLive = livePriceDzd ?? 0;
+      final explicitLib = libraryPriceDzd ?? 0;
+      if (explicitLive > 0 && explicitLib > 0 && (explicitLive + explicitLib) > 0) {
+        livePart = ((totalPriceDzd * explicitLive) / (explicitLive + explicitLib)).round();
         libraryPart = totalPriceDzd - livePart;
       } else {
         livePart = totalPriceDzd;
         libraryPart = 0;
       }
+      liveCommission = (totalPriceDzd * liveSessionsCommissionRate).round();
+      libraryCommission = 0;
     }
 
-    final liveCommission = (livePart * liveSessionsCommissionRate).round();
-    final libraryCommission = (libraryPart * libraryCommissionRate).round();
     final totalCommission = liveCommission + libraryCommission;
     final teacherPayout = totalPriceDzd - totalCommission;
 

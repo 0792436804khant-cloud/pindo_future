@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:pindo_future_mobile/core/network/api_client.dart';
+import 'package:pindo_future_mobile/features/auth/data/datasources/auth_local_datasource.dart';
 import '../../domain/entities/cohort_chat_message.dart';
 import '../../services/cohort_chat_service.dart';
 import '../../../teachers/presentation/widgets/modals/live_camera_capture_modal.dart';
@@ -58,11 +61,73 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
   static const Color _gold = Color(0xFFFFD700);
 
   late List<CohortChatMessage> _messages;
+  Timer? _pollTimer;
+  String? _authToken;
+  String? _resolvedUserId;
+  String _resolvedUserName = '';
+  String _resolvedUserRole = 'teacher';
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _resolvedUserName = widget.currentUserName;
+    _resolvedUserRole = widget.currentUserRole;
+    _messages = List.from(_chatService.getMessages(widget.cohortId, cohortName: widget.cohortName));
+    _scrollToBottom();
+    _initSessionAndSync();
+  }
+
+  Future<void> _initSessionAndSync() async {
+    try {
+      final local = AuthLocalDataSourceImpl();
+      final token = await local.getToken();
+      if (!mounted) return;
+      if (token != null && token.isNotEmpty) {
+        _authToken = token;
+        try {
+          final me = await ApiClient().get('/auth/me', token: token);
+          if (me is Map<String, dynamic> && me['user'] is Map) {
+            final u = Map<String, dynamic>.from(me['user'] as Map);
+            _resolvedUserId = u['id']?.toString();
+            final name = u['name']?.toString() ?? '';
+            if (name.isNotEmpty) _resolvedUserName = name;
+            final role = u['role']?.toString() ?? '';
+            if (role.isNotEmpty) _resolvedUserRole = role;
+          }
+        } catch (_) {}
+        await _syncFromApi();
+        _pollTimer?.cancel();
+        _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+          if (mounted) _syncFromApi();
+        });
+      }
+    } catch (_) {
+      // Fallback to local service state (e.g. unit/widget tests)
+    }
+  }
+
+  Future<void> _syncFromApi() async {
+    final token = _authToken;
+    if (token == null || token.isEmpty) return;
+    try {
+      final hadCount = _messages.length;
+      final fetched = await _chatService.fetchMessagesFromApi(
+        widget.cohortId,
+        token: token,
+        currentUserId: _resolvedUserId,
+        currentUserName: _resolvedUserName,
+      );
+      if (mounted) {
+        setState(() {
+          _messages = List.from(fetched);
+        });
+        if (_messages.length > hadCount) {
+          _scrollToBottom();
+        }
+      }
+    } catch (_) {
+      // Silent background poll resilience
+    }
   }
 
   void _loadMessages() {
@@ -70,6 +135,26 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
       _messages = List.from(_chatService.getMessages(widget.cohortId, cohortName: widget.cohortName));
     });
     _scrollToBottom();
+  }
+
+  Future<void> _dispatchMessage(CohortChatMessage newMsg) async {
+    if (_authToken != null && _authToken!.isNotEmpty) {
+      try {
+        await _chatService.sendMessageToApi(
+          newMsg,
+          token: _authToken!,
+          currentUserId: _resolvedUserId,
+          currentUserName: _resolvedUserName,
+        );
+        _loadMessages();
+        await _syncFromApi();
+        return;
+      } catch (_) {
+        // Fallback locally if transient error
+      }
+    }
+    _chatService.sendMessage(newMsg);
+    _loadMessages();
   }
 
   void _scrollToBottom() {
@@ -86,12 +171,13 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _sendTextMessage() {
+  Future<void> _sendTextMessage() async {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
@@ -99,18 +185,18 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
       cohortId: widget.cohortId,
       cohortName: widget.cohortName,
-      senderId: widget.currentUserRole == 'teacher' ? 'TCH_01' : 'STU_ME',
-      senderName: widget.currentUserName,
-      senderRole: widget.currentUserRole,
+      senderId: _resolvedUserId ?? (_resolvedUserRole == 'teacher' ? 'TCH_01' : 'STU_ME'),
+      senderName: _resolvedUserName,
+      senderRole: _resolvedUserRole,
       text: text,
       messageType: 'text',
       timestamp: DateTime.now(),
       isMine: true,
+      deliveryStatus: 'sent',
     );
 
-    _chatService.sendMessage(newMsg);
     _textController.clear();
-    _loadMessages();
+    await _dispatchMessage(newMsg);
   }
 
   Future<void> _captureLivePhoto() async {
@@ -131,8 +217,7 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
         isMine: true,
       );
 
-      _chatService.sendMessage(newMsg);
-      _loadMessages();
+      _dispatchMessage(newMsg);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -165,8 +250,7 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
           isMine: true,
         );
 
-        _chatService.sendMessage(newMsg);
-        _loadMessages();
+        await _dispatchMessage(newMsg);
         return;
       }
     } catch (_) {
@@ -176,9 +260,9 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
           id: 'msg_gal_${DateTime.now().millisecondsSinceEpoch}',
           cohortId: widget.cohortId,
           cohortName: widget.cohortName,
-          senderId: widget.currentUserRole == 'teacher' ? 'TCH_01' : 'STU_ME',
-          senderName: widget.currentUserName,
-          senderRole: widget.currentUserRole,
+          senderId: _resolvedUserId ?? (_resolvedUserRole == 'teacher' ? 'TCH_01' : 'STU_ME'),
+          senderName: _resolvedUserName,
+          senderRole: _resolvedUserRole,
           text: '🖼️ صورة من الملفات',
           messageType: 'image',
           imageBytes: res.files.first.bytes,
@@ -186,8 +270,7 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
           timestamp: DateTime.now(),
           isMine: true,
         );
-        _chatService.sendMessage(newMsg);
-        _loadMessages();
+        await _dispatchMessage(newMsg);
       }
     }
   }
@@ -252,9 +335,9 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
                         id: 'msg_lnk_${DateTime.now().millisecondsSinceEpoch}',
                         cohortId: widget.cohortId,
                         cohortName: widget.cohortName,
-                        senderId: widget.currentUserRole == 'teacher' ? 'TCH_01' : 'STU_ME',
-                        senderName: widget.currentUserName,
-                        senderRole: widget.currentUserRole,
+                        senderId: _resolvedUserId ?? (_resolvedUserRole == 'teacher' ? 'TCH_01' : 'STU_ME'),
+                        senderName: _resolvedUserName,
+                        senderRole: _resolvedUserRole,
                         text: titleCtrl.text.trim().isNotEmpty ? titleCtrl.text.trim() : 'رابط مشارك مع الفوج:',
                         messageType: 'link',
                         linkUrl: url,
@@ -262,8 +345,7 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
                         timestamp: DateTime.now(),
                         isMine: true,
                       );
-                      _chatService.sendMessage(newMsg);
-                      _loadMessages();
+                      _dispatchMessage(newMsg);
                       Navigator.of(ctx).pop();
                     }
                   },
@@ -325,9 +407,9 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
                         id: 'msg_fil_${DateTime.now().millisecondsSinceEpoch}',
                         cohortId: widget.cohortId,
                         cohortName: widget.cohortName,
-                        senderId: widget.currentUserRole == 'teacher' ? 'TCH_01' : 'STU_ME',
-                        senderName: widget.currentUserName,
-                        senderRole: widget.currentUserRole,
+                        senderId: _resolvedUserId ?? (_resolvedUserRole == 'teacher' ? 'TCH_01' : 'STU_ME'),
+                        senderName: _resolvedUserName,
+                        senderRole: _resolvedUserRole,
                         text: 'ملف تعليمي مرفق للفوج:',
                         messageType: 'file',
                         fileName: name,
@@ -335,8 +417,7 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
                         timestamp: DateTime.now(),
                         isMine: true,
                       );
-                      _chatService.sendMessage(newMsg);
-                      _loadMessages();
+                      _dispatchMessage(newMsg);
                       Navigator.of(ctx).pop();
                     }
                   },
@@ -614,8 +695,145 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
     );
   }
 
+  void _showReadReceiptsModal(CohortChatMessage msg) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(20),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.65),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '👁️ تفاصيل وصول وقراءة الرسالة',
+                  style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.white12),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView(
+                children: [
+                  Text(
+                    '✓✓ قرأها بالفعل (${msg.readBy.length})',
+                    style: const TextStyle(color: _brightCyan, fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  if (msg.readBy.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'لم يقرأها أي عضو من الفوج حتى الآن.',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                    )
+                  else
+                    ...msg.readBy.map((r) => ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.done_all_rounded, color: _brightCyan, size: 18),
+                          title: Text(r.name, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                          subtitle: Text(
+                            r.role == 'teacher' ? 'أستاذ الفوج' : 'تلميذ في الفوج',
+                            style: const TextStyle(color: Colors.white54, fontSize: 11),
+                          ),
+                          trailing: r.readAt != null
+                              ? Text(
+                                  '${r.readAt!.hour.toString().padLeft(2, '0')}:${r.readAt!.minute.toString().padLeft(2, '0')}',
+                                  style: const TextStyle(color: _brightCyan, fontSize: 11),
+                                )
+                              : null,
+                        )),
+                  const SizedBox(height: 16),
+                  Text(
+                    '⏳ لم يقرأها بعد من الفوج (${msg.unreadBy.length})',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  if (msg.unreadBy.isEmpty && msg.totalRecipients == 0)
+                    const Text(
+                      'لا يوجد أعضاء آخرون مسجلون في هذا الفوج حالياً.',
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    )
+                  else if (msg.unreadBy.isEmpty)
+                    const Text(
+                      '✅ جميع أعضاء الفوج قرأوا هذه الرسالة!',
+                      style: TextStyle(color: Color(0xFF10B981), fontSize: 12),
+                    )
+                  else
+                    ...msg.unreadBy.map((u) => ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.schedule_rounded, color: Colors.white38, size: 16),
+                          title: Text(u.name, style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+                          subtitle: Text(
+                            u.role == 'teacher' ? 'أستاذ الفوج' : 'تلميذ في الفوج',
+                            style: const TextStyle(color: Colors.white38, fontSize: 10.5),
+                          ),
+                        )),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeliveryReceiptBadge(CohortChatMessage msg, bool isMe) {
+    if (!isMe) return const SizedBox.shrink();
+
+    IconData iconData = Icons.check_rounded;
+    Color iconColor = Colors.white54;
+    String statusText = 'تم الإرسال';
+
+    if (msg.deliveryStatus == 'read' || msg.readCount > 0) {
+      iconData = Icons.done_all_rounded;
+      iconColor = _brightCyan;
+      statusText = msg.totalRecipients > 0
+          ? 'شوهدت (${msg.readCount}/${msg.totalRecipients})'
+          : 'شوهدت (${msg.readCount})';
+    } else if (msg.deliveryStatus == 'delivered' || msg.deliveredCount > 0) {
+      iconData = Icons.done_all_rounded;
+      iconColor = Colors.white70;
+      statusText = 'تم التوصيل';
+    }
+
+    return InkWell(
+      onTap: () => _showReadReceiptsModal(msg),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(iconData, color: iconColor, size: 15),
+            const SizedBox(width: 4),
+            Text(
+              statusText,
+              style: TextStyle(color: iconColor, fontSize: 10, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.visibility_outlined, color: iconColor.withValues(alpha: 0.75), size: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageItem(CohortChatMessage msg) {
-    final isMe = msg.isMine || msg.senderName == widget.currentUserName;
+    final isMe = msg.isMine || msg.senderName == _resolvedUserName;
     final isTeacher = msg.isTeacher;
 
     return Padding(
@@ -827,6 +1045,9 @@ class _CohortChatRoomModalState extends State<CohortChatRoomModal> {
                       }).toList(),
                     ),
                   ],
+
+                  // Social Media Style Delivery & Read Receipts
+                  _buildDeliveryReceiptBadge(msg, isMe),
                 ],
               ),
             ),

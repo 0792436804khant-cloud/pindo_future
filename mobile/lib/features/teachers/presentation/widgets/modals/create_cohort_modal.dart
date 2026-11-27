@@ -465,7 +465,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                               Text('الحصص (85%): $liveNet دج', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                               if (_includeLibrary) ...[
                                 Text('المكتبة (90%): $libNet دج', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                Text('المتكاملة: $bundleNet دج', style: const TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.bold)),
+                                Text('المتكاملة (85%): $bundleNet دج', style: const TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.bold)),
                               ],
                             ],
                           ),

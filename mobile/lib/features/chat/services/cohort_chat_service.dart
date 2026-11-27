@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:pindo_future_mobile/core/network/api_client.dart';
 import '../domain/entities/cohort_chat_message.dart';
 
 class CohortSummary {
@@ -220,20 +221,67 @@ class CohortChatService {
   List<CohortChatMessage> getMessages(String cohortId, {String? cohortName}) {
     final key = _normalizeCohortId(cohortId);
     if (!_messagesByCohort.containsKey(key)) {
-      _messagesByCohort[key] = [
-        CohortChatMessage(
-          id: 'init_${DateTime.now().millisecondsSinceEpoch}',
-          cohortId: key,
-          cohortName: cohortName ?? 'محادثة الفوج',
-          senderId: 'SYS',
-          senderName: 'منظومة بيندو الذكية',
-          senderRole: 'admin',
-          text: 'تم إنشاء الغرفة بنجاح. أي تلميذ ينضم لهذا الفوج يرتبط تلقائياً بهذه المحادثة المفتوحة والحصص المباشرة.',
-          timestamp: DateTime.now(),
-        ),
-      ];
+      _messagesByCohort[key] = [];
     }
     return List.unmodifiable(_messagesByCohort[key]!);
+  }
+
+  /// Sync messages + real delivery/read receipts from backend API.
+  Future<List<CohortChatMessage>> fetchMessagesFromApi(
+    String cohortId, {
+    required String token,
+    String? currentUserId,
+    String? currentUserName,
+  }) async {
+    final key = _normalizeCohortId(cohortId);
+    final api = ApiClient();
+    final response = await api.get('/cohorts/$cohortId/chat/messages', token: token);
+    if (response is Map<String, dynamic> && response['data'] is Map) {
+      final data = Map<String, dynamic>.from(response['data'] as Map);
+      final rawMsgs = (data['messages'] as List<dynamic>? ?? [])
+          .whereType<Map>()
+          .map((m) => CohortChatMessage.fromJson(
+                Map<String, dynamic>.from(m),
+                currentUserId: currentUserId,
+                currentUserName: currentUserName,
+              ))
+          .toList();
+      _messagesByCohort[key] = rawMsgs;
+      return List.unmodifiable(rawMsgs);
+    }
+    return getMessages(cohortId);
+  }
+
+  /// Post a real message to the backend cohort chat room.
+  Future<CohortChatMessage?> sendMessageToApi(
+    CohortChatMessage message, {
+    required String token,
+    String? currentUserId,
+    String? currentUserName,
+  }) async {
+    final api = ApiClient();
+    final body = <String, dynamic>{
+      'text': message.text,
+      'message_type': message.messageType,
+      if (message.linkUrl != null) 'link_url': message.linkUrl,
+      if (message.linkTitle != null) 'link_title': message.linkTitle,
+      if (message.fileName != null) 'file_name': message.fileName,
+      if (message.fileSizeBytes != null) 'file_size_bytes': message.fileSizeBytes,
+    };
+
+    final response = await api.post('/cohorts/${message.cohortId}/chat/messages', body: body, token: token);
+    if (response is Map<String, dynamic> && response['data'] is Map) {
+      final saved = CohortChatMessage.fromJson(
+        Map<String, dynamic>.from(response['data'] as Map),
+        currentUserId: currentUserId,
+        currentUserName: currentUserName,
+      );
+      final key = _normalizeCohortId(message.cohortId);
+      final list = _messagesByCohort.putIfAbsent(key, () => []);
+      list.add(saved);
+      return saved;
+    }
+    return null;
   }
 
   void sendMessage(CohortChatMessage message) {

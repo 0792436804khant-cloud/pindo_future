@@ -1,6 +1,37 @@
 import 'package:flutter/foundation.dart';
 
 @immutable
+class ChatReaderInfo {
+  final String userId;
+  final String name;
+  final String role;
+  final DateTime? readAt;
+
+  const ChatReaderInfo({
+    required this.userId,
+    required this.name,
+    this.role = 'student',
+    this.readAt,
+  });
+
+  factory ChatReaderInfo.fromJson(Map<String, dynamic> json) {
+    return ChatReaderInfo(
+      userId: json['user_id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'عضو',
+      role: json['role']?.toString() ?? 'student',
+      readAt: json['read_at'] != null ? DateTime.tryParse(json['read_at'].toString()) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'user_id': userId,
+        'name': name,
+        'role': role,
+        if (readAt != null) 'read_at': readAt!.toIso8601String(),
+      };
+}
+
+@immutable
 class CohortChatMessage {
   final String id;
   final String cohortId;
@@ -23,6 +54,14 @@ class CohortChatMessage {
   final List<String> reactions;
   final bool isMine;
 
+  // Social-style delivery & read receipts
+  final String deliveryStatus; // 'sent' | 'delivered' | 'read'
+  final int deliveredCount;
+  final int readCount;
+  final int totalRecipients;
+  final List<ChatReaderInfo> readBy;
+  final List<ChatReaderInfo> unreadBy;
+
   const CohortChatMessage({
     required this.id,
     required this.cohortId,
@@ -44,6 +83,12 @@ class CohortChatMessage {
     required this.timestamp,
     this.reactions = const [],
     this.isMine = false,
+    this.deliveryStatus = 'sent',
+    this.deliveredCount = 0,
+    this.readCount = 0,
+    this.totalRecipients = 0,
+    this.readBy = const [],
+    this.unreadBy = const [],
   });
 
   bool get isTeacher => senderRole.toLowerCase() == 'teacher';
@@ -73,6 +118,12 @@ class CohortChatMessage {
     DateTime? timestamp,
     List<String>? reactions,
     bool? isMine,
+    String? deliveryStatus,
+    int? deliveredCount,
+    int? readCount,
+    int? totalRecipients,
+    List<ChatReaderInfo>? readBy,
+    List<ChatReaderInfo>? unreadBy,
   }) {
     return CohortChatMessage(
       id: id ?? this.id,
@@ -95,15 +146,31 @@ class CohortChatMessage {
       timestamp: timestamp ?? this.timestamp,
       reactions: reactions ?? this.reactions,
       isMine: isMine ?? this.isMine,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      deliveredCount: deliveredCount ?? this.deliveredCount,
+      readCount: readCount ?? this.readCount,
+      totalRecipients: totalRecipients ?? this.totalRecipients,
+      readBy: readBy ?? this.readBy,
+      unreadBy: unreadBy ?? this.unreadBy,
     );
   }
 
   factory CohortChatMessage.fromJson(Map<String, dynamic> json, {String? currentUserId, String? currentUserName}) {
     final sName = json['sender_name']?.toString() ?? 'مشارك';
     final sId = json['sender_id']?.toString() ?? '';
-    final isMe = (currentUserId != null && sId == currentUserId) ||
-        (currentUserName != null && sName == currentUserName) ||
+    final isMe = (currentUserId != null && currentUserId.isNotEmpty && sId == currentUserId) ||
+        (currentUserName != null && currentUserName.isNotEmpty && sName == currentUserName) ||
         (json['is_mine'] == true);
+
+    final parsedReadBy = (json['read_by'] as List<dynamic>? ?? [])
+        .whereType<Map>()
+        .map((e) => ChatReaderInfo.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+
+    final parsedUnreadBy = (json['unread_by'] as List<dynamic>? ?? [])
+        .whereType<Map>()
+        .map((e) => ChatReaderInfo.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
 
     return CohortChatMessage(
       id: json['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -122,10 +189,16 @@ class CohortChatMessage {
       fileSizeBytes: json['file_size_bytes'] is num ? (json['file_size_bytes'] as num).toInt() : null,
       isPinned: json['is_pinned'] == true,
       timestamp: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
+          ? DateTime.tryParse(json['timestamp'] as String)?.toLocal() ?? DateTime.now()
           : DateTime.now(),
       reactions: (json['reactions'] as List<dynamic>? ?? []).map((e) => e.toString()).toList(),
       isMine: isMe,
+      deliveryStatus: json['delivery_status']?.toString() ?? 'sent',
+      deliveredCount: json['delivered_count'] is num ? (json['delivered_count'] as num).toInt() : 0,
+      readCount: json['read_count'] is num ? (json['read_count'] as num).toInt() : parsedReadBy.length,
+      totalRecipients: json['total_recipients'] is num ? (json['total_recipients'] as num).toInt() : 0,
+      readBy: parsedReadBy,
+      unreadBy: parsedUnreadBy,
     );
   }
 
@@ -148,6 +221,12 @@ class CohortChatMessage {
       'is_pinned': isPinned,
       'timestamp': timestamp.toIso8601String(),
       'reactions': reactions,
+      'delivery_status': deliveryStatus,
+      'delivered_count': deliveredCount,
+      'read_count': readCount,
+      'total_recipients': totalRecipients,
+      'read_by': readBy.map((e) => e.toJson()).toList(),
+      'unread_by': unreadBy.map((e) => e.toJson()).toList(),
     };
   }
 }
