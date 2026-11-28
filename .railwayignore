@@ -1,0 +1,13 @@
+.git/
+mobile/build/
+mobile/.dart_tool/
+mobile/android/
+mobile/ios/
+mobile/windows/
+mobile/macos/
+mobile/linux/
+backend/vendor/
+backend/node_modules/
+backend/storage/app/public/downloads/
+backend/storage/logs/
+backend/database/database.sqlite
