@@ -90,6 +90,9 @@ Route::middleware(['auth:sanctum', 'teacher'])->prefix('teacher')->group(functio
     Route::post('/cohorts/{id}/attendance/records', [\App\Http\Controllers\Api\Teacher\CohortAttendanceController::class, 'saveRecords'])->name('api.v1.teacher.cohorts.attendance.records.save');
 
     // Phase 3: Protected Educational Media & Recording Library
+    Route::get('/recordings', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'allTeacherRecordings'])->name('api.v1.teacher.recordings.all');
+    Route::post('/sessions/{sessionId}/recordings/upload', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'uploadSessionRecording'])->name('api.v1.teacher.sessions.recordings.upload');
+    Route::get('/recordings/{id}/stream', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'streamTeacherRecording'])->name('api.v1.teacher.recordings.stream');
     Route::get('/cohorts/{id}/recordings', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'getRecordings'])->name('api.v1.teacher.cohorts.recordings.index');
     Route::post('/cohorts/{id}/recordings', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'publishRecording'])->name('api.v1.teacher.cohorts.recordings.store');
     Route::delete('/recordings/{id}', [\App\Http\Controllers\Api\Teacher\LibraryController::class, 'deleteRecording'])->name('api.v1.teacher.recordings.destroy');
@@ -122,6 +125,9 @@ Route::middleware('auth:sanctum')->prefix('sessions/{sessionId}')->group(functio
     Route::post('/attendance/join', [\App\Http\Controllers\Api\ClassroomInteractionController::class, 'recordJoin'])->name('api.v1.sessions.attendance.join');
     Route::post('/attendance/leave', [\App\Http\Controllers\Api\ClassroomInteractionController::class, 'recordLeave'])->name('api.v1.sessions.attendance.leave');
 });
+
+// Signed Media Streaming Endpoint (Verified via HMAC signature + TTL)
+Route::get('/media/recordings/{recordingCode}/stream', [\App\Http\Controllers\Api\Student\CohortLibraryController::class, 'serveSignedStream'])->name('api.v1.media.recordings.stream');
 
 // Phase 5: Public Teacher Showcase, Deep Links & Course Discovery
 Route::get('/teachers', [TeacherPublicController::class, 'index'])->name('api.v1.teachers.index');

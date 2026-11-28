@@ -8,12 +8,16 @@ class InteractiveWhiteboardCanvas extends StatefulWidget {
   final ClassroomController controller;
   final bool isTeacher;
   final String? sessionId;
+  final bool isOverlayMode;
+  final VoidCallback? onCloseOverlay;
 
   const InteractiveWhiteboardCanvas({
     super.key,
     required this.controller,
     required this.isTeacher,
     this.sessionId,
+    this.isOverlayMode = false,
+    this.onCloseOverlay,
   });
 
   @override
@@ -22,9 +26,15 @@ class InteractiveWhiteboardCanvas extends StatefulWidget {
 
 class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanvas> {
   WhiteboardTool _selectedTool = WhiteboardTool.pen;
-  Color _selectedColor = const Color(0xFF0D9488); // Brand Teal
+  late Color _selectedColor;
   double _strokeWidth = 4.0;
   bool _isDarkChalkboard = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedColor = widget.isOverlayMode ? const Color(0xFF00E5FF) : const Color(0xFF0D9488);
+  }
 
   final List<WhiteboardPoint> _currentStrokePoints = [];
   bool _isSavingSnapshot = false;
@@ -357,45 +367,53 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
   @override
   Widget build(BuildContext context) {
     final strokes = widget.controller.whiteboardStrokes;
-    final bgColor = _isDarkChalkboard ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final bgColor = widget.isOverlayMode
+        ? Colors.transparent
+        : (_isDarkChalkboard ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC));
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final canvasSize = Size(constraints.maxWidth, constraints.maxHeight);
 
+        final drawingSurface = GestureDetector(
+          behavior: widget.isTeacher ? HitTestBehavior.opaque : HitTestBehavior.translucent,
+          onPanStart: (d) => _onPanStart(d, canvasSize),
+          onPanUpdate: (d) => _onPanUpdate(d, canvasSize),
+          onPanEnd: _onPanEnd,
+          child: Container(
+            color: bgColor,
+            child: CustomPaint(
+              size: canvasSize,
+              painter: WhiteboardPainter(
+                strokes: strokes,
+                activePoints: _currentStrokePoints,
+                activeTool: _selectedTool,
+                activeColor: _selectedColor,
+                activeStrokeWidth: _strokeWidth,
+                isDark: widget.isOverlayMode || _isDarkChalkboard,
+              ),
+            ),
+          ),
+        );
+
         return Stack(
           children: [
             // 1. Drawing Surface
             Positioned.fill(
-              child: GestureDetector(
-                onPanStart: (d) => _onPanStart(d, canvasSize),
-                onPanUpdate: (d) => _onPanUpdate(d, canvasSize),
-                onPanEnd: _onPanEnd,
-                child: Container(
-                  color: bgColor,
+              child: widget.isOverlayMode && !widget.isTeacher
+                  ? IgnorePointer(child: drawingSurface)
+                  : drawingSurface,
+            ),
+
+            // 2. Grid Pattern Overlay (Full Whiteboard mode only)
+            if (!widget.isOverlayMode)
+              Positioned.fill(
+                child: IgnorePointer(
                   child: CustomPaint(
-                    size: canvasSize,
-                    painter: WhiteboardPainter(
-                      strokes: strokes,
-                      activePoints: _currentStrokePoints,
-                      activeTool: _selectedTool,
-                      activeColor: _selectedColor,
-                      activeStrokeWidth: _strokeWidth,
-                      isDark: _isDarkChalkboard,
-                    ),
+                    painter: WhiteboardGridPainter(isDark: _isDarkChalkboard),
                   ),
                 ),
               ),
-            ),
-
-            // 2. Grid Pattern Overlay
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: WhiteboardGridPainter(isDark: _isDarkChalkboard),
-                ),
-              ),
-            ),
 
             // 3. Floating Tool Palette (Instructor controls)
             if (widget.isTeacher)
@@ -404,12 +422,34 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
                 left: 16,
                 right: 16,
                 child: Center(
-                  child: _buildFloatingToolbar(),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildFloatingToolbar(),
+                        if (widget.isOverlayMode && widget.onCloseOverlay != null) ...[
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: widget.onCloseOverlay,
+                            icon: const Icon(Icons.close, size: 15),
+                            label: const Text('إغلاق القلم', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
 
-            // 4. Student View Indicator (If viewer is student)
-            if (!widget.isTeacher)
+            // 4. Student View Indicator (If viewer is student in full whiteboard mode)
+            if (!widget.isTeacher && !widget.isOverlayMode)
               Positioned(
                 bottom: 16,
                 left: 16,
@@ -453,16 +493,17 @@ class _InteractiveWhiteboardCanvasState extends State<InteractiveWhiteboardCanva
                 ),
               ),
 
-            // 5. Canvas Settings (Chalkboard Mode & Snapshot Save)
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: GlassmorphicContainer(
-                borderRadius: BorderRadius.circular(16),
-                blurSigma: 16.0,
-                borderColor: Colors.white.withValues(alpha: 0.20),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Row(
+            // 5. Canvas Settings (Chalkboard Mode & Snapshot Save - Hidden in overlay unless saving)
+            if (!widget.isOverlayMode)
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: GlassmorphicContainer(
+                  borderRadius: BorderRadius.circular(16),
+                  blurSigma: 16.0,
+                  borderColor: Colors.white.withValues(alpha: 0.20),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     GlassmorphicScaleButton(

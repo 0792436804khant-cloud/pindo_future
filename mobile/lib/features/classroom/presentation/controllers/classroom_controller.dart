@@ -63,9 +63,14 @@ class ClassroomController extends ChangeNotifier {
   bool get isCameraEnabled => roomService.isCameraEnabled;
   bool get isMicrophoneEnabled => roomService.isMicrophoneEnabled;
   bool get isScreenShareEnabled => roomService.isScreenShareEnabled;
+  bool get isScreenAnnotationEnabled => roomService.isScreenAnnotationEnabled;
+  LiveStreamQualityPreset get qualityPreset => roomService.qualityPreset;
   ClassroomStageMode get currentStageMode => roomService.currentStageMode;
   TrackPublication? get activeScreenSharePublication => roomService.activeScreenSharePublication;
   List<WhiteboardStrokeEntity> get whiteboardStrokes => roomService.whiteboardStrokes;
+
+  VideoTrack? cameraTrackFor(Participant? participant) => roomService.cameraTrackFor(participant);
+  VideoTrack? screenShareTrackFor(Participant? participant) => roomService.screenShareTrackFor(participant);
 
   List<ClassroomChatMessage> get messages => roomService.messages;
   List<HandRaiseRequest> get raisedHands => roomService.raisedHands;
@@ -142,7 +147,11 @@ class ClassroomController extends ChangeNotifier {
 
   Future<void> toggleCamera() async => await roomService.toggleCamera();
   Future<void> toggleMicrophone() async => await roomService.toggleMicrophone();
-  Future<void> toggleScreenShare() async => await roomService.toggleScreenShare();
+  Future<String?> toggleScreenShare() async => await roomService.toggleScreenShare();
+  Future<void> toggleScreenAnnotation({bool? enabled}) async =>
+      await roomService.toggleScreenAnnotation(enabled: enabled);
+  Future<void> setQualityPreset(LiveStreamQualityPreset preset) async =>
+      await roomService.setQualityPreset(preset);
   Future<void> setStageMode(ClassroomStageMode mode) async => await roomService.setStageMode(mode);
 
   Future<void> addWhiteboardStroke(WhiteboardStrokeEntity stroke) async =>

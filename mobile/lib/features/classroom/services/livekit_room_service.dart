@@ -17,6 +17,48 @@ enum ClassroomConnectionStatus {
   error,
 }
 
+enum LiveStreamQualityPreset {
+  ultraMax,
+  highHd,
+  dataSaver;
+
+  String get arabicLabel => switch (this) {
+        LiveStreamQualityPreset.ultraMax => 'أقصى جودة (1080p • 60 FPS)',
+        LiveStreamQualityPreset.highHd => 'جودة عالية (720p • 60 FPS)',
+        LiveStreamQualityPreset.dataSaver => 'توفير البيانات (540p • 30 FPS)',
+      };
+
+  String get shortBadge => switch (this) {
+        LiveStreamQualityPreset.ultraMax => 'MAX 1080p • 60fps',
+        LiveStreamQualityPreset.highHd => 'HD 720p • 60fps',
+        LiveStreamQualityPreset.dataSaver => 'ECO 540p • 30fps',
+      };
+
+  VideoParameters get cameraParameters => switch (this) {
+        LiveStreamQualityPreset.ultraMax => const VideoParameters(
+            dimensions: VideoDimensionsPresets.h1080_169,
+            encoding: VideoEncoding(maxBitrate: 4500 * 1000, maxFramerate: 60),
+          ),
+        LiveStreamQualityPreset.highHd => const VideoParameters(
+            dimensions: VideoDimensionsPresets.h720_169,
+            encoding: VideoEncoding(maxBitrate: 2500 * 1000, maxFramerate: 60),
+          ),
+        LiveStreamQualityPreset.dataSaver => VideoParametersPresets.h540_169,
+      };
+
+  VideoParameters get screenShareParameters => switch (this) {
+        LiveStreamQualityPreset.ultraMax => const VideoParameters(
+            dimensions: VideoDimensionsPresets.h1080_169,
+            encoding: VideoEncoding(maxBitrate: 6500 * 1000, maxFramerate: 60),
+          ),
+        LiveStreamQualityPreset.highHd => const VideoParameters(
+            dimensions: VideoDimensionsPresets.h1080_169,
+            encoding: VideoEncoding(maxBitrate: 3800 * 1000, maxFramerate: 30),
+          ),
+        LiveStreamQualityPreset.dataSaver => VideoParametersPresets.screenShareH720FPS15,
+      };
+}
+
 class LiveKitRoomService extends ChangeNotifier {
   Room? _room;
   EventsListener<RoomEvent>? _listener;
@@ -28,6 +70,8 @@ class LiveKitRoomService extends ChangeNotifier {
   bool _isCameraEnabled = false;
   bool _isMicrophoneEnabled = false;
   bool _isScreenShareEnabled = false;
+  bool _isScreenAnnotationEnabled = false;
+  LiveStreamQualityPreset _qualityPreset = LiveStreamQualityPreset.ultraMax;
 
   ClassroomStageMode _currentStageMode = ClassroomStageMode.camera;
   final List<WhiteboardStrokeEntity> _whiteboardStrokes = [];
@@ -41,6 +85,8 @@ class LiveKitRoomService extends ChangeNotifier {
   bool get isCameraEnabled => _isCameraEnabled;
   bool get isMicrophoneEnabled => _isMicrophoneEnabled;
   bool get isScreenShareEnabled => _isScreenShareEnabled;
+  bool get isScreenAnnotationEnabled => _isScreenAnnotationEnabled;
+  LiveStreamQualityPreset get qualityPreset => _qualityPreset;
   bool get canPublish => _connectionDetails?.canPublish ?? false;
 
   ClassroomStageMode get currentStageMode => _currentStageMode;
@@ -75,6 +121,42 @@ class LiveKitRoomService extends ChangeNotifier {
     return null;
   }
 
+  VideoTrack? cameraTrackFor(Participant? participant) {
+    if (participant == null) return null;
+    final camPub = participant.videoTrackPublications
+        .where((p) => p.source == TrackSource.camera)
+        .firstOrNull;
+    return camPub?.track as VideoTrack?;
+  }
+
+  VideoTrack? screenShareTrackFor(Participant? participant) {
+    if (participant == null) return null;
+    final sharePub = participant.videoTrackPublications
+        .where((p) => p.source == TrackSource.screenShareVideo)
+        .firstOrNull;
+    return sharePub?.track as VideoTrack?;
+  }
+
+  CameraCaptureOptions _buildCameraOptions([LiveStreamQualityPreset? preset]) {
+    final p = preset ?? _qualityPreset;
+    return CameraCaptureOptions(
+      params: p.cameraParameters,
+      maxFrameRate: (p.cameraParameters.encoding?.maxFramerate ?? 60).toDouble(),
+    );
+  }
+
+  ScreenShareCaptureOptions _buildScreenShareOptions([LiveStreamQualityPreset? preset]) {
+    final p = preset ?? _qualityPreset;
+    return ScreenShareCaptureOptions(
+      useiOSBroadcastExtension: true,
+      captureScreenAudio: true,
+      preferCurrentTab: false,
+      selfBrowserSurface: 'exclude',
+      maxFrameRate: (p.screenShareParameters.encoding?.maxFramerate ?? 60).toDouble(),
+      params: p.screenShareParameters,
+    );
+  }
+
   /// Connect to the LiveKit SFU cluster using signed RoomConnectionDetails
   Future<bool> connect(RoomConnectionDetails details) async {
     _status = ClassroomConnectionStatus.connecting;
@@ -88,20 +170,38 @@ class LiveKitRoomService extends ChangeNotifier {
         await _requestMediaPermissions();
       }
 
-      // 2. Configure Room optimized for 30,000 Concurrent Attendees
-      const roomOptions = RoomOptions(
-        adaptiveStream: true, // Only request video resolution matching subscriber tile size
-        dynacast: true,       // Pause publishing resolutions no subscribers are watching
-        defaultAudioCaptureOptions: AudioCaptureOptions(
+      // 2. Configure Room optimized for Max FPS / Max Quality + Simulcast scaling
+      final roomOptions = RoomOptions(
+        adaptiveStream: true, // Match subscriber viewport resolution seamlessly
+        dynacast: true,       // Pause unused encoding layers automatically
+        defaultAudioCaptureOptions: const AudioCaptureOptions(
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         ),
-        defaultCameraCaptureOptions: CameraCaptureOptions(
-          params: VideoParametersPresets.h720_169, // HD 720p 16:9 for instructor
+        defaultAudioPublishOptions: const AudioPublishOptions(
+          dtx: true,
+          red: true,
         ),
-        defaultScreenShareCaptureOptions: ScreenShareCaptureOptions(
-          params: VideoParametersPresets.h1080_169, // Full HD for presentations
+        defaultCameraCaptureOptions: _buildCameraOptions(),
+        defaultScreenShareCaptureOptions: _buildScreenShareOptions(),
+        defaultVideoPublishOptions: VideoPublishOptions(
+          simulcast: true,
+          videoCodec: 'VP9',
+          backupVideoCodec: const BackupVideoCodec(
+            enabled: true,
+            codec: 'H264',
+            simulcast: true,
+          ),
+          videoEncoding: _qualityPreset.cameraParameters.encoding,
+          screenShareEncoding: _qualityPreset.screenShareParameters.encoding,
+          videoSimulcastLayers: [
+            VideoParametersPresets.h360_169,
+            VideoParametersPresets.h720_169,
+          ],
+          screenShareSimulcastLayers: [
+            VideoParametersPresets.h720_169,
+          ],
         ),
       );
 
@@ -116,13 +216,27 @@ class LiveKitRoomService extends ChangeNotifier {
         fastConnectOptions: FastConnectOptions(),
       );
 
-      // 4. If publisher (teacher), initialize camera and microphone
+      // 4. If publisher (teacher), initialize camera (with safe fallback) and microphone
       if (details.canPublish) {
         try {
-          await _room!.localParticipant?.setCameraEnabled(true);
+          await _room!.localParticipant?.setCameraEnabled(
+            true,
+            cameraCaptureOptions: _buildCameraOptions(),
+          );
           _isCameraEnabled = true;
         } catch (e) {
-          debugPrint('Warning: Camera could not be initialized automatically: $e');
+          debugPrint('Max-FPS camera init failed, retrying safe 720p fallback: $e');
+          try {
+            await _room!.localParticipant?.setCameraEnabled(
+              true,
+              cameraCaptureOptions: const CameraCaptureOptions(
+                params: VideoParametersPresets.h720_169,
+              ),
+            );
+            _isCameraEnabled = true;
+          } catch (fallbackErr) {
+            debugPrint('Warning: Camera could not be initialized automatically: $fallbackErr');
+          }
         }
 
         try {
@@ -174,6 +288,30 @@ class LiveKitRoomService extends ChangeNotifier {
       ..on<ParticipantDisconnectedEvent>((event) {
         notifyListeners();
       })
+      ..on<LocalTrackPublishedEvent>((event) {
+        if (event.publication.source == TrackSource.screenShareVideo) {
+          _isScreenShareEnabled = true;
+          _currentStageMode = ClassroomStageMode.screenShare;
+        } else if (event.publication.source == TrackSource.camera) {
+          _isCameraEnabled = true;
+        } else if (event.publication.source == TrackSource.microphone) {
+          _isMicrophoneEnabled = true;
+        }
+        notifyListeners();
+      })
+      ..on<LocalTrackUnpublishedEvent>((event) {
+        if (event.publication.source == TrackSource.screenShareVideo) {
+          _isScreenShareEnabled = false;
+          if (_currentStageMode == ClassroomStageMode.screenShare) {
+            _currentStageMode = ClassroomStageMode.camera;
+          }
+        } else if (event.publication.source == TrackSource.camera) {
+          _isCameraEnabled = false;
+        } else if (event.publication.source == TrackSource.microphone) {
+          _isMicrophoneEnabled = false;
+        }
+        notifyListeners();
+      })
       ..on<TrackSubscribedEvent>((event) {
         if (event.publication.source == TrackSource.screenShareVideo) {
           _currentStageMode = ClassroomStageMode.screenShare;
@@ -201,7 +339,7 @@ class LiveKitRoomService extends ChangeNotifier {
             final chatMsg = ClassroomChatMessage.fromJson(data);
             _messages.add(chatMsg);
             notifyListeners();
-          } else if (type == 'hand_raise') {
+          } else if (type == 'hand_raise' || type == 'raise_hand') {
             final identity = data['participant_identity'] as String? ?? '';
             if (!_raisedHands.any((h) => h.participantIdentity == identity)) {
               _raisedHands.add(HandRaiseRequest.fromJson(data));
@@ -218,6 +356,9 @@ class LiveKitRoomService extends ChangeNotifier {
             // Synchronize active classroom spotlight view mode
             final modeStr = data['mode'] as String?;
             _currentStageMode = ClassroomStageModeExtension.fromString(modeStr);
+            notifyListeners();
+          } else if (type == 'screen_annotation') {
+            _isScreenAnnotationEnabled = data['enabled'] == true;
             notifyListeners();
           } else if (type == 'whiteboard_stroke') {
             // Receive real-time vector stroke from instructor
@@ -253,16 +394,39 @@ class LiveKitRoomService extends ChangeNotifier {
       });
   }
 
-  /// Toggle local camera track
+  /// Toggle local camera track with active Max-FPS quality options
   Future<void> toggleCamera() async {
     if (_room == null || !canPublish) return;
 
+    final nextState = !_isCameraEnabled;
     try {
-      _isCameraEnabled = !_isCameraEnabled;
-      await _room!.localParticipant?.setCameraEnabled(_isCameraEnabled);
+      await _room!.localParticipant?.setCameraEnabled(
+        nextState,
+        cameraCaptureOptions: _buildCameraOptions(),
+      );
+      _isCameraEnabled = nextState;
       notifyListeners();
     } catch (e) {
       debugPrint('Error toggling camera: $e');
+    }
+  }
+
+  /// Switch streaming quality preset live (Max FPS / HD / Data Saver)
+  Future<void> setQualityPreset(LiveStreamQualityPreset preset) async {
+    _qualityPreset = preset;
+    notifyListeners();
+
+    if (_room == null || !canPublish) return;
+    try {
+      if (_isCameraEnabled) {
+        await _room!.localParticipant?.setCameraEnabled(false);
+        await _room!.localParticipant?.setCameraEnabled(
+          true,
+          cameraCaptureOptions: _buildCameraOptions(preset),
+        );
+      }
+    } catch (e) {
+      debugPrint('Quality preset camera update warning: $e');
     }
   }
 
@@ -270,34 +434,74 @@ class LiveKitRoomService extends ChangeNotifier {
   Future<void> toggleMicrophone() async {
     if (_room == null || !canPublish) return;
 
+    final nextState = !_isMicrophoneEnabled;
     try {
-      _isMicrophoneEnabled = !_isMicrophoneEnabled;
-      await _room!.localParticipant?.setMicrophoneEnabled(_isMicrophoneEnabled);
+      await _room!.localParticipant?.setMicrophoneEnabled(nextState);
+      _isMicrophoneEnabled = nextState;
       notifyListeners();
     } catch (e) {
       debugPrint('Error toggling microphone: $e');
     }
   }
 
-  /// Toggle Screen Sharing display media track
-  Future<void> toggleScreenShare() async {
-    if (_room == null || !canPublish) return;
+  /// Toggle Screen Sharing display media track with error reporting and self-surface exclusion
+  Future<String?> toggleScreenShare() async {
+    if (_room == null || !canPublish) {
+      return 'غير مصرح لك بمشاركة الشاشة في هذه الغرفة.';
+    }
 
+    final targetEnabled = !_isScreenShareEnabled;
     try {
-      _isScreenShareEnabled = !_isScreenShareEnabled;
-      await _room!.localParticipant?.setScreenShareEnabled(
-        _isScreenShareEnabled,
+      final pub = await _room!.localParticipant?.setScreenShareEnabled(
+        targetEnabled,
         captureScreenAudio: true,
+        screenShareCaptureOptions: _buildScreenShareOptions(),
       );
 
-      if (_isScreenShareEnabled) {
+      if (targetEnabled) {
+        final hasShare = pub != null || activeScreenSharePublication != null;
+        if (!hasShare) {
+          _isScreenShareEnabled = false;
+          notifyListeners();
+          return 'لم يتم اختيار نافذة أو شاشة للمشاركة.';
+        }
+        _isScreenShareEnabled = true;
         await setStageMode(ClassroomStageMode.screenShare);
       } else {
+        _isScreenShareEnabled = false;
         await setStageMode(ClassroomStageMode.camera);
       }
       notifyListeners();
+      return null;
     } catch (e) {
+      _isScreenShareEnabled = activeScreenSharePublication != null;
+      notifyListeners();
       debugPrint('Error toggling screen share: $e');
+      return 'تم إلغاء مشاركة الشاشة أو رفض الإذن من المتصفح/الجهاز.';
+    }
+  }
+
+  /// Toggle transparent live annotation overlay on top of Camera / Screen Share
+  Future<void> toggleScreenAnnotation({bool? enabled}) async {
+    final nextState = enabled ?? !_isScreenAnnotationEnabled;
+    _isScreenAnnotationEnabled = nextState;
+    notifyListeners();
+
+    if (canPublish && _room?.localParticipant != null) {
+      try {
+        final payload = {
+          'type': 'screen_annotation',
+          'enabled': nextState,
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+        await _room!.localParticipant!.publishData(
+          utf8.encode(jsonEncode(payload)),
+          reliable: true,
+          topic: 'whiteboard',
+        );
+      } catch (e) {
+        debugPrint('Error broadcasting screen annotation state: $e');
+      }
     }
   }
 
@@ -441,6 +645,18 @@ class LiveKitRoomService extends ChangeNotifier {
           topic: 'whiteboard',
         );
       }
+
+      // 3. Sync screen annotation overlay state
+      if (_isScreenAnnotationEnabled) {
+        await _room!.localParticipant!.publishData(
+          utf8.encode(jsonEncode({
+            'type': 'screen_annotation',
+            'enabled': true,
+          })),
+          reliable: true,
+          topic: 'whiteboard',
+        );
+      }
     } catch (e) {
       debugPrint('Error synchronizing room state to attendee: $e');
     }
@@ -546,6 +762,7 @@ class LiveKitRoomService extends ChangeNotifier {
       _isCameraEnabled = false;
       _isMicrophoneEnabled = false;
       _isScreenShareEnabled = false;
+      _isScreenAnnotationEnabled = false;
       _currentStageMode = ClassroomStageMode.camera;
       _whiteboardStrokes.clear();
       _messages.clear();

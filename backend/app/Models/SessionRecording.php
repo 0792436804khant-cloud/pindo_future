@@ -20,11 +20,21 @@ class SessionRecording extends Model
         'title',
         'description',
         'video_storage_path',
+        'storage_disk',
+        'save_mode',
+        'mime_type',
+        'processing_status',
         'duration_seconds',
         'file_size_bytes',
         'is_published',
         'views_count',
     ];
+
+    public function isExternalUrl(): bool
+    {
+        return str_starts_with($this->video_storage_path, 'http://')
+            || str_starts_with($this->video_storage_path, 'https://');
+    }
 
     protected function casts(): array
     {

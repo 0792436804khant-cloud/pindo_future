@@ -151,6 +151,45 @@ class ApiClient {
     }
   }
 
+  Future<dynamic> postMultipartBytes(
+    String endpoint, {
+    required String fileField,
+    required List<int> bytes,
+    required String filename,
+    Map<String, String>? fields,
+    String? token,
+    Duration timeout = const Duration(minutes: 5),
+  }) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+
+    try {
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Accept'] = 'application/json';
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+      request.files.add(
+        http.MultipartFile.fromBytes(fileField, bytes, filename: filename),
+      );
+
+      final streamed = await request.send().timeout(timeout);
+      final response = await http.Response.fromStream(streamed);
+      return _handleResponse(response, uri);
+    } on TimeoutException {
+      throw const NetworkException(
+        message: 'انتهت مهلة رفع ملف الفيديو، يرجى المحاولة مرة أخرى.',
+      );
+    } catch (e) {
+      if (e is ServerException || e is NetworkException) rethrow;
+      throw NetworkException(
+        message: 'تعذر الاتصال بالخادم أثناء رفع التسجيل ($e)',
+      );
+    }
+  }
+
   dynamic _handleResponse(http.Response response, Uri uri) {
     dynamic decoded;
     try {

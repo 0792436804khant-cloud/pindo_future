@@ -206,4 +206,73 @@ class EducationalLibraryTest extends TestCase
             ->assertJsonPath('status', 'success')
             ->assertJsonStructure(['download_url', 'expires_at']);
     }
+
+    public function test_teacher_can_upload_session_recording_stream_via_signed_url_and_delete(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        CohortMember::create([
+            'cohort_id' => $this->cohort->id,
+            'student_id' => $this->student->id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $fakeVideoBytes = 'FAKE_WEBM_VIDEO_STREAM_DATA_0123456789';
+        $uploadFile = \Illuminate\Http\UploadedFile::fake()->createWithContent('lecture.webm', $fakeVideoBytes);
+
+        $uploadRes = $this->withHeader('Authorization', 'Bearer ' . $this->teacherToken)
+            ->post("/api/v1/teacher/sessions/{$this->session->session_id}/recordings/upload", [
+                'video_file' => $uploadFile,
+                'title' => 'تسجيل الدرس الخامس المباشر',
+                'cohort_id' => $this->cohort->id,
+                'duration_seconds' => 185,
+                'save_mode' => 'live_capture',
+            ]);
+
+        $uploadRes->assertStatus(201)
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('recording.save_mode', 'live_capture')
+            ->assertJsonStructure(['stream_url', 'recording' => ['id', 'recording_code', 'video_storage_path']]);
+
+        $recordingId = $uploadRes->json('recording.id');
+        $storedPath = $uploadRes->json('recording.video_storage_path');
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($storedPath);
+
+        // Teacher archive endpoint lists saved recordings + storage info
+        $archiveRes = $this->withHeader('Authorization', 'Bearer ' . $this->teacherToken)
+            ->getJson('/api/v1/teacher/recordings');
+        $archiveRes->assertStatus(200)
+            ->assertJsonCount(1, 'recordings')
+            ->assertJsonStructure(['storage_info' => ['disk', 'root_path']]);
+
+        // Enrolled student requests signed stream URL
+        $studentStreamMeta = $this->actingAs($this->student)
+            ->getJson("/api/v1/student/recordings/{$recordingId}/stream")
+            ->assertStatus(200);
+
+        $signedUrl = $studentStreamMeta->json('stream_url');
+        $parsedQuery = parse_url($signedUrl, PHP_URL_PATH) . '?' . parse_url($signedUrl, PHP_URL_QUERY);
+
+        // Stream signed endpoint supports normal 200 and HTTP 206 partial content Range requests
+        $this->get($parsedQuery)
+            ->assertStatus(200)
+            ->assertHeader('Accept-Ranges', 'bytes');
+
+        $this->withHeaders(['Range' => 'bytes=0-9'])
+            ->get($parsedQuery)
+            ->assertStatus(206)
+            ->assertHeader('Content-Range', 'bytes 0-9/' . strlen($fakeVideoBytes));
+
+        // Tampered signature must return 403
+        $this->get(preg_replace('/sig=[^&]+/', 'sig=tampered', $parsedQuery))
+            ->assertStatus(403);
+
+        // Deleting recording also cleans up physical video file on disk
+        $this->actingAs($this->teacher)
+            ->deleteJson("/api/v1/teacher/recordings/{$recordingId}")
+            ->assertStatus(200);
+
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing($storedPath);
+    }
 }

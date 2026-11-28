@@ -8,8 +8,12 @@ import 'package:pindo_future_mobile/features/auth/presentation/controllers/auth_
 import 'package:pindo_future_mobile/features/auth/presentation/widgets/teacher_profile_editor_modal.dart';
 import 'package:pindo_future_mobile/features/auth/presentation/widgets/user_account_settings_modal.dart';
 import 'package:pindo_future_mobile/features/classroom/data/datasources/classroom_remote_datasource.dart';
+import 'package:pindo_future_mobile/features/classroom/data/datasources/whiteboard_remote_datasource.dart';
 import 'package:pindo_future_mobile/features/classroom/data/repositories/classroom_repository_impl.dart';
+import 'package:pindo_future_mobile/features/classroom/data/repositories/whiteboard_repository_impl.dart';
 import 'package:pindo_future_mobile/features/classroom/domain/usecases/get_room_token_usecase.dart';
+import 'package:pindo_future_mobile/features/classroom/domain/usecases/get_whiteboard_snapshots_usecase.dart';
+import 'package:pindo_future_mobile/features/classroom/domain/usecases/save_whiteboard_snapshot_usecase.dart';
 import 'package:pindo_future_mobile/features/classroom/presentation/controllers/classroom_controller.dart';
 import 'package:pindo_future_mobile/features/classroom/presentation/screens/live_classroom_screen.dart';
 import 'package:pindo_future_mobile/features/classroom/services/livekit_room_service.dart';
@@ -272,7 +276,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     }
   }
 
-  void _launchLiveSession({String? sessionId, String? roomTitle}) {
+  Future<void> _launchLiveSession({String? sessionId, String? roomTitle}) async {
     final targetSessionId = (sessionId != null && sessionId.isNotEmpty)
         ? sessionId
         : (_dashboard.upcomingSession?.sessionId ?? 'SES_MATH_BAC_01');
@@ -281,18 +285,32 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
         : (_dashboard.upcomingSession?.title ?? 'حصة البث المباشر');
     final apiClient = ApiClient();
     final authLocalDataSource = AuthLocalDataSourceImpl();
+    final token = _currentUser.token ?? await authLocalDataSource.getToken();
+
+    // Mark scheduled session as LIVE before entering so enrolled students can join immediately
+    if (token != null && token.isNotEmpty && targetSessionId.isNotEmpty) {
+      apiClient.post('/teacher/sessions/$targetSessionId/start', token: token).catchError((_) {});
+    }
+
     final classroomRemote = ClassroomRemoteDataSourceImpl(apiClient: apiClient);
     final classroomRepo = ClassroomRepositoryImpl(
       remoteDataSource: classroomRemote,
       authLocalDataSource: authLocalDataSource,
     );
+    final whiteboardRemote = WhiteboardRemoteDataSourceImpl(apiClient: apiClient);
+    final whiteboardRepo = WhiteboardRepositoryImpl(remoteDataSource: whiteboardRemote);
     final getRoomToken = GetRoomTokenUseCase(classroomRepo);
+    final saveWhiteboardSnapshot = SaveWhiteboardSnapshotUseCase(whiteboardRepo);
+    final getWhiteboardSnapshots = GetWhiteboardSnapshotsUseCase(whiteboardRepo);
     final livekitService = LiveKitRoomService();
     final classroomController = ClassroomController(
       getRoomTokenUseCase: getRoomToken,
       roomService: livekitService,
+      saveWhiteboardSnapshotUseCase: saveWhiteboardSnapshot,
+      getWhiteboardSnapshotsUseCase: getWhiteboardSnapshots,
     );
 
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => LiveClassroomScreen(

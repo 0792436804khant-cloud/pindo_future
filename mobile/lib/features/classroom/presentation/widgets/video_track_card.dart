@@ -6,6 +6,7 @@ class VideoTrackCard extends StatelessWidget {
   final VideoTrack? videoTrack;
   final bool isMainStage;
   final String? customLabel;
+  final VideoViewFit fit;
 
   const VideoTrackCard({
     super.key,
@@ -13,6 +14,7 @@ class VideoTrackCard extends StatelessWidget {
     this.videoTrack,
     this.isMainStage = false,
     this.customLabel,
+    this.fit = VideoViewFit.cover,
   });
 
   @override
@@ -46,7 +48,7 @@ class VideoTrackCard extends StatelessWidget {
             Positioned.fill(
               child: VideoTrackRenderer(
                 videoTrack!,
-                fit: VideoViewFit.cover,
+                fit: fit,
               ),
             )
           else

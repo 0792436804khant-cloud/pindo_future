@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/security/anti_piracy_shield.dart';
 import '../../../../core/widgets/glassmorphism.dart';
 import '../../../classroom/presentation/widgets/enhanced_dynamic_watermark.dart';
+import '../../../classroom/presentation/widgets/protected_web_video_player.dart';
 
 class ProtectedRecordingPlayerScreen extends StatefulWidget {
   final String title;
@@ -78,36 +79,21 @@ class _ProtectedRecordingPlayerScreenState extends State<ProtectedRecordingPlaye
                 aspectRatio: 16 / 9,
                 child: Stack(
                   children: [
-                    // Video Mock Canvas / Stream Surface
-                    Container(
-                      color: Colors.black,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _isPlaying ? Icons.play_circle_fill : Icons.pause_circle_filled,
-                              size: 64,
-                              color: const Color(0xFF00E5FF).withValues(alpha: 0.85),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _isPlaying ? 'جارٍ تشغيل التسجيل المشفر • HLS DRM Active' : 'التسجيل متوقف مؤقتاً',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
+                    // Real Video Player Surface (Web HTML5 / Native Fallback)
+                    Positioned.fill(
+                      child: ProtectedWebVideoPlayer(
+                        streamUrl: widget.streamUrl,
+                        isPlaying: _isPlaying,
                       ),
                     ),
 
                     // Multi-Vector Anti-Piracy Enhanced Dynamic Watermark
-                    EnhancedDynamicWatermark(
-                      studentName: widget.watermarkText.isNotEmpty ? widget.watermarkText : 'طالب موثق',
-                      studentId: 'STU_2026',
-                      wilaya: 'الجزائر العاصمة',
+                    IgnorePointer(
+                      child: EnhancedDynamicWatermark(
+                        studentName: widget.watermarkText.isNotEmpty ? widget.watermarkText : 'طالب موثق',
+                        studentId: 'STU_2026',
+                        wilaya: 'الجزائر العاصمة',
+                      ),
                     ),
 
                     // Bottom Player Controls

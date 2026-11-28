@@ -9,10 +9,28 @@ use App\Models\SessionRecording;
 use App\Models\StudyCohort;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 class CohortLibraryController extends Controller
 {
+    public static function buildSignedRecordingUrl(SessionRecording $recording, int $userId, int $hours = 3): string
+    {
+        if ($recording->isExternalUrl()) {
+            return $recording->video_storage_path;
+        }
+
+        $expires = now()->addHours($hours)->timestamp;
+        $sig = hash_hmac(
+            'sha256',
+            "{$recording->recording_code}:{$userId}:{$expires}",
+            config('app.key')
+        );
+
+        return url("/api/v1/media/recordings/{$recording->recording_code}/stream?uid={$userId}&expires={$expires}&sig={$sig}");
+    }
     /**
      * View cohort educational library (recordings, summaries, exercises).
      */
@@ -125,9 +143,7 @@ class CohortLibraryController extends Controller
             ? "{$student->name} • {$student->guardian_link_code}"
             : "{$student->name} • {$student->email}";
 
-        // Simulated signed streaming URL token with 3-hour expiry
-        $signedStreamUrl = "https://stream.pindofuture.com/secure-hls/{$recording->recording_code}/master.m3u8?token="
-            . hash_hmac('sha256', "{$recording->id}:{$student->id}:" . now()->addHours(3)->timestamp, config('app.key'));
+        $signedStreamUrl = self::buildSignedRecordingUrl($recording, $student->id, 3);
 
         return response()->json([
             'status' => 'success',
@@ -196,5 +212,87 @@ class CohortLibraryController extends Controller
             'download_url' => $signedDownloadUrl,
             'expires_at' => now()->addHours(2)->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Serve actual recorded video file with HMAC signature check & HTTP 206 Byte-Range streaming support.
+     */
+    public function serveSignedStream(Request $request, string $recordingCode): Response
+    {
+        $uid = (int) $request->query('uid', 0);
+        $expires = (int) $request->query('expires', 0);
+        $sig = (string) $request->query('sig', '');
+
+        if ($uid <= 0 || $expires < now()->timestamp || $sig === '') {
+            abort(403, 'رابط البث منتهي الصلاحية أو غير صالح.');
+        }
+
+        $expectedSig = hash_hmac('sha256', "{$recordingCode}:{$uid}:{$expires}", config('app.key'));
+        if (! hash_equals($expectedSig, $sig)) {
+            abort(403, 'توقيع الحماية غير مطابق.');
+        }
+
+        $recording = SessionRecording::where('recording_code', $recordingCode)->firstOrFail();
+        $disk = $recording->storage_disk ?: 'public';
+
+        if ($recording->isExternalUrl()) {
+            return redirect()->away($recording->video_storage_path);
+        }
+
+        if (! Storage::disk($disk)->exists($recording->video_storage_path)) {
+            abort(404, 'ملف الفيديو المسجل غير موجود في وحدة التخزين.');
+        }
+
+        $fullPath = Storage::disk($disk)->path($recording->video_storage_path);
+        $fileSize = filesize($fullPath);
+        $mimeType = $recording->mime_type ?: 'video/webm';
+
+        $start = 0;
+        $end = $fileSize - 1;
+        $statusCode = 200;
+        $headers = [
+            'Content-Type' => $mimeType,
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+
+        $rangeHeader = $request->header('Range');
+        if ($rangeHeader && preg_match('/bytes=(\d+)-(\d*)/', $rangeHeader, $matches)) {
+            $start = (int) $matches[1];
+            if (! empty($matches[2])) {
+                $end = min((int) $matches[2], $fileSize - 1);
+            }
+            if ($start > $end || $start >= $fileSize) {
+                return response('', 416, ['Content-Range' => "bytes */{$fileSize}"]);
+            }
+            $statusCode = 206;
+            $headers['Content-Range'] = "bytes {$start}-{$end}/{$fileSize}";
+        }
+
+        $length = ($end - $start) + 1;
+        $headers['Content-Length'] = $length;
+
+        return response()->stream(function () use ($fullPath, $start, $length) {
+            $stream = fopen($fullPath, 'rb');
+            if ($stream === false) {
+                return;
+            }
+            fseek($stream, $start);
+            $remaining = $length;
+            while ($remaining > 0 && ! feof($stream)) {
+                $chunk = fread($stream, min(1024 * 64, $remaining));
+                if ($chunk === false) {
+                    break;
+                }
+                echo $chunk;
+                $remaining -= strlen($chunk);
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+            fclose($stream);
+        }, $statusCode, $headers);
     }
 }

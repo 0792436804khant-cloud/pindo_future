@@ -7,10 +7,14 @@ class ClassroomControlsBar extends StatelessWidget {
   final bool isCameraEnabled;
   final bool isScreenShareEnabled;
   final bool isWhiteboardActive;
+  final bool isScreenAnnotationActive;
+  final bool isRecording;
   final VoidCallback onToggleMic;
   final VoidCallback onToggleCamera;
   final VoidCallback? onToggleScreenShare;
   final VoidCallback? onToggleWhiteboard;
+  final VoidCallback? onToggleScreenAnnotation;
+  final VoidCallback? onOpenRecordingSheet;
   final VoidCallback onLeaveSession;
   final VoidCallback onToggleChat;
   final int unreadChatCount;
@@ -27,10 +31,14 @@ class ClassroomControlsBar extends StatelessWidget {
     required this.isCameraEnabled,
     this.isScreenShareEnabled = false,
     this.isWhiteboardActive = false,
+    this.isScreenAnnotationActive = false,
+    this.isRecording = false,
     required this.onToggleMic,
     required this.onToggleCamera,
     this.onToggleScreenShare,
     this.onToggleWhiteboard,
+    this.onToggleScreenAnnotation,
+    this.onOpenRecordingSheet,
     required this.onLeaveSession,
     required this.onToggleChat,
     this.unreadChatCount = 0,
@@ -72,9 +80,11 @@ class ClassroomControlsBar extends StatelessWidget {
         ),
       ],
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // 1. Microphone Toggle (Publisher Only)
           if (canPublish) ...[
             _buildCircularButton(
@@ -121,8 +131,34 @@ class ClassroomControlsBar extends StatelessWidget {
               isActive: isWhiteboardActive,
               activeColor: const Color(0xFF0D9488), // Brand Teal
               inactiveColor: const Color(0xFF334155),
-              tooltip: isWhiteboardActive ? 'Hide Whiteboard' : 'Open Whiteboard',
+              tooltip: isWhiteboardActive ? 'إغلاق السبورة الكاملة' : 'السبورة البيضاء الكاملة',
               onPressed: onToggleWhiteboard!,
+            ),
+            const SizedBox(width: 10),
+          ],
+
+          // 4.1 Screen Annotation Overlay Pen (Draw ON TOP of Camera / Screen Share!)
+          if (canPublish && onToggleScreenAnnotation != null) ...[
+            _buildCircularButton(
+              icon: Icons.gesture_rounded,
+              isActive: isScreenAnnotationActive,
+              activeColor: const Color(0xFF00E5FF),
+              inactiveColor: const Color(0xFF334155),
+              tooltip: isScreenAnnotationActive ? 'إيقاف الكتابة على الشاشة' : 'الكتابة والرسم على الشاشة مباشرة',
+              onPressed: onToggleScreenAnnotation!,
+            ),
+            const SizedBox(width: 10),
+          ],
+
+          // 4.2 Recording & Save Methods Control (Publisher Only)
+          if (canPublish && onOpenRecordingSheet != null) ...[
+            _buildCircularButton(
+              icon: isRecording ? Icons.stop_circle_outlined : Icons.fiber_manual_record_rounded,
+              isActive: isRecording,
+              activeColor: const Color(0xFFEF4444),
+              inactiveColor: const Color(0xFF334155),
+              tooltip: isRecording ? 'جارٍ التسجيل • اضغط للحفظ' : 'تسجيل وحفظ البث المباشر',
+              onPressed: onOpenRecordingSheet!,
             ),
             const SizedBox(width: 10),
           ],
@@ -227,6 +263,7 @@ class ClassroomControlsBar extends StatelessWidget {
             onPressed: onLeaveSession,
           ),
         ],
+        ),
       ),
     );
   }
