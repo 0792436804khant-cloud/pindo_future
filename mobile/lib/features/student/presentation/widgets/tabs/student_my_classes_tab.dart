@@ -426,6 +426,13 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
 
     return Column(
       children: schedule.map((d) {
+        final dt = d.scheduledAt;
+        final now = DateTime.now();
+        final dateLabel = dt == null
+            ? ''
+            : (dt.year == now.year && dt.month == now.month && dt.day == now.day)
+                ? 'اليوم'
+                : '${dt.day}/${dt.month}';
         return Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
@@ -443,9 +450,18 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: _electricPurple),
                 ),
-                child: Text(
-                  d.time,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                child: Column(
+                  children: [
+                    Text(
+                      d.time,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    if (dateLabel.isNotEmpty)
+                      Text(
+                        dateLabel,
+                        style: const TextStyle(color: Colors.white70, fontSize: 9.5),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
@@ -454,12 +470,12 @@ class _StudentMyClassesTabState extends State<StudentMyClassesTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      d.subject,
+                      d.cohortName.isNotEmpty ? '${d.subject} • ${d.cohortName}' : d.subject,
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${d.teacher} • ${d.topic}',
+                      '${d.teacher} • ${d.topic}${dateLabel.isNotEmpty ? ' ($dateLabel)' : ''}',
                       style: const TextStyle(color: Colors.white60, fontSize: 11),
                     ),
                   ],

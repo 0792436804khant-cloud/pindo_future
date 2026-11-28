@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppNotification;
 use App\Models\ClassroomSession;
 use App\Models\CohortMember;
 use App\Models\StudyCohort;
 use App\Models\User;
 use App\Services\CacheManagerService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -269,7 +271,7 @@ class CohortController extends Controller
     /**
      * Schedule a live classroom session bound to this specific cohort.
      */
-    public function createSession(int $id, Request $request): JsonResponse
+    public function createSession(int $id, Request $request, CacheManagerService $cache): JsonResponse
     {
         $teacher = $request->user();
         $cohort = $teacher->cohorts()->findOrFail($id);
@@ -279,7 +281,22 @@ class CohortController extends Controller
             'description' => ['nullable', 'string'],
             'scheduled_at' => ['nullable', 'date'],
             'settings' => ['nullable', 'array'],
+            'duration_minutes' => ['nullable', 'integer', 'min:15', 'max:360'],
+            'allow_chat' => ['nullable', 'boolean'],
+            'record_session' => ['nullable', 'boolean'],
+            'mute_on_entry' => ['nullable', 'boolean'],
         ]);
+
+        $scheduledAt = ! empty($validated['scheduled_at'])
+            ? Carbon::parse($validated['scheduled_at'])
+            : now();
+
+        $settings = array_merge([
+            'allow_chat' => $validated['allow_chat'] ?? true,
+            'mute_on_entry' => $validated['mute_on_entry'] ?? true,
+            'recording_enabled' => $validated['record_session'] ?? false,
+            'duration_minutes' => (int) ($validated['duration_minutes'] ?? 120),
+        ], $validated['settings'] ?? []);
 
         $session = ClassroomSession::create([
             'user_id' => $teacher->id,
@@ -288,18 +305,39 @@ class CohortController extends Controller
             'description' => $validated['description'] ?? null,
             'status' => ClassroomSession::STATUS_SCHEDULED,
             'max_participants' => $cohort->max_students,
-            'settings' => $validated['settings'] ?? [
-                'allow_chat' => true,
-                'mute_on_entry' => true,
-                'recording_enabled' => false,
-            ],
-            'scheduled_at' => $validated['scheduled_at'] ?? now(),
+            'settings' => $settings,
+            'scheduled_at' => $scheduledAt,
         ]);
+
+        $cache->invalidateTeacher($teacher->id);
+
+        $activeStudentIds = $cohort->members()
+            ->where('status', 'active')
+            ->pluck('student_id')
+            ->unique()
+            ->values();
+
+        $formattedDate = $scheduledAt->format('Y-m-d H:i');
+        foreach ($activeStudentIds as $studentId) {
+            $cache->invalidateStudent((int) $studentId);
+            AppNotification::create([
+                'user_id' => $studentId,
+                'type' => AppNotification::TYPE_LIVE_SESSION_STARTING,
+                'title' => 'حصة جديدة مجدولة: ' . $cohort->name,
+                'body' => "قام الأستاذ {$teacher->name} ببرمجة حصة \"{$session->title}\" بتاريخ {$formattedDate}.",
+                'data' => [
+                    'session_id' => $session->session_id,
+                    'cohort_id' => $cohort->id,
+                    'scheduled_at' => $scheduledAt->toIso8601String(),
+                ],
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
             'message' => 'تمت جدولة الحصة المباشرة للفوج بنجاح',
             'data' => $session,
+            'notified_students_count' => $activeStudentIds->count(),
         ], 201);
     }
 }

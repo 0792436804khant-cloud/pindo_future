@@ -1287,6 +1287,13 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
             ...widget.dashboardData.todaySchedule.map((item) {
             final isLive = item.status == 'live';
             final hasAlarm = _enabledScheduleAlarms.contains(item.time);
+            final dt = item.scheduledAt;
+            final now = DateTime.now();
+            final dateLabel = dt == null
+                ? ''
+                : (dt.year == now.year && dt.month == now.month && dt.day == now.day)
+                    ? 'اليوم'
+                    : '${dt.day}/${dt.month}';
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -1307,9 +1314,18 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
                         color: _electricPurple.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        item.time,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      child: Column(
+                        children: [
+                          Text(
+                            item.time,
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          if (dateLabel.isNotEmpty)
+                            Text(
+                              dateLabel,
+                              style: const TextStyle(color: _brightCyan, fontSize: 9.5, fontWeight: FontWeight.w600),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1318,12 +1334,12 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.subject,
+                            item.topic.isNotEmpty ? '${item.subject} • ${item.topic}' : item.subject,
                             style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${item.teacher} • ${item.time}',
+                            '${item.teacher}${dateLabel.isNotEmpty ? ' • $dateLabel' : ''} • ${item.time}',
                             style: const TextStyle(color: Colors.white60, fontSize: 11),
                           ),
                         ],
@@ -1331,7 +1347,11 @@ class _StudentHomeTabState extends State<StudentHomeTab> {
                     ),
                     if (isLive)
                       ElevatedButton(
-                        onPressed: () => widget.onJoinLiveClassroom(widget.dashboardData.nextSession?.sessionId ?? 'SES_LIVE'),
+                        onPressed: () => widget.onJoinLiveClassroom(
+                          item.sessionId.isNotEmpty
+                              ? item.sessionId
+                              : (widget.dashboardData.nextSession?.sessionId ?? 'SES_LIVE'),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444),
                           foregroundColor: Colors.white,

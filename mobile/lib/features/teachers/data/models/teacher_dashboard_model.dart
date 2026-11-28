@@ -890,30 +890,43 @@ class TeacherUpcomingSession {
 class TeacherScheduleItem {
   final int id;
   final String sessionId;
+  final int? cohortId;
   final String title;
   final String cohortName;
   final String subject;
+  final DateTime? scheduledAt;
   final String timeFormatted;
+  final int durationMinutes;
   final String status;
 
   const TeacherScheduleItem({
     required this.id,
     required this.sessionId,
+    this.cohortId,
     required this.title,
     required this.cohortName,
     required this.subject,
+    this.scheduledAt,
     required this.timeFormatted,
+    this.durationMinutes = 120,
     required this.status,
   });
 
   factory TeacherScheduleItem.fromJson(Map<String, dynamic> json) {
+    final rawScheduledAt = json['scheduled_at']?.toString();
+    final parsedDate = rawScheduledAt != null && rawScheduledAt.isNotEmpty
+        ? DateTime.tryParse(rawScheduledAt)?.toLocal()
+        : null;
     return TeacherScheduleItem(
       id: json['id'] is num ? (json['id'] as num).toInt() : 0,
       sessionId: json['session_id']?.toString() ?? '',
+      cohortId: json['cohort_id'] is num ? (json['cohort_id'] as num).toInt() : null,
       title: json['title']?.toString() ?? 'حصة',
       cohortName: json['cohort_name']?.toString() ?? 'فوج عام',
       subject: json['subject']?.toString() ?? 'مادة',
+      scheduledAt: parsedDate,
       timeFormatted: json['time_formatted']?.toString() ?? '00:00',
+      durationMinutes: json['duration_minutes'] is num ? (json['duration_minutes'] as num).toInt() : 120,
       status: json['status']?.toString() ?? 'scheduled',
     );
   }

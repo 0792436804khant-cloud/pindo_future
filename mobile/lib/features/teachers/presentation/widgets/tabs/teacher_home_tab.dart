@@ -9,6 +9,7 @@ class TeacherHomeTab extends StatelessWidget {
   final VoidCallback onStartLiveSession;
   final ValueChanged<int> onNavigateToTab;
   final Future<void> Function(Map<String, dynamic> payload)? onCreateCohort;
+  final Future<void> Function(Map<String, dynamic> payload)? onCreateSession;
   final List<String> allowedTeachingYears;
   final List<String> allowedTeachingSubjects;
 
@@ -18,6 +19,7 @@ class TeacherHomeTab extends StatelessWidget {
     required this.onStartLiveSession,
     required this.onNavigateToTab,
     this.onCreateCohort,
+    this.onCreateSession,
     this.allowedTeachingYears = const [],
     this.allowedTeachingSubjects = const [],
   });
@@ -362,7 +364,11 @@ class TeacherHomeTab extends StatelessWidget {
             title: 'برمجة حصة',
             icon: Icons.more_time_rounded,
             color: _brightCyan,
-            onTap: () => CreateSessionModal.show(context, cohorts: dashboard.cohorts),
+            onTap: () => CreateSessionModal.show(
+              context,
+              cohorts: dashboard.cohorts,
+              onSave: onCreateSession,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -535,12 +541,12 @@ class TeacherHomeTab extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              '📅 جدول حصص اليوم',
+              '📅 جدول الحصص القادمة',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             TextButton(
               onPressed: () => onNavigateToTab(2),
-              child: const Text('عرض الجدول الأسبوعي', style: TextStyle(color: _brightCyan, fontSize: 12)),
+              child: const Text('عرض الرزنامة الكاملة', style: TextStyle(color: _brightCyan, fontSize: 12)),
             ),
           ],
         ),
@@ -555,7 +561,7 @@ class TeacherHomeTab extends StatelessWidget {
             ),
             child: const Center(
               child: Text(
-                'لا توجد حصص إضافية مجدولة لليوم.',
+                'لا توجد حصص مجدولة حالياً.',
                 style: TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ),
@@ -568,6 +574,13 @@ class TeacherHomeTab extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, idx) {
               final item = schedule[idx];
+              final dt = item.scheduledAt;
+              final now = DateTime.now();
+              final dateBadge = dt == null
+                  ? ''
+                  : (dt.year == now.year && dt.month == now.month && dt.day == now.day)
+                      ? 'اليوم'
+                      : '${dt.day}/${dt.month}';
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
@@ -583,9 +596,18 @@ class TeacherHomeTab extends StatelessWidget {
                         color: _brightCyan.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        item.timeFormatted,
-                        style: const TextStyle(color: _brightCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                      child: Column(
+                        children: [
+                          Text(
+                            item.timeFormatted,
+                            style: const TextStyle(color: _brightCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          if (dateBadge.isNotEmpty)
+                            Text(
+                              dateBadge,
+                              style: const TextStyle(color: Colors.white70, fontSize: 10),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),

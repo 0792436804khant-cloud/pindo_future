@@ -135,4 +135,64 @@ class CohortAttendanceAndChatTest extends TestCase
             ->assertJsonPath('data.messages.0.read_by.0.name', 'ياسين الطالب')
             ->assertJsonPath('data.messages.0.unread_by.0.name', 'أنيس الطالب');
     }
+
+    public function test_scheduling_cohort_session_clears_caches_updates_dashboards_and_notifies_students(): void
+    {
+        $teacher = $this->createUser(Role::TEACHER, 'الأستاذ محمد');
+        $student = $this->createUser(Role::STUDENT, 'تلميذ مجتهد');
+
+        $cohort = StudyCohort::create([
+            'teacher_id' => $teacher->id,
+            'name' => 'فوج الرياضيات',
+            'subject' => 'الرياضيات',
+            'academic_level' => 'ثالثة ثانوي (BAC)',
+            'bundle_price' => 3500,
+        ]);
+
+        CohortMember::create([
+            'cohort_id' => $cohort->id,
+            'student_id' => $student->id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        // Warm both caches first to verify invalidation works immediately
+        $this->actingAs($teacher)->getJson('/api/v1/teacher/dashboard')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.today_schedule');
+
+        $this->actingAs($student)->getJson('/api/v1/student/dashboard')
+            ->assertOk()
+            ->assertJsonCount(0, 'data.today_schedule');
+
+        $futureTime = now()->addDays(2)->setTime(18, 30);
+
+        $createRes = $this->actingAs($teacher)->postJson("/api/v1/teacher/cohorts/{$cohort->id}/sessions", [
+            'title' => 'حصة الدوال اللوغاريتمية',
+            'scheduled_at' => $futureTime->toIso8601String(),
+            'duration_minutes' => 90,
+            'allow_chat' => true,
+            'record_session' => true,
+            'mute_on_entry' => false,
+        ])->assertStatus(201);
+
+        $createRes->assertJsonPath('notified_students_count', 1)
+            ->assertJsonPath('data.title', 'حصة الدوال اللوغاريتمية');
+
+        // Teacher dashboard immediately reflects future session
+        $this->actingAs($teacher)->getJson('/api/v1/teacher/dashboard')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.today_schedule')
+            ->assertJsonPath('data.today_schedule.0.title', 'حصة الدوال اللوغاريتمية')
+            ->assertJsonPath('data.today_schedule.0.cohort_id', $cohort->id)
+            ->assertJsonPath('data.upcoming_session.title', 'حصة الدوال اللوغاريتمية');
+
+        // Student dashboard immediately reflects future session + notification
+        $this->actingAs($student)->getJson('/api/v1/student/dashboard')
+            ->assertOk()
+            ->assertJsonCount(1, 'data.today_schedule')
+            ->assertJsonPath('data.today_schedule.0.topic', 'حصة الدوال اللوغاريتمية')
+            ->assertJsonPath('data.next_session.title', 'حصة الدوال اللوغاريتمية')
+            ->assertJsonCount(1, 'data.notifications');
+    }
 }

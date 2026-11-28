@@ -3,24 +3,31 @@ import 'package:pindo_future_mobile/features/teachers/data/models/teacher_dashbo
 
 class CreateSessionModal extends StatefulWidget {
   final List<TeacherCohortItem> cohorts;
+  final DateTime? initialDate;
   final Future<void> Function(Map<String, dynamic> payload)? onSave;
 
   const CreateSessionModal({
     super.key,
     required this.cohorts,
+    this.initialDate,
     this.onSave,
   });
 
   static Future<void> show(
     BuildContext context, {
     required List<TeacherCohortItem> cohorts,
+    DateTime? initialDate,
     Future<void> Function(Map<String, dynamic> payload)? onSave,
   }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => CreateSessionModal(cohorts: cohorts, onSave: onSave),
+      builder: (_) => CreateSessionModal(
+        cohorts: cohorts,
+        initialDate: initialDate,
+        onSave: onSave,
+      ),
     );
   }
 
@@ -34,7 +41,7 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
   final _durationController = TextEditingController(text: '120');
 
   late int _selectedCohortId;
-  DateTime _selectedDate = DateTime.now().add(const Duration(hours: 2));
+  late DateTime _selectedDate;
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
 
   bool _allowChat = true;
@@ -48,7 +55,8 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
   @override
   void initState() {
     super.initState();
-    _selectedCohortId = widget.cohorts.isNotEmpty ? widget.cohorts.first.id : 1;
+    _selectedCohortId = widget.cohorts.isNotEmpty ? widget.cohorts.first.id : 0;
+    _selectedDate = widget.initialDate ?? DateTime.now();
   }
 
   @override
@@ -59,6 +67,16 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
   }
 
   Future<void> _submit() async {
+    if (widget.cohorts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يجب إنشاء فوج تعليمي أولاً قبل برمجة حصة.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
@@ -80,19 +98,32 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
       'mute_on_entry': _muteOnEntry,
     };
 
-    if (widget.onSave != null) {
+    try {
+      if (widget.onSave == null) {
+        throw Exception('خدمة حفظ الحصة غير متصلة بالخادم.');
+      }
       await widget.onSave!(payload);
-    }
 
-    if (mounted) {
-      setState(() => _isSubmitting = false);
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تمت جدولة الحصة بنجاح وإرسال إشعار للطلاب المشتركين.'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تمت جدولة الحصة بنجاح وإرسال إشعار للطلاب المشتركين.'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر برمجة الحصة: ${e.toString().replaceFirst("Exception: ", "")}'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 
@@ -158,31 +189,52 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
 
               // الفوج الموجه إليه
               _buildLabel('الفوج الدراسي المرتبط *'),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    value: _selectedCohortId,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF0F172A),
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    icon: const Icon(Icons.arrow_drop_down, color: _brightCyan),
-                    items: widget.cohorts.isEmpty
-                        ? const <DropdownMenuItem<int>>[
-                            DropdownMenuItem<int>(value: 1, child: Text('فوج الرياضيات العام')),
-                          ]
-                        : widget.cohorts
-                            .map((c) => DropdownMenuItem<int>(value: c.id, child: Text(c.name)))
-                            .toList(),
-                    onChanged: (val) => setState(() => _selectedCohortId = val ?? 1),
+              if (widget.cohorts.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B), size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'لا تملك أي فوج حالياً. يرجى إنشاء فوج أولاً من قسم «أفواجي» ثم برمجة الحصة.',
+                          style: TextStyle(color: Color(0xFFFDE68A), fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: _selectedCohortId,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF0F172A),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      icon: const Icon(Icons.arrow_drop_down, color: _brightCyan),
+                      items: widget.cohorts
+                          .map((c) => DropdownMenuItem<int>(value: c.id, child: Text(c.name)))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedCohortId = val);
+                      },
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 14),
 
               // التاريخ والوقت

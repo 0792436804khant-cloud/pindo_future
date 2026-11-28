@@ -110,12 +110,13 @@ class TeacherDashboardController extends Controller
             ];
         }
 
-        // 7. Today's Schedule
-        $todayStart = Carbon::today()->startOfDay();
-        $todayEnd = Carbon::today()->endOfDay();
+        // 7. Upcoming Schedule (Today + Next 30 Days for full calendar view)
+        $scheduleStart = Carbon::today()->startOfDay();
+        $scheduleEnd = Carbon::today()->addDays(30)->endOfDay();
 
         $todaySessions = ClassroomSession::where('user_id', $teacher->id)
-            ->whereBetween('scheduled_at', [$todayStart, $todayEnd])
+            ->where('status', '!=', ClassroomSession::STATUS_CANCELLED)
+            ->whereBetween('scheduled_at', [$scheduleStart, $scheduleEnd])
             ->with('cohort')
             ->orderBy('scheduled_at', 'asc')
             ->get()
@@ -123,11 +124,13 @@ class TeacherDashboardController extends Controller
                 return [
                     'id' => $s->id,
                     'session_id' => $s->session_id,
+                    'cohort_id' => $s->cohort_id,
                     'title' => $s->title,
                     'cohort_name' => $s->cohort?->name ?? 'فوج عام',
                     'subject' => $s->cohort?->subject ?? 'مادة تعليمية',
                     'scheduled_at' => $s->scheduled_at?->toIso8601String(),
                     'time_formatted' => $s->scheduled_at?->format('H:i') ?? '00:00',
+                    'duration_minutes' => (int) ($s->settings['duration_minutes'] ?? 120),
                     'status' => $s->status,
                 ];
             });

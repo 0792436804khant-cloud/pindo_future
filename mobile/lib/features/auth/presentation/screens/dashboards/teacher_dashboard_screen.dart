@@ -144,6 +144,59 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     }
   }
 
+  Future<void> _createSession(Map<String, dynamic> payload) async {
+    final cohortId = payload['cohort_id'];
+    if (cohortId == null) {
+      throw Exception('يرجى اختيار الفوج الدراسي المرتبط بالحصة.');
+    }
+
+    final apiClient = ApiClient();
+    final authLocal = AuthLocalDataSourceImpl();
+    final token = _currentUser.token ?? await authLocal.getToken();
+
+    final response = await apiClient.post(
+      '/teacher/cohorts/$cohortId/sessions',
+      body: payload,
+      token: token,
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is Map<String, dynamic>) {
+      final createdJson = Map<String, dynamic>.from(response['data'] as Map<String, dynamic>);
+      final matchedCohort = _dashboard.cohorts.where((c) => c.id == cohortId).firstOrNull;
+      final scheduledRaw = createdJson['scheduled_at']?.toString() ?? payload['scheduled_at']?.toString();
+      final scheduledDt = scheduledRaw != null ? DateTime.tryParse(scheduledRaw)?.toLocal() : null;
+      final hh = (scheduledDt?.hour ?? 0).toString().padLeft(2, '0');
+      final mm = (scheduledDt?.minute ?? 0).toString().padLeft(2, '0');
+
+      final newScheduleItem = TeacherScheduleItem(
+        id: createdJson['id'] is num ? (createdJson['id'] as num).toInt() : 0,
+        sessionId: createdJson['session_id']?.toString() ?? '',
+        cohortId: cohortId is num ? cohortId.toInt() : int.tryParse(cohortId.toString()),
+        title: createdJson['title']?.toString() ?? payload['title']?.toString() ?? 'حصة جديدة',
+        cohortName: matchedCohort?.name ?? 'فوج',
+        subject: matchedCohort?.subject ?? 'مادة تعليمية',
+        scheduledAt: scheduledDt,
+        timeFormatted: '$hh:$mm',
+        durationMinutes: payload['duration_minutes'] is num ? (payload['duration_minutes'] as num).toInt() : 120,
+        status: createdJson['status']?.toString() ?? 'scheduled',
+      );
+
+      if (mounted) {
+        setState(() {
+          final merged = [
+            ..._dashboard.todaySchedule.where((s) => s.sessionId != newScheduleItem.sessionId),
+            newScheduleItem,
+          ]..sort((a, b) => (a.scheduledAt ?? DateTime(2099)).compareTo(b.scheduledAt ?? DateTime(2099)));
+          _dashboard = _dashboard.copyWith(todaySchedule: merged);
+        });
+      }
+
+      await _fetchDashboardData();
+    } else {
+      throw Exception('استجابة غير متوقعة من الخادم عند برمجة الحصة.');
+    }
+  }
+
   void _onTabSelected(int index) {
     setState(() => _currentTabIndex = index);
   }
@@ -219,8 +272,13 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     }
   }
 
-  void _launchLiveSession() {
-    final sessionId = _dashboard.upcomingSession?.sessionId ?? 'SES_MATH_BAC_01';
+  void _launchLiveSession({String? sessionId, String? roomTitle}) {
+    final targetSessionId = (sessionId != null && sessionId.isNotEmpty)
+        ? sessionId
+        : (_dashboard.upcomingSession?.sessionId ?? 'SES_MATH_BAC_01');
+    final targetTitle = (roomTitle != null && roomTitle.isNotEmpty)
+        ? roomTitle
+        : (_dashboard.upcomingSession?.title ?? 'حصة البث المباشر');
     final apiClient = ApiClient();
     final authLocalDataSource = AuthLocalDataSourceImpl();
     final classroomRemote = ClassroomRemoteDataSourceImpl(apiClient: apiClient);
@@ -238,8 +296,8 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => LiveClassroomScreen(
-          sessionId: sessionId,
-          roomTitle: _dashboard.upcomingSession?.title ?? 'حصة البث المباشر',
+          sessionId: targetSessionId,
+          roomTitle: targetTitle,
           controller: classroomController,
         ),
       ),
@@ -416,9 +474,10 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               // 0. الرئيسية (Home)
               TeacherHomeTab(
                 dashboard: _dashboard,
-                onStartLiveSession: _launchLiveSession,
+                onStartLiveSession: () => _launchLiveSession(),
                 onNavigateToTab: _onTabSelected,
                 onCreateCohort: _createCohort,
+                onCreateSession: _createSession,
                 allowedTeachingYears: _dashboard.teacherProfile.teachingYears.isNotEmpty
                     ? _dashboard.teacherProfile.teachingYears
                     : _currentUser.teachingYears,
@@ -445,7 +504,12 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
               TeacherScheduleTab(
                 schedule: _dashboard.todaySchedule,
                 cohorts: _dashboard.cohorts,
-                onStartLiveSession: _launchLiveSession,
+                onStartLiveSession: () => _launchLiveSession(),
+                onStartScheduledSession: (item) => _launchLiveSession(
+                  sessionId: item.sessionId,
+                  roomTitle: item.title,
+                ),
+                onCreateSession: _createSession,
               ),
 
               // 3. المداخيل (Finance & Payouts)

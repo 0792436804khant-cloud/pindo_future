@@ -249,6 +249,9 @@ class StudentSubscriptionSummary {
 }
 
 class TodayScheduleItem {
+  final String sessionId;
+  final String cohortName;
+  final DateTime? scheduledAt;
   final String time;
   final String subject;
   final String teacher;
@@ -256,6 +259,9 @@ class TodayScheduleItem {
   final String status;
 
   const TodayScheduleItem({
+    this.sessionId = '',
+    this.cohortName = '',
+    this.scheduledAt,
     required this.time,
     required this.subject,
     required this.teacher,
@@ -264,7 +270,13 @@ class TodayScheduleItem {
   });
 
   factory TodayScheduleItem.fromJson(Map<String, dynamic> json) {
+    final rawScheduledAt = json['scheduled_at']?.toString();
     return TodayScheduleItem(
+      sessionId: json['session_id'] as String? ?? '',
+      cohortName: json['cohort_name'] as String? ?? '',
+      scheduledAt: rawScheduledAt != null && rawScheduledAt.isNotEmpty
+          ? DateTime.tryParse(rawScheduledAt)?.toLocal()
+          : null,
       time: json['time'] as String? ?? '',
       subject: json['subject'] as String? ?? '',
       teacher: json['teacher'] as String? ?? '',

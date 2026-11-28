@@ -82,17 +82,21 @@ class StudentDashboardController extends Controller
                     ];
                 }
 
-                // 3. Today's Real Schedule
-                $todayStart = Carbon::today()->startOfDay();
-                $todayEnd = Carbon::today()->endOfDay();
+                // 3. Upcoming Schedule (Today + Next 30 Days across enrolled cohorts)
+                $scheduleStart = Carbon::today()->startOfDay();
+                $scheduleEnd = Carbon::today()->addDays(30)->endOfDay();
                 $todaySchedule = !empty($cohortIds)
                     ? ClassroomSession::whereIn('cohort_id', $cohortIds)
-                        ->whereBetween('scheduled_at', [$todayStart, $todayEnd])
+                        ->where('status', '!=', ClassroomSession::STATUS_CANCELLED)
+                        ->whereBetween('scheduled_at', [$scheduleStart, $scheduleEnd])
                         ->with(['teacher:id,name', 'cohort:id,name,subject'])
                         ->orderBy('scheduled_at', 'asc')
                         ->get()
                         ->map(function ($s) {
                             return [
+                                'session_id' => $s->session_id,
+                                'cohort_name' => $s->cohort?->name ?? 'فوج عام',
+                                'scheduled_at' => $s->scheduled_at?->toIso8601String(),
                                 'time' => $s->scheduled_at?->format('H:i') ?? '00:00',
                                 'subject' => $s->cohort?->subject ?? 'مادة تعليمية',
                                 'teacher' => $s->teacher?->name ?? 'الأستاذ',
