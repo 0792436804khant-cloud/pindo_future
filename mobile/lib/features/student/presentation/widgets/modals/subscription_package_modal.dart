@@ -3,6 +3,7 @@ import '../../../../../core/config/platform_payment_config.dart';
 import 'algerian_payment_sheet_modal.dart';
 
 class SubscriptionPackageModal extends StatefulWidget {
+  final int? cohortId;
   final String cohortName;
   final String teacherName;
   final String subject;
@@ -11,10 +12,20 @@ class SubscriptionPackageModal extends StatefulWidget {
   final int libraryPriceDzd;
   final int fullBundlePriceDzd;
   final bool hasLibrary;
+  final int includedSessionsCount;
+  final int extraSessionsCount;
+  final bool extraSessionsIsPaid;
+  final int extraSessionPriceDzd;
+  final String? studentToken;
+  final String? studentName;
+  final String? studentEmail;
+  final String? studentCode;
+  final VoidCallback? onReceiptSubmitted;
   final Future<void> Function(String packageType, String packageName, int priceDzd)? onPackageConfirmed;
 
   const SubscriptionPackageModal({
     super.key,
+    this.cohortId,
     required this.cohortName,
     required this.teacherName,
     required this.subject,
@@ -23,11 +34,21 @@ class SubscriptionPackageModal extends StatefulWidget {
     this.libraryPriceDzd = 1500,
     this.fullBundlePriceDzd = 3500,
     this.hasLibrary = true,
+    this.includedSessionsCount = 8,
+    this.extraSessionsCount = 0,
+    this.extraSessionsIsPaid = false,
+    this.extraSessionPriceDzd = 0,
+    this.studentToken,
+    this.studentName,
+    this.studentEmail,
+    this.studentCode,
+    this.onReceiptSubmitted,
     this.onPackageConfirmed,
   });
 
   static Future<void> show(
     BuildContext context, {
+    int? cohortId,
     required String cohortName,
     required String teacherName,
     required String subject,
@@ -36,6 +57,15 @@ class SubscriptionPackageModal extends StatefulWidget {
     int libraryPriceDzd = 1500,
     int fullBundlePriceDzd = 3500,
     bool hasLibrary = true,
+    int includedSessionsCount = 8,
+    int extraSessionsCount = 0,
+    bool extraSessionsIsPaid = false,
+    int extraSessionPriceDzd = 0,
+    String? studentToken,
+    String? studentName,
+    String? studentEmail,
+    String? studentCode,
+    VoidCallback? onReceiptSubmitted,
     Future<void> Function(String packageType, String packageName, int priceDzd)? onPackageConfirmed,
   }) {
     return showModalBottomSheet(
@@ -43,6 +73,7 @@ class SubscriptionPackageModal extends StatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => SubscriptionPackageModal(
+        cohortId: cohortId,
         cohortName: cohortName,
         teacherName: teacherName,
         subject: subject,
@@ -51,6 +82,15 @@ class SubscriptionPackageModal extends StatefulWidget {
         libraryPriceDzd: libraryPriceDzd,
         fullBundlePriceDzd: fullBundlePriceDzd,
         hasLibrary: hasLibrary,
+        includedSessionsCount: includedSessionsCount,
+        extraSessionsCount: extraSessionsCount,
+        extraSessionsIsPaid: extraSessionsIsPaid,
+        extraSessionPriceDzd: extraSessionPriceDzd,
+        studentToken: studentToken,
+        studentName: studentName,
+        studentEmail: studentEmail,
+        studentCode: studentCode,
+        onReceiptSubmitted: onReceiptSubmitted,
         onPackageConfirmed: onPackageConfirmed,
       ),
     );
@@ -118,6 +158,7 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
 
     AlgerianPaymentSheetModal.show(
       context,
+      cohortId: widget.cohortId,
       cohortName: widget.cohortName,
       teacherName: widget.teacherName,
       subject: widget.subject,
@@ -127,12 +168,20 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
       livePriceDzd: widget.liveSessionsPriceDzd,
       libraryPriceDzd: widget.libraryPriceDzd,
       isQuickRenewal: false,
+      studentToken: widget.studentToken,
+      studentName: widget.studentName,
+      studentEmail: widget.studentEmail,
+      studentCode: widget.studentCode,
+      includedSessionsCount: widget.includedSessionsCount,
+      onReceiptSubmitted: widget.onReceiptSubmitted,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
@@ -207,13 +256,16 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
             _packageCard(
               index: 0,
               title: 'باقة الحصص فقط (Live Only)',
-              price: '${widget.liveSessionsPriceDzd} دج / شهرياً',
-              badge: 'الحصص المباشرة',
+              price: '${widget.liveSessionsPriceDzd} دج / دورة',
+              badge: 'الحصص (${widget.includedSessionsCount})',
               badgeColor: _brightCyan,
-              features: const [
-                'حضور الحصص التفاعلية المباشرة أو الحضورية كاملة',
-                'سبورة تفاعلية ذكية ومشاركة حلول التمارين',
-                'المشاركة في محادثة ودردشة الفوج الرسمية 💬',
+              features: [
+                'عدد الحصص المشمولة: من الحصة 1 إلى الحصة ${widget.includedSessionsCount}',
+                if (widget.extraSessionsCount > 0)
+                  widget.extraSessionsIsPaid
+                      ? '${widget.extraSessionsCount} حصص إضافية متاحة (${widget.extraSessionPriceDzd} دج للحصة)'
+                      : '${widget.extraSessionsCount} حصص إضافية مجانية للمشتركين 🎁',
+                'سبورة تفاعلية ذكية ومشاركة حلول التمارين + محادثة الفوج 💬',
               ],
             ),
 
@@ -223,7 +275,7 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
               _packageCard(
                 index: 1,
                 title: 'باقة المكتبة الرقمية فقط (Library Only)',
-                price: '${widget.libraryPriceDzd} دج / شهرياً',
+                price: '${widget.libraryPriceDzd} دج / دورة',
                 badge: 'التسجيلات والملفات',
                 badgeColor: const Color(0xFF10B981),
                 features: const [
@@ -237,13 +289,13 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
               _packageCard(
                 index: 2,
                 title: 'الباقة المتكاملة — الكل في واحد (Full Bundle)',
-                price: '${widget.fullBundlePriceDzd} دج / شهرياً',
-                badge: 'شامل الكل • الأفضل توفيراً ⭐',
+                price: '${widget.fullBundlePriceDzd} دج / دورة',
+                badge: 'شامل الكل • الأفضل ⭐',
                 badgeColor: const Color(0xFFF59E0B),
-                features: const [
-                  'كل مميزات باقة الحصص التفاعلية المباشرة كاملة',
+                features: [
+                  'جميع الحصص المباشرة/الحضورية (${widget.includedSessionsCount} حصص كاملة من 1 إلى ${widget.includedSessionsCount})',
                   'وصول غير محدود لمكتبة التسجيلات المحمية والملخصات 🎬📚',
-                  'بنك الفروض والامتحانات + خصم مدمج مقارنة بالشراء المنفصل ⭐',
+                  'بنك الفروض والامتحانات + توفير مدمج مقارنة بالشراء المنفصل ⭐',
                 ],
               ),
             ],
@@ -272,6 +324,7 @@ class _SubscriptionPackageModalState extends State<SubscriptionPackageModal> {
           ],
         ),
       ),
+    ),
     );
   }
 

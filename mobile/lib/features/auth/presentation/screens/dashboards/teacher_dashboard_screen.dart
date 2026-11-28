@@ -324,29 +324,31 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF070B14), // Deep Cosmic Midnight
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.90),
-        elevation: 0,
-        title: const Row(
-          children: [
-            PindoBrandLogo(size: 28, showText: false, withGlow: true),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'لوحة الأستاذ • Studio',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  letterSpacing: 0.2,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF070B14), // Deep Cosmic Midnight
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F172A).withValues(alpha: 0.90),
+          elevation: 0,
+          title: const Row(
+            children: [
+              PindoBrandLogo(size: 28, showText: false, withGlow: true),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'لوحة الأستاذ',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         actions: [
           if (_isLoading)
             const Center(
@@ -560,6 +562,7 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

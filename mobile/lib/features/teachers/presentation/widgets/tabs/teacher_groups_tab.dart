@@ -245,6 +245,46 @@ class _TeacherGroupsTabState extends State<TeacherGroupsTab> {
               style: const TextStyle(color: Colors.white60, fontSize: 12),
             ),
           ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _brightCyan.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'الحصص المشمولة: من 1 إلى ${cohort.includedSessionsCount} حصص',
+                  style: const TextStyle(color: _brightCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (cohort.extraSessionsCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (cohort.extraSessionsIsPaid ? Colors.amber : const Color(0xFF10B981)).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (cohort.extraSessionsIsPaid ? Colors.amber : const Color(0xFF10B981)).withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Text(
+                    cohort.extraSessionsIsPaid
+                        ? '+${cohort.extraSessionsCount} حصص إضافية (${cohort.extraSessionPriceDzd.toStringAsFixed(0)} دج/حصة)'
+                        : '+${cohort.extraSessionsCount} حصص إضافية مجانية للمشتركين',
+                    style: TextStyle(
+                      color: cohort.extraSessionsIsPaid ? Colors.amber : const Color(0xFF34D399),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
 
           const SizedBox(height: 12),
 

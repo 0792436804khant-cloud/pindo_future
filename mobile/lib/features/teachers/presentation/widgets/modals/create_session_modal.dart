@@ -39,10 +39,13 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _durationController = TextEditingController(text: '120');
+  final _sessionNumberController = TextEditingController();
+  final _extraPriceController = TextEditingController(text: '500');
 
   late int _selectedCohortId;
   late DateTime _selectedDate;
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
+  String _sessionCategory = 'regular';
 
   bool _allowChat = true;
   bool _recordSession = true;
@@ -57,12 +60,17 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
     super.initState();
     _selectedCohortId = widget.cohorts.isNotEmpty ? widget.cohorts.first.id : 0;
     _selectedDate = widget.initialDate ?? DateTime.now();
+    if (widget.cohorts.isNotEmpty && widget.cohorts.first.extraSessionPriceDzd > 0) {
+      _extraPriceController.text = widget.cohorts.first.extraSessionPriceDzd.toStringAsFixed(0);
+    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _durationController.dispose();
+    _sessionNumberController.dispose();
+    _extraPriceController.dispose();
     super.dispose();
   }
 
@@ -88,6 +96,11 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
       _selectedTime.minute,
     );
 
+    final extraPrice = _sessionCategory == 'extra_paid'
+        ? (double.tryParse(_extraPriceController.text.trim()) ?? 0.0)
+        : 0.0;
+    final parsedNum = int.tryParse(_sessionNumberController.text.trim());
+
     final payload = {
       'cohort_id': _selectedCohortId,
       'title': _titleController.text.trim(),
@@ -96,6 +109,9 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
       'allow_chat': _allowChat,
       'record_session': _recordSession,
       'mute_on_entry': _muteOnEntry,
+      'session_category': _sessionCategory,
+      if (parsedNum != null && parsedNum > 0) 'session_number': parsedNum,
+      if (_sessionCategory == 'extra_paid') 'extra_price_dzd': extraPrice,
     };
 
     try {
@@ -230,11 +246,91 @@ class _CreateSessionModalState extends State<CreateSessionModal> {
                           .map((c) => DropdownMenuItem<int>(value: c.id, child: Text(c.name)))
                           .toList(),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedCohortId = val);
+                        if (val != null) {
+                          setState(() {
+                            _selectedCohortId = val;
+                            final found = widget.cohorts.where((c) => c.id == val).firstOrNull;
+                            if (found != null && found.extraSessionPriceDzd > 0) {
+                              _extraPriceController.text = found.extraSessionPriceDzd.toStringAsFixed(0);
+                            }
+                          });
+                        }
                       },
                     ),
                   ),
                 ),
+              const SizedBox(height: 14),
+
+              // نوع الحصة وترتيبها (أساسية ضمن الاشتراك أم إضافية مجانية/مدفوعة)
+              _buildLabel('تصنيف الحصة ضمن نظام الاشتراك'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _sessionCategory,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF0F172A),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    icon: const Icon(Icons.arrow_drop_down, color: _brightCyan),
+                    items: const [
+                      DropdownMenuItem(value: 'regular', child: Text('حصة أساسية ضمن رصيد الاشتراك (1 .. N)')),
+                      DropdownMenuItem(value: 'extra_free', child: Text('حصة إضافية مجانية للمشتركين 🎁')),
+                      DropdownMenuItem(value: 'extra_paid', child: Text('حصة إضافية مدفوعة الأجر 💳')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setState(() => _sessionCategory = val);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('رقم الحصة (اتركه فارغاً للترقيم الآلي)'),
+                        TextFormField(
+                          controller: _sessionNumberController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _inputDecoration(hint: 'تلقائي (1، 2، 3...)'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (_sessionCategory == 'extra_paid') ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('سعر الحصة الإضافية (دج) *'),
+                          TextFormField(
+                            controller: _extraPriceController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _inputDecoration(hint: '500'),
+                            validator: (val) {
+                              if (_sessionCategory != 'extra_paid') return null;
+                              final n = double.tryParse(val?.trim() ?? '');
+                              if (n == null || n <= 0) return 'أدخل السعر';
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               const SizedBox(height: 14),
 
               // التاريخ والوقت

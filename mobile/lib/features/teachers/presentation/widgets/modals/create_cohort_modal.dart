@@ -44,6 +44,9 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
   final _libraryPriceController = TextEditingController(text: '1500');
   final _bundlePriceController = TextEditingController(text: '3500');
   final _maxStudentsController = TextEditingController(text: '50');
+  final _includedSessionsController = TextEditingController(text: '8');
+  final _extraSessionsController = TextEditingController(text: '0');
+  final _extraSessionPriceController = TextEditingController(text: '500');
 
   late List<String> _levels;
   late List<String> _streams;
@@ -53,6 +56,7 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
   late String _selectedStream;
   late String _selectedSubject;
   bool _includeLibrary = true;
+  bool _extraSessionsIsPaid = false;
   bool _isOpenRegistration = true;
   bool _isSubmitting = false;
 
@@ -116,6 +120,9 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
     _libraryPriceController.dispose();
     _bundlePriceController.dispose();
     _maxStudentsController.dispose();
+    _includedSessionsController.dispose();
+    _extraSessionsController.dispose();
+    _extraSessionPriceController.dispose();
     super.dispose();
   }
 
@@ -127,6 +134,11 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
     final bundlePrice = _includeLibrary
         ? (double.tryParse(_bundlePriceController.text.trim()) ?? (livePrice + libPrice))
         : livePrice;
+    final includedSessions = (int.tryParse(_includedSessionsController.text.trim()) ?? 8).clamp(1, 100);
+    final extraSessions = (int.tryParse(_extraSessionsController.text.trim()) ?? 0).clamp(0, 50);
+    final extraPrice = _extraSessionsIsPaid
+        ? (double.tryParse(_extraSessionPriceController.text.trim()) ?? 0.0)
+        : 0.0;
 
     setState(() => _isSubmitting = true);
     final payload = {
@@ -141,6 +153,10 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
       'bundle_price': bundlePrice,
       'max_students': int.tryParse(_maxStudentsController.text) ?? 50,
       'include_library': _includeLibrary,
+      'included_sessions_count': includedSessions,
+      'extra_sessions_count': extraSessions,
+      'extra_sessions_is_paid': _extraSessionsIsPaid,
+      'extra_session_price_dzd': extraPrice,
       'is_active': _isOpenRegistration,
     };
 
@@ -472,6 +488,111 @@ class _CreateCohortModalState extends State<CreateCohortModal> {
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // نظام عدد الحصص لكل اشتراك + الحصص الإضافية
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: _electricPurple.withValues(alpha: 0.35)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.format_list_numbered_rtl_rounded, color: _electricPurple, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'تحديد حصص الاشتراك والحصص الإضافية',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'يحدد الأستاذ بدقة الحصة الأولى (#1) حتى الحصة الأخيرة (#N) قبل وجوب تجديد اشتراك التلميذ.',
+                      style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('عدد الحصص في الاشتراك *'),
+                              TextFormField(
+                                controller: _includedSessionsController,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: _inputDecoration(hint: '8'),
+                                validator: (val) {
+                                  final n = int.tryParse(val?.trim() ?? '');
+                                  if (n == null || n < 1) return 'أدخل 1 على الأقل';
+                                  return null;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('عدد الحصص الإضافية'),
+                              TextFormField(
+                                controller: _extraSessionsController,
+                                keyboardType: TextInputType.number,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: _inputDecoration(hint: '0'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: Colors.amber,
+                      title: const Text(
+                        'الحصص الإضافية مدفوعة للمشتركين؟',
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        _extraSessionsIsPaid
+                            ? 'مدفوعة: يدفع التلميذ ثمن الحصة الإضافية بشكل مستقل'
+                            : 'مجانية: يحضر المشتركون الحصص الإضافية مجاناً بدون خصم من الرصيد',
+                        style: const TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      value: _extraSessionsIsPaid,
+                      onChanged: (val) => setState(() => _extraSessionsIsPaid = val),
+                    ),
+                    if (_extraSessionsIsPaid) ...[
+                      const SizedBox(height: 8),
+                      _buildLabel('سعر الحصة الإضافية الواحدة (دج) *'),
+                      TextFormField(
+                        controller: _extraSessionPriceController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(hint: '500'),
+                        validator: (val) {
+                          if (!_extraSessionsIsPaid) return null;
+                          final p = double.tryParse(val?.trim() ?? '');
+                          if (p == null || p <= 0) return 'أدخل سعر الحصة الإضافية';
+                          return null;
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -18,6 +18,10 @@ class ClassroomSession extends Model
     public const STATUS_ENDED = 'ended';
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const CATEGORY_REGULAR = 'regular';
+    public const CATEGORY_EXTRA_FREE = 'extra_free';
+    public const CATEGORY_EXTRA_PAID = 'extra_paid';
+
     public const ALL_STATUSES = [
         self::STATUS_SCHEDULED,
         self::STATUS_ACTIVE,
@@ -29,6 +33,9 @@ class ClassroomSession extends Model
         'session_id',
         'user_id',
         'cohort_id',
+        'session_number',
+        'session_category',
+        'extra_price_dzd',
         'title',
         'description',
         'status',
@@ -44,6 +51,8 @@ class ClassroomSession extends Model
         return [
             'settings' => 'array',
             'max_participants' => 'integer',
+            'session_number' => 'integer',
+            'extra_price_dzd' => 'float',
             'scheduled_at' => 'datetime',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',

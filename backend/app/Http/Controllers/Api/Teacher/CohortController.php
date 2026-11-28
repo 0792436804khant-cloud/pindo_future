@@ -51,6 +51,10 @@ class CohortController extends Controller
             'library_price' => ['nullable', 'numeric', 'min:0'],
             'bundle_price' => ['nullable', 'numeric', 'min:0'],
             'include_library' => ['nullable', 'boolean'],
+            'included_sessions_count' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'extra_sessions_count' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'extra_sessions_is_paid' => ['nullable', 'boolean'],
+            'extra_session_price_dzd' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'schedule' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],
@@ -59,6 +63,12 @@ class CohortController extends Controller
         $teacher = $request->user();
 
         $includeLibrary = (bool) ($validated['include_library'] ?? true);
+        $includedSessionsCount = (int) ($validated['included_sessions_count'] ?? 8);
+        $extraSessionsCount = (int) ($validated['extra_sessions_count'] ?? 0);
+        $extraSessionsIsPaid = (bool) ($validated['extra_sessions_is_paid'] ?? false);
+        $extraSessionPrice = $extraSessionsIsPaid
+            ? (float) ($validated['extra_session_price_dzd'] ?? 0.00)
+            : 0.00;
         $livePrice = isset($validated['live_sessions_price'])
             ? (float) $validated['live_sessions_price']
             : (float) ($validated['monthly_price'] ?? 0.00);
@@ -84,6 +94,10 @@ class CohortController extends Controller
             'library_price' => $libraryPrice,
             'bundle_price' => $bundlePrice,
             'include_library' => $includeLibrary,
+            'included_sessions_count' => $includedSessionsCount,
+            'extra_sessions_count' => $extraSessionsCount,
+            'extra_sessions_is_paid' => $extraSessionsIsPaid,
+            'extra_session_price_dzd' => $extraSessionPrice,
             'schedule' => $validated['schedule'] ?? [],
             'description' => $validated['description'] ?? null,
             'is_active' => $validated['is_active'] ?? true,
@@ -134,6 +148,10 @@ class CohortController extends Controller
             'library_price' => ['sometimes', 'numeric', 'min:0'],
             'bundle_price' => ['sometimes', 'numeric', 'min:0'],
             'include_library' => ['sometimes', 'boolean'],
+            'included_sessions_count' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'extra_sessions_count' => ['sometimes', 'integer', 'min:0', 'max:50'],
+            'extra_sessions_is_paid' => ['sometimes', 'boolean'],
+            'extra_session_price_dzd' => ['sometimes', 'numeric', 'min:0'],
             'schedule' => ['nullable', 'array'],
             'is_active' => ['sometimes', 'boolean'],
             'description' => ['nullable', 'string'],
@@ -285,11 +303,26 @@ class CohortController extends Controller
             'allow_chat' => ['nullable', 'boolean'],
             'record_session' => ['nullable', 'boolean'],
             'mute_on_entry' => ['nullable', 'boolean'],
+            'session_number' => ['nullable', 'integer', 'min:1', 'max:500'],
+            'session_category' => ['nullable', 'string', 'in:regular,extra_free,extra_paid'],
+            'extra_price_dzd' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $scheduledAt = ! empty($validated['scheduled_at'])
             ? Carbon::parse($validated['scheduled_at'])
             : now();
+
+        $sessionCategory = $validated['session_category'] ?? ClassroomSession::CATEGORY_REGULAR;
+        $sessionNumber = $validated['session_number']
+            ?? ((int) $cohort->sessions()
+                ->where('session_category', $sessionCategory)
+                ->max('session_number')) + 1;
+        $extraPrice = 0.0;
+        if ($sessionCategory === ClassroomSession::CATEGORY_EXTRA_PAID) {
+            $extraPrice = isset($validated['extra_price_dzd'])
+                ? (float) $validated['extra_price_dzd']
+                : (float) ($cohort->extra_session_price_dzd ?? 0);
+        }
 
         $settings = array_merge([
             'allow_chat' => $validated['allow_chat'] ?? true,
@@ -301,6 +334,9 @@ class CohortController extends Controller
         $session = ClassroomSession::create([
             'user_id' => $teacher->id,
             'cohort_id' => $cohort->id,
+            'session_number' => $sessionNumber,
+            'session_category' => $sessionCategory,
+            'extra_price_dzd' => $extraPrice,
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => ClassroomSession::STATUS_SCHEDULED,
@@ -317,17 +353,25 @@ class CohortController extends Controller
             ->unique()
             ->values();
 
+        $categoryLabel = match ($sessionCategory) {
+            ClassroomSession::CATEGORY_EXTRA_FREE => 'حصة إضافية مجانية',
+            ClassroomSession::CATEGORY_EXTRA_PAID => "حصة إضافية مدفوعة ({$extraPrice} دج)",
+            default => "الحصة رقم {$sessionNumber}",
+        };
         $formattedDate = $scheduledAt->format('Y-m-d H:i');
         foreach ($activeStudentIds as $studentId) {
             $cache->invalidateStudent((int) $studentId);
             AppNotification::create([
                 'user_id' => $studentId,
                 'type' => AppNotification::TYPE_LIVE_SESSION_STARTING,
-                'title' => 'حصة جديدة مجدولة: ' . $cohort->name,
-                'body' => "قام الأستاذ {$teacher->name} ببرمجة حصة \"{$session->title}\" بتاريخ {$formattedDate}.",
+                'title' => "{$categoryLabel}: {$cohort->name}",
+                'body' => "قام الأستاذ {$teacher->name} ببرمجة {$categoryLabel} بعنوان \"{$session->title}\" بتاريخ {$formattedDate}.",
                 'data' => [
                     'session_id' => $session->session_id,
                     'cohort_id' => $cohort->id,
+                    'session_number' => $sessionNumber,
+                    'session_category' => $sessionCategory,
+                    'extra_price_dzd' => $extraPrice,
                     'scheduled_at' => $scheduledAt->toIso8601String(),
                 ],
             ]);

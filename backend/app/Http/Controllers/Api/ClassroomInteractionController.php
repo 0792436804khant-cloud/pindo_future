@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppNotification;
 use App\Models\ClassroomAttendance;
 use App\Models\ClassroomMessage;
 use App\Models\ClassroomSession;
+use App\Models\CohortMember;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -120,6 +122,9 @@ class ClassroomInteractionController extends Controller
         }
 
         $user = Auth::user();
+        $alreadyAttendedSession = ClassroomAttendance::where('session_id', $session->session_id)
+            ->where('user_id', $user->id)
+            ->exists();
 
         $attendance = ClassroomAttendance::create([
             'session_id' => $session->session_id,
@@ -127,6 +132,36 @@ class ClassroomInteractionController extends Controller
             'role' => $user->role ?? 'student',
             'joined_at' => now(),
         ]);
+
+        if (! $alreadyAttendedSession
+            && $session->cohort_id
+            && ($user->role ?? 'student') === 'student'
+            && ($session->session_category ?? ClassroomSession::CATEGORY_REGULAR) === ClassroomSession::CATEGORY_REGULAR
+        ) {
+            $member = CohortMember::where('cohort_id', $session->cohort_id)
+                ->where('student_id', $user->id)
+                ->where('status', 'active')
+                ->first();
+
+            if ($member) {
+                $newAttended = (int) ($member->sessions_attended ?? 0) + 1;
+                $member->update(['sessions_attended' => $newAttended]);
+
+                if (($member->sessions_quota ?? 8) > 0 && $newAttended >= $member->sessions_quota) {
+                    AppNotification::create([
+                        'user_id' => $user->id,
+                        'type' => 'subscription_quota_reached',
+                        'title' => 'وصلت إلى الحصة الأخيرة في اشتراكك',
+                        'body' => "هذه هي الحصة الأخيرة ({$newAttended}/{$member->sessions_quota}) ضمن دورتك الحالية. يرجى تجديد اشتراكك قبل الحصة القادمة.",
+                        'data' => [
+                            'cohort_id' => $session->cohort_id,
+                            'sessions_attended' => $newAttended,
+                            'sessions_quota' => $member->sessions_quota,
+                        ],
+                    ]);
+                }
+            }
+        }
 
         $activeAttendeesCount = ClassroomAttendance::where('session_id', $session->session_id)
             ->whereNull('left_at')

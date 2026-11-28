@@ -19,6 +19,16 @@ class StudyCohortModel extends StudyCohortEntity {
     super.libraryPrice,
     super.bundlePrice,
     super.includeLibrary,
+    super.includedSessionsCount,
+    super.extraSessionsCount,
+    super.extraSessionsIsPaid,
+    super.extraSessionPriceDzd,
+    super.teacherBio,
+    super.teacherHeadline,
+    super.teacherYearsExperience,
+    super.teacherAvatarUrl,
+    super.teacherSubjects,
+    super.teacherYears,
     super.schedule,
     super.isActive,
     super.description,
@@ -27,6 +37,8 @@ class StudyCohortModel extends StudyCohortEntity {
 
   factory StudyCohortModel.fromJson(Map<String, dynamic> json) {
     final teacher = json['teacher'] as Map<String, dynamic>?;
+    final platform = teacher?['teacher_platform'] as Map<String, dynamic>?;
+    final settings = platform?['settings'] as Map<String, dynamic>?;
 
     final teacherVerifiedRaw = teacher?['is_verified'];
     final isVerified = teacherVerifiedRaw == true ||
@@ -86,6 +98,39 @@ class StudyCohortModel extends StudyCohortEntity {
         activeRaw == 1 ||
         activeRaw == '1';
 
+    final includedRaw = json['included_sessions_count'];
+    final includedSessions = includedRaw is num
+        ? includedRaw.toInt()
+        : int.tryParse(includedRaw?.toString() ?? '8') ?? 8;
+
+    final extraCountRaw = json['extra_sessions_count'];
+    final extraSessions = extraCountRaw is num
+        ? extraCountRaw.toInt()
+        : int.tryParse(extraCountRaw?.toString() ?? '0') ?? 0;
+
+    final extraPaidRaw = json['extra_sessions_is_paid'];
+    final extraPaid = extraPaidRaw == true || extraPaidRaw == 1 || extraPaidRaw == '1';
+
+    final extraPriceRaw = json['extra_session_price_dzd'];
+    final extraPrice = extraPriceRaw is num
+        ? extraPriceRaw.toDouble()
+        : double.tryParse(extraPriceRaw?.toString() ?? '0') ?? 0.0;
+
+    final teacherYearsExpRaw = settings?['years_of_experience'];
+    final teacherYearsExp = teacherYearsExpRaw is num
+        ? teacherYearsExpRaw.toInt()
+        : int.tryParse(teacherYearsExpRaw?.toString() ?? '');
+
+    final teacherSubjectsRaw = teacher?['teaching_subjects'];
+    final teacherSubjects = teacherSubjectsRaw is List
+        ? teacherSubjectsRaw.map((e) => e.toString()).toList()
+        : const <String>[];
+
+    final teacherYearsRaw = teacher?['teaching_years'];
+    final teacherYears = teacherYearsRaw is List
+        ? teacherYearsRaw.map((e) => e.toString()).toList()
+        : const <String>[];
+
     return StudyCohortModel(
       id: json['id'] as int? ?? 0,
       cohortCode: json['cohort_code'] as String? ?? '',
@@ -104,6 +149,16 @@ class StudyCohortModel extends StudyCohortEntity {
       libraryPrice: libraryPrice,
       bundlePrice: bundlePrice,
       includeLibrary: includeLibrary,
+      includedSessionsCount: includedSessions,
+      extraSessionsCount: extraSessions,
+      extraSessionsIsPaid: extraPaid,
+      extraSessionPriceDzd: extraPrice,
+      teacherBio: platform?['bio']?.toString(),
+      teacherHeadline: platform?['headline']?.toString(),
+      teacherYearsExperience: teacherYearsExp,
+      teacherAvatarUrl: settings?['avatar_url']?.toString(),
+      teacherSubjects: teacherSubjects,
+      teacherYears: teacherYears,
       schedule: scheduleList,
       isActive: isActive,
       description: json['description'] as String?,

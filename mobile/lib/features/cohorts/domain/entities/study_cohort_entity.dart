@@ -18,6 +18,16 @@ class StudyCohortEntity {
   final double libraryPrice;
   final double bundlePrice;
   final bool includeLibrary;
+  final int includedSessionsCount;
+  final int extraSessionsCount;
+  final bool extraSessionsIsPaid;
+  final double extraSessionPriceDzd;
+  final String? teacherBio;
+  final String? teacherHeadline;
+  final int? teacherYearsExperience;
+  final String? teacherAvatarUrl;
+  final List<String> teacherSubjects;
+  final List<String> teacherYears;
   final List<Map<String, dynamic>> schedule;
   final bool isActive;
   final String? description;
@@ -41,6 +51,16 @@ class StudyCohortEntity {
     this.libraryPrice = 0.0,
     double? bundlePrice,
     this.includeLibrary = true,
+    this.includedSessionsCount = 8,
+    this.extraSessionsCount = 0,
+    this.extraSessionsIsPaid = false,
+    this.extraSessionPriceDzd = 0.0,
+    this.teacherBio,
+    this.teacherHeadline,
+    this.teacherYearsExperience,
+    this.teacherAvatarUrl,
+    this.teacherSubjects = const [],
+    this.teacherYears = const [],
     this.schedule = const [],
     this.isActive = true,
     this.description,

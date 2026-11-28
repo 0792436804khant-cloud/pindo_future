@@ -16,6 +16,7 @@ use App\Models\TeacherEarning;
 use App\Models\TeacherPayout;
 use App\Models\User;
 use App\Services\BilingualTaxonomyService;
+use App\Services\CacheManagerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -155,7 +156,7 @@ class AdminPanelController extends Controller
 
         // 5. Pending BaridiMob Subscriptions (With Idempotency & Fraud Alerts)
         $pendingSubscriptions = Order::where('status', Order::STATUS_PENDING)
-            ->with(['user', 'course'])
+            ->with(['user', 'course', 'cohort'])
             ->orderByDesc('created_at')
             ->limit(15)
             ->get()
@@ -174,7 +175,8 @@ class AdminPanelController extends Controller
                     'student_name' => $order->user?->name ?? 'طالب',
                     'student_email' => $order->user?->email ?? '-',
                     'student_phone' => $order->user?->phone,
-                    'course_title' => $order->course?->title ?? 'باقة الاشتراك',
+                    'course_title' => $order->cohort?->name ?? $order->course?->title ?? 'باقة الاشتراك',
+                    'package_type' => $order->package_type,
                     'amount' => (float) $order->amount,
                     'currency' => $order->currency,
                     'payment_method' => $order->payment_method ?? 'BaridiMob',
@@ -344,9 +346,73 @@ class AdminPanelController extends Controller
                 );
             }
 
-            // 3. Credit Teacher Earnings (80% net, 20% platform)
+            // 2b. Activate or Renew Study Cohort Membership & Session Quota
             $teacherId = $order->course?->teacher_id;
-            if ($teacherId) {
+            if ($order->cohort_id) {
+                $cohort = StudyCohort::find($order->cohort_id);
+                if ($cohort) {
+                    $pricing = $cohort->resolvePackagePricing($order->package_type ?? StudyCohort::PACKAGE_FULL_BUNDLE);
+                    $cycleSessions = max(1, (int) ($cohort->included_sessions_count ?? 8));
+                    $existingMember = CohortMember::where('cohort_id', $cohort->id)
+                        ->where('student_id', $order->user_id)
+                        ->first();
+
+                    if ($existingMember && $existingMember->status === 'active') {
+                        $prevQuota = max(0, (int) ($existingMember->sessions_quota ?? 0));
+                        $newTotalQuota = $prevQuota + $cycleSessions;
+                        $existingMember->update([
+                            'status' => 'active',
+                            'package_type' => $pricing['package_type'],
+                            'price_paid_dzd' => $pricing['gross_amount'],
+                            'live_access' => $pricing['live_access'] || $existingMember->live_access,
+                            'library_access' => $pricing['library_access'] || $existingMember->library_access,
+                            'sessions_quota' => $newTotalQuota,
+                            'first_session_number' => $prevQuota + 1,
+                            'last_session_number' => $newTotalQuota,
+                            'ends_at' => $endsAt,
+                        ]);
+                    } else {
+                        CohortMember::updateOrCreate(
+                            [
+                                'cohort_id' => $cohort->id,
+                                'student_id' => $order->user_id,
+                            ],
+                            [
+                                'status' => 'active',
+                                'package_type' => $pricing['package_type'],
+                                'price_paid_dzd' => $pricing['gross_amount'],
+                                'live_access' => $pricing['live_access'],
+                                'library_access' => $pricing['library_access'],
+                                'sessions_quota' => $cycleSessions,
+                                'sessions_attended' => 0,
+                                'first_session_number' => 1,
+                                'last_session_number' => $cycleSessions,
+                                'joined_at' => now(),
+                                'ends_at' => $endsAt,
+                            ]
+                        );
+                    }
+
+                    $cohort->recalculateEnrolledCount();
+                    $teacherId = $cohort->teacher_id;
+
+                    TeacherEarning::create([
+                        'teacher_id' => $teacherId,
+                        'order_id' => $order->id,
+                        'cohort_id' => $cohort->id,
+                        'package_type' => $pricing['package_type'],
+                        'live_gross_amount' => $pricing['live_gross_amount'],
+                        'library_gross_amount' => $pricing['library_gross_amount'],
+                        'live_platform_fee' => $pricing['live_platform_fee'],
+                        'library_platform_fee' => $pricing['library_platform_fee'],
+                        'gross_amount' => $pricing['gross_amount'],
+                        'platform_fee' => $pricing['platform_fee'],
+                        'net_amount' => $pricing['teacher_net_amount'],
+                        'status' => TeacherEarning::STATUS_AVAILABLE,
+                    ]);
+                }
+            } elseif ($teacherId) {
+                // 3. Fallback: Credit Teacher Earnings for direct courses (80% net, 20% platform)
                 $gross = (float) $order->amount;
                 $fee = round($gross * 0.20, 2);
                 $net = $gross - $fee;
@@ -365,11 +431,17 @@ class AdminPanelController extends Controller
             // 4. Dispatch In-App Notification to Student
             AppNotification::create([
                 'user_id' => $order->user_id,
-                'title' => '✅ تم تأكيد اشتراكك وتفعيل المقرر بنجاح',
-                'body' => "تم التحقق من وصل بريدي موب للطلب {$order->order_number}. اشتراكك سارٍ ومفعل حتى " . $endsAt->format('Y-m-d') . '.',
+                'title' => '✅ تم تأكيد اشتراكك وتفعيل حسابك بنجاح',
+                'body' => "تم التحقق من وصل الدفع للطلب {$order->order_number}. اشتراكك سارٍ ومفعل حتى " . $endsAt->format('Y-m-d') . '.',
                 'type' => 'subscription_activated',
                 'is_read' => false,
             ]);
+
+            $cache = app(CacheManagerService::class);
+            $cache->invalidateStudent($order->user_id);
+            if ($teacherId) {
+                $cache->invalidateTeacher($teacherId);
+            }
 
             return response()->json([
                 'status' => 'success',

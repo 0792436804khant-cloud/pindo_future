@@ -132,6 +132,9 @@ class TeacherDashboardController extends Controller
                     'time_formatted' => $s->scheduled_at?->format('H:i') ?? '00:00',
                     'duration_minutes' => (int) ($s->settings['duration_minutes'] ?? 120),
                     'status' => $s->status,
+                    'session_number' => $s->session_number,
+                    'session_category' => $s->session_category ?? 'regular',
+                    'extra_price_dzd' => (float) ($s->extra_price_dzd ?? 0.0),
                 ];
             });
 
@@ -183,6 +186,10 @@ class TeacherDashboardController extends Controller
                 'bundle_price' => $bundlePrice,
                 'is_active' => $c->is_active,
                 'has_library' => (bool) $c->include_library,
+                'included_sessions_count' => (int) ($c->included_sessions_count ?? 8),
+                'extra_sessions_count' => (int) ($c->extra_sessions_count ?? 0),
+                'extra_sessions_is_paid' => (bool) ($c->extra_sessions_is_paid ?? false),
+                'extra_session_price_dzd' => (float) ($c->extra_session_price_dzd ?? 0.0),
             ];
         });
 

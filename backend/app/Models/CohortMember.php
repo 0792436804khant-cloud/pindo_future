@@ -20,6 +20,10 @@ class CohortMember extends Model
         'price_paid_dzd',
         'live_access',
         'library_access',
+        'sessions_quota',
+        'sessions_attended',
+        'first_session_number',
+        'last_session_number',
         'joined_at',
         'ends_at',
     ];
@@ -28,9 +32,32 @@ class CohortMember extends Model
         'price_paid_dzd' => 'float',
         'live_access' => 'boolean',
         'library_access' => 'boolean',
+        'sessions_quota' => 'integer',
+        'sessions_attended' => 'integer',
+        'first_session_number' => 'integer',
+        'last_session_number' => 'integer',
         'joined_at' => 'datetime',
         'ends_at' => 'datetime',
     ];
+
+    /**
+     * Remaining included regular sessions before subscription renewal.
+     */
+    public function remainingSessions(): int
+    {
+        $quota = max(0, (int) ($this->sessions_quota ?? 8));
+        $attended = max(0, (int) ($this->sessions_attended ?? 0));
+
+        return max(0, $quota - $attended);
+    }
+
+    /**
+     * Determine whether student still has quota left in current subscription cycle.
+     */
+    public function hasRemainingQuota(): bool
+    {
+        return $this->remainingSessions() > 0;
+    }
 
     /**
      * Scope only active memberships where end date has not lapsed.

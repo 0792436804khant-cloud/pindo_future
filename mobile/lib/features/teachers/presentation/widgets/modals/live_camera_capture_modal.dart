@@ -137,6 +137,16 @@ class _LiveCameraCaptureModalState extends State<LiveCameraCaptureModal> {
       final XFile photo = await controller.takePicture();
       final bytes = await photo.readAsBytes();
       if (!mounted) return;
+      if (bytes.isEmpty) {
+        setState(() => _isCapturing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('الصورة الملتقطة فارغة، يرجى إعادة المحاولة.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
       Navigator.of(context).pop(LiveCameraCaptureResult(
         bytes: bytes,
         name: photo.name.isNotEmpty ? photo.name : 'camera_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',

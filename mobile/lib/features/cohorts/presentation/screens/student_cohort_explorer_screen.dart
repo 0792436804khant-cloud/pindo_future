@@ -63,33 +63,38 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
-        elevation: 0,
-        title: const Text(
-          'الأفواج الدراسية - النظام الجزائري',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF1E293B),
+          elevation: 0,
+          title: const Text(
+            'الأفواج الدراسية - النظام الجزائري',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: Colors.white, fontSize: 16.5, fontWeight: FontWeight.bold),
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: const Color(0xFF10B981),
+            labelColor: const Color(0xFF10B981),
+            unselectedLabelColor: Colors.white60,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+            tabs: const [
+              Tab(text: 'استكشاف المجموعات', icon: Icon(Icons.explore_outlined, size: 20)),
+              Tab(text: 'أفواجي النشطة', icon: Icon(Icons.school_outlined, size: 20)),
+            ],
+          ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: const Color(0xFF10B981),
-          labelColor: const Color(0xFF10B981),
-          unselectedLabelColor: Colors.white60,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          tabs: const [
-            Tab(text: 'استكشاف المجموعات', icon: Icon(Icons.explore_outlined, size: 20)),
-            Tab(text: 'أفواجي النشطة', icon: Icon(Icons.school_outlined, size: 20)),
+          children: [
+            _buildExploreTab(context),
+            _buildMyCohortsTab(context),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildExploreTab(context),
-          _buildMyCohortsTab(context),
-        ],
       ),
     );
   }
@@ -288,6 +293,17 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
                 'الحصص: ${cohort.liveSessionsPrice > 0 ? "${cohort.liveSessionsPrice.toStringAsFixed(0)} دج" : "مجاني"}',
                 const Color(0xFF00E5FF),
               ),
+              _buildSmallBadge(
+                'الدورة: من 1 إلى ${cohort.includedSessionsCount} حصص',
+                const Color(0xFF38BDF8),
+              ),
+              if (cohort.extraSessionsCount > 0)
+                _buildSmallBadge(
+                  cohort.extraSessionsIsPaid
+                      ? '+${cohort.extraSessionsCount} إضافية (${cohort.extraSessionPriceDzd.toStringAsFixed(0)} دج)'
+                      : '+${cohort.extraSessionsCount} إضافية مجانية',
+                  cohort.extraSessionsIsPaid ? const Color(0xFFF59E0B) : const Color(0xFF34D399),
+                ),
               if (cohort.includeLibrary) ...[
                 _buildSmallBadge(
                   'المكتبة: ${cohort.libraryPrice > 0 ? "${cohort.libraryPrice.toStringAsFixed(0)} دج" : "مضمنة"}',
@@ -301,8 +317,11 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Text(
                 cohort.isFull ? 'الفوج ممتلئ تماماً' : 'متبقي ${cohort.availableSeats} مقعد',
@@ -312,61 +331,78 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cohort.isFull ? Colors.grey : const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-                icon: const Icon(Icons.group_add, size: 18),
-                label: Text(
-                  (cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0)
-                      ? 'اختيار الباقة والاشتراك'
-                      : 'انضمام للفوج',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
-                ),
-                onPressed: cohort.isFull
-                    ? null
-                    : () async {
-                        final isPaid = cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0;
-                        if (!isPaid) {
-                          if (widget.student.token != null) {
-                            final success = await widget.cohortController.joinCohort(widget.student.token!, cohort.id);
-                            if (success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('تم الانضمام إلى الفوج بنجاح! مرحباً بك 🎉'),
-                                  backgroundColor: Color(0xFF10B981),
-                                ),
-                              );
-                              _tabController.animateTo(1);
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF38BDF8),
+                      side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.55)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    icon: const Icon(Icons.visibility_outlined, size: 16),
+                    label: const Text('ملف الأستاذ والفوج', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    onPressed: () => _showCohortAndTeacherPreview(context, cohort),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cohort.isFull ? Colors.grey : const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    icon: const Icon(Icons.group_add, size: 17),
+                    label: Text(
+                      (cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0)
+                          ? 'اشتراك الآن'
+                          : 'انضمام مجاني',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    onPressed: cohort.isFull
+                        ? null
+                        : () async {
+                            final isPaid = cohort.bundlePrice > 0 || cohort.liveSessionsPrice > 0;
+                            if (!isPaid) {
+                              if (widget.student.token != null) {
+                                final success = await widget.cohortController.joinCohort(widget.student.token!, cohort.id);
+                                if (success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('تم الانضمام إلى الفوج بنجاح! مرحباً بك 🎉'),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                  _tabController.animateTo(1);
+                                }
+                              }
+                              return;
                             }
-                          }
-                          return;
-                        }
 
-                        SubscriptionPackageModal.show(
-                          context,
-                          cohortName: cohort.name,
-                          teacherName: cohort.teacherName ?? 'أستاذ المادة',
-                          subject: cohort.subject,
-                          currentPackageName: cohort.includeLibrary ? 'الباقة المتكاملة' : 'باقة الحصص فقط',
-                          liveSessionsPriceDzd: cohort.liveSessionsPrice.toInt(),
-                          libraryPriceDzd: cohort.libraryPrice.toInt(),
-                          fullBundlePriceDzd: cohort.bundlePrice.toInt(),
-                          hasLibrary: cohort.includeLibrary,
-                          onPackageConfirmed: (packageType, packageName, priceDzd) async {
-                            if (widget.student.token != null) {
-                              await widget.cohortController.joinCohort(
-                                widget.student.token!,
-                                cohort.id,
-                                packageType: packageType,
-                              );
-                            }
+                            SubscriptionPackageModal.show(
+                              context,
+                              cohortId: cohort.id,
+                              cohortName: cohort.name,
+                              teacherName: cohort.teacherName ?? 'أستاذ المادة',
+                              subject: cohort.subject,
+                              currentPackageName: cohort.includeLibrary ? 'الباقة المتكاملة' : 'باقة الحصص فقط',
+                              liveSessionsPriceDzd: cohort.liveSessionsPrice.toInt(),
+                              libraryPriceDzd: cohort.libraryPrice.toInt(),
+                              fullBundlePriceDzd: cohort.bundlePrice.toInt(),
+                              hasLibrary: cohort.includeLibrary,
+                              includedSessionsCount: cohort.includedSessionsCount,
+                              extraSessionsCount: cohort.extraSessionsCount,
+                              extraSessionsIsPaid: cohort.extraSessionsIsPaid,
+                              extraSessionPriceDzd: cohort.extraSessionPriceDzd.toInt(),
+                              studentToken: widget.student.token,
+                              studentName: widget.student.name,
+                              studentEmail: widget.student.email,
+                              onReceiptSubmitted: _loadData,
+                            );
                           },
-                        );
-                      },
+                  ),
+                ],
               ),
             ],
           ),
@@ -518,6 +554,214 @@ class _StudentCohortExplorerScreenState extends State<StudentCohortExplorerScree
           },
         );
       },
+    );
+  }
+
+  Future<void> _showCohortAndTeacherPreview(BuildContext context, StudyCohortEntity cohort) async {
+    Map<String, dynamic>? previewData;
+    try {
+      final res = await ApiClient().get('/cohorts/${cohort.id}/preview');
+      if (res['status'] == 'success' && res['data'] is Map<String, dynamic>) {
+        previewData = res['data'] as Map<String, dynamic>;
+      }
+    } catch (_) {
+      // Fallback safely to already loaded StudyCohortEntity fields
+    }
+
+    if (!context.mounted) return;
+
+    final cMap = previewData?['cohort'] as Map<String, dynamic>?;
+    final tMap = previewData?['teacher'] as Map<String, dynamic>?;
+    final teacherName = tMap?['name']?.toString() ?? cohort.teacherName ?? 'أستاذ المادة';
+    final headline = tMap?['headline']?.toString() ?? cohort.teacherHeadline ?? 'أستاذ معتمد في منصة Pindo Future';
+    final bio = tMap?['bio']?.toString() ?? cohort.teacherBio ?? '';
+    final yearsExp = tMap?['years_of_experience'] ?? cohort.teacherYearsExperience ?? 0;
+    final wilayaText = tMap?['wilaya_ar']?.toString() ?? cohort.wilayaName;
+    final teachingYears = (tMap?['teaching_years'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? cohort.teacherYears;
+    final teachingSubjects = (tMap?['teaching_subjects'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? cohort.teacherSubjects;
+    final upcomingSessions = (cMap?['upcoming_sessions_preview'] as List<dynamic>?) ?? const [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.88),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F172A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: Colors.white24, width: 1.2)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(color: Colors.white30, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: const Color(0xFF1E293B),
+                      child: Text(
+                        teacherName.isNotEmpty ? teacherName[0] : 'أ',
+                        style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  teacherName,
+                                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              TeacherVerificationBadge(isVerified: cohort.isTeacherVerified, size: 17),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(headline, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              Text('خبرة $yearsExp سنوات', style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w600)),
+                              Text('• $wilayaText', style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white60),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                if (bio.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(bio, style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.45)),
+                ],
+                if (teachingYears.isNotEmpty || teachingSubjects.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      ...teachingYears.map((y) => _buildSmallBadge(y, const Color(0xFF10B981))),
+                      ...teachingSubjects.map((s) => _buildSmallBadge(s, const Color(0xFF3B82F6))),
+                    ],
+                  ),
+                ],
+                const Divider(color: Colors.white12, height: 26),
+                Text(
+                  'تفاصيل الفوج: ${cohort.name}',
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                if (cohort.description != null && cohort.description!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(cohort.description!, style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4)),
+                ],
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📅 الحصص المشمولة: من الحصة 1 إلى الحصة ${cohort.includedSessionsCount}',
+                        style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 12.5, fontWeight: FontWeight.bold),
+                      ),
+                      if (cohort.extraSessionsCount > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          cohort.extraSessionsIsPaid
+                              ? '➕ حصص إضافية: ${cohort.extraSessionsCount} (${cohort.extraSessionPriceDzd.toStringAsFixed(0)} دج للحصة)'
+                              : '🎁 حصص إضافية مجانية للمشتركين: ${cohort.extraSessionsCount}',
+                          style: const TextStyle(color: Color(0xFF34D399), fontSize: 12),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '👥 المقاعد المتاحة: ${cohort.availableSeats} / ${cohort.maxStudents}',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                if (upcomingSessions.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text('برنامج الحصص القادمة (معاينة العناوين فقط):',
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  ...upcomingSessions.take(5).map((s) {
+                    final m = s as Map<String, dynamic>;
+                    final numLabel = m['session_number'] != null ? 'حصة #${m['session_number']}' : 'حصة';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.event_note, color: Color(0xFF10B981), size: 15),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '$numLabel: ${m['title'] ?? ''}',
+                              style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.lock_outline, color: Color(0xFFFBBF24), size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'ملاحظة الخصوصية: لا يمكنك الاطلاع على دردشة التلاميذ أو الدخول إلى البث المباشر أو رؤية قائمة المنخرطين إلا بعد إتمام الاشتراك وتأكيده.',
+                          style: TextStyle(color: Color(0xFFFDE68A), fontSize: 11.5, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

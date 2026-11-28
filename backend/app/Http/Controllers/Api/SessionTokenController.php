@@ -90,10 +90,11 @@ class SessionTokenController extends Controller
                 ], 403);
             }
 
-            $isCohortMember = \App\Models\CohortMember::where('cohort_id', $session->cohort_id)
+            $activeMember = \App\Models\CohortMember::where('cohort_id', $session->cohort_id)
                 ->where('student_id', $user->id)
                 ->where('status', 'active')
-                ->exists();
+                ->first();
+            $isCohortMember = $activeMember !== null;
 
             $creditBalance = \App\Models\CreditLedger::getStudentBalance($user->id);
 
@@ -104,6 +105,43 @@ class SessionTokenController extends Controller
                     'requires_enrollment' => true,
                     'cohort_id' => $session->cohort_id,
                 ], 403);
+            }
+
+            if ($isCohortMember) {
+                $sessionCategory = $session->session_category ?? ClassroomSession::CATEGORY_REGULAR;
+                if ($sessionCategory === ClassroomSession::CATEGORY_REGULAR && ! $activeMember->live_access && $creditBalance <= 0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'باقتك الحالية تشمل المكتبة الرقمية فقط ولا تتضمن البث المباشر.',
+                        'requires_upgrade' => true,
+                        'cohort_id' => $session->cohort_id,
+                    ], 403);
+                }
+
+                if ($sessionCategory === ClassroomSession::CATEGORY_REGULAR
+                    && ($activeMember->sessions_quota ?? 8) > 0
+                    && ($activeMember->sessions_attended ?? 0) >= ($activeMember->sessions_quota ?? 8)
+                    && $creditBalance <= 0
+                ) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "انتهى رصيد الحصص المحددة في اشتراكك ({$activeMember->sessions_attended}/{$activeMember->sessions_quota}). يرجى تجديد الاشتراك لمتابعة الحصة القادمة.",
+                        'requires_renewal' => true,
+                        'sessions_attended' => $activeMember->sessions_attended,
+                        'sessions_quota' => $activeMember->sessions_quota,
+                        'cohort_id' => $session->cohort_id,
+                    ], 403);
+                }
+
+                if ($sessionCategory === ClassroomSession::CATEGORY_EXTRA_PAID && ($session->extra_price_dzd ?? 0) > 0 && $creditBalance <= 0) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "هذه حصة إضافية مدفوعة ({$session->extra_price_dzd} دج). يرجى تأكيد دفعها أو استخدام رصيد الحصص للدخول.",
+                        'requires_extra_payment' => true,
+                        'extra_price_dzd' => (float) $session->extra_price_dzd,
+                        'cohort_id' => $session->cohort_id,
+                    ], 403);
+                }
             }
 
             // If joining using available session credit and hasn't consumed credit for this session yet

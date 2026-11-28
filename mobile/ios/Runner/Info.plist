@@ -41,7 +41,9 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Pindo Future requires microphone access for interactive audio participation in live sessions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Pindo Future requires access to your photo library to set profile photos and attach study documents.</string>
+	<string>Pindo Future requires access to your photo library to set profile photos and attach study documents or payment receipts.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Pindo Future saves captured educational photos and payment receipt confirmations to your photo library when requested.</string>
 
 	<!-- Background Audio Playback for Classroom Streaming -->
 	<key>UIBackgroundModes</key>

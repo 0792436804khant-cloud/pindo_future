@@ -340,6 +340,8 @@ class StudentSubscriptionsTab extends StatelessWidget {
                     teacherName: teacherName,
                     subject: subject,
                     currentPackageName: packageName,
+                    studentName: dashboardData.student.name,
+                    studentEmail: dashboardData.student.email,
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
@@ -368,6 +370,8 @@ class StudentSubscriptionsTab extends StatelessWidget {
                     packageName: packageName,
                     priceDzd: priceDzd,
                     isQuickRenewal: true,
+                    studentName: dashboardData.student.name,
+                    studentEmail: dashboardData.student.email,
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _electricPurple,

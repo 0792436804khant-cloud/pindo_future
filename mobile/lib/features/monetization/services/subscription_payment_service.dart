@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:pindo_future_mobile/core/config/platform_payment_config.dart';
+import 'package:pindo_future_mobile/core/constants/api_constants.dart';
+import 'package:pindo_future_mobile/features/auth/data/datasources/auth_local_datasource.dart';
 import '../domain/entities/subscription_payment_receipt.dart';
 
 /// Central reactive service managing subscription payment requests,
@@ -149,6 +153,112 @@ class SubscriptionPaymentService {
     _receiptsNotifier.value = [receipt, ..._receiptsNotifier.value];
     debugPrint('[SubscriptionPaymentService] 💳 Receipt submitted: $ref for $studentName ($priceDzd DZD -> Teacher Net: ${breakdown.teacherPayoutDzd} DZD, Platform: ${breakdown.platformCommissionDzd} DZD)');
     return receipt;
+  }
+
+  /// Upload a real payment receipt image/PDF to the Laravel verification backend.
+  /// Strictly rejects empty files, missing cohort IDs, or unauthenticated calls.
+  Future<Map<String, dynamic>> uploadCohortReceipt({
+    required int? cohortId,
+    required Uint8List? receiptBytes,
+    required String? receiptFilename,
+    required String paymentMethod,
+    required String cohortName,
+    required String teacherName,
+    required String subject,
+    required String packageName,
+    required int priceDzd,
+    String? packageType,
+    int? livePriceDzd,
+    int? libraryPriceDzd,
+    String? txReference,
+    String? notes,
+    String? token,
+    String? studentName,
+    String? studentEmail,
+    String? studentCode,
+    http.Client? client,
+  }) async {
+    if (receiptBytes == null || receiptBytes.isEmpty) {
+      throw Exception('لم يتم إرفاق صورة أو ملف الوصل. يرجى اختيار ملف صالح أولاً.');
+    }
+    if (cohortId == null || cohortId <= 0) {
+      throw Exception('معرّف الفوج غير متوفر. يرجى فتح الدفع من بطاقة الفوج المختار.');
+    }
+
+    final resolvedToken = (token != null && token.trim().isNotEmpty)
+        ? token.trim()
+        : await AuthLocalDataSourceImpl().getToken();
+
+    if (resolvedToken == null || resolvedToken.isEmpty) {
+      throw Exception('يجب تسجيل الدخول بحساب التلميذ أولاً لإرسال وصل الدفع إلى نظام التحقق.');
+    }
+
+    final cleanFilename = (receiptFilename != null && receiptFilename.trim().isNotEmpty)
+        ? receiptFilename.trim()
+        : 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final uri = Uri.parse('${ApiConstants.defaultBaseUrl}/student/cohorts/$cohortId/subscribe-receipt');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Accept'] = 'application/json'
+      ..headers['Authorization'] = 'Bearer $resolvedToken'
+      ..fields['payment_method'] = paymentMethod
+      ..fields['package_type'] = packageType ?? PlatformPaymentConfig.packageFullBundle;
+
+    if (txReference != null && txReference.trim().isNotEmpty) {
+      request.fields['tx_reference'] = txReference.trim();
+    }
+    if (notes != null && notes.trim().isNotEmpty) {
+      request.fields['notes'] = notes.trim();
+    }
+
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'receipt',
+        receiptBytes,
+        filename: cleanFilename,
+      ),
+    );
+
+    final httpClient = client ?? http.Client();
+    try {
+      final streamed = await httpClient.send(request).timeout(const Duration(seconds: 30));
+      final body = await streamed.stream.bytesToString();
+      final decoded = body.isNotEmpty ? jsonDecode(body) as Map<String, dynamic> : <String, dynamic>{};
+
+      if (streamed.statusCode < 200 || streamed.statusCode >= 300 || decoded['status'] != 'success') {
+        final msg = decoded['message']?.toString() ??
+            'فشل إرسال الوصل للخادم (HTTP ${streamed.statusCode}).';
+        throw Exception(msg);
+      }
+
+      final serverData = decoded['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+
+      final localReceipt = submitReceipt(
+        cohortName: cohortName,
+        teacherName: teacherName,
+        subject: subject,
+        packageName: packageName,
+        priceDzd: priceDzd,
+        packageType: packageType,
+        livePriceDzd: livePriceDzd,
+        libraryPriceDzd: libraryPriceDzd,
+        paymentMethod: paymentMethod,
+        receiptName: cleanFilename,
+        receiptBytes: receiptBytes,
+        studentName: studentName ?? 'التلميذ',
+        studentEmail: studentEmail ?? '',
+        studentId: studentCode ?? 'STU',
+      );
+
+      return {
+        ...serverData,
+        'local_reference': localReceipt.referenceNumber,
+      };
+    } finally {
+      if (client == null) {
+        httpClient.close();
+      }
+    }
   }
 
   /// Teacher approves the receipt and activates the student's subscription

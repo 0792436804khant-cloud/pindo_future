@@ -702,6 +702,8 @@ class _StudentMyAccountTabState extends State<StudentMyAccountTab> {
                   teacherName: 'الأستاذ محمد أمين بن عيسى',
                   subject: 'الرياضيات',
                   currentPackageName: subs.packageName,
+                  studentName: widget.dashboardData.student.name,
+                  studentEmail: widget.dashboardData.student.email,
                 );
               }
             },

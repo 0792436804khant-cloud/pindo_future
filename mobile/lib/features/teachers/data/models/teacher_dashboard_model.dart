@@ -978,6 +978,10 @@ class TeacherCohortItem {
   final double bundlePrice;
   final bool isActive;
   final bool hasLibrary;
+  final int includedSessionsCount;
+  final int extraSessionsCount;
+  final bool extraSessionsIsPaid;
+  final double extraSessionPriceDzd;
 
   const TeacherCohortItem({
     required this.id,
@@ -994,6 +998,10 @@ class TeacherCohortItem {
     double? bundlePrice,
     required this.isActive,
     required this.hasLibrary,
+    this.includedSessionsCount = 8,
+    this.extraSessionsCount = 0,
+    this.extraSessionsIsPaid = false,
+    this.extraSessionPriceDzd = 0.0,
   })  : liveSessionsPrice = liveSessionsPrice ?? monthlyPrice,
         bundlePrice = bundlePrice ?? monthlyPrice;
 
@@ -1018,6 +1026,10 @@ class TeacherCohortItem {
       bundlePrice: bundle,
       isActive: json['is_active'] != false,
       hasLibrary: json['has_library'] != false && json['include_library'] != false,
+      includedSessionsCount: json['included_sessions_count'] is num ? (json['included_sessions_count'] as num).toInt() : 8,
+      extraSessionsCount: json['extra_sessions_count'] is num ? (json['extra_sessions_count'] as num).toInt() : 0,
+      extraSessionsIsPaid: json['extra_sessions_is_paid'] == true || json['extra_sessions_is_paid'] == 1,
+      extraSessionPriceDzd: json['extra_session_price_dzd'] is num ? (json['extra_session_price_dzd'] as num).toDouble() : 0.0,
     );
   }
 }

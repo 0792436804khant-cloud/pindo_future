@@ -278,7 +278,7 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
               onTap: () async {
                 Navigator.of(ctx).pop();
                 final result = await LiveCameraCaptureModal.show(context);
-                if (result != null) {
+                if (result != null && result.bytes.isNotEmpty) {
                   setState(() {
                     _customAvatarBytes = result.bytes;
                     _currentProfile = _currentProfile.copyWith(avatarBytes: result.bytes);
@@ -319,6 +319,17 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                   final picked = await picker.pickImage(source: ImageSource.gallery);
                   if (picked != null) {
                     final bytes = await picked.readAsBytes();
+                    if (bytes.isEmpty) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('الملف المحدد فارغ أو لم يتم تحميل صورته بنجاح.'),
+                            backgroundColor: Color(0xFFEF4444),
+                          ),
+                        );
+                      }
+                      return;
+                    }
                     setState(() {
                       _customAvatarBytes = bytes;
                       _currentProfile = _currentProfile.copyWith(avatarBytes: bytes);
@@ -827,20 +838,19 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
             ],
           ),
 
-          // Profile Info Section with Overlapping Avatar
+          // Profile Info Section with Overlapping Avatar (badges sit cleanly below cover)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar with Story Ring
-                Transform.translate(
-                  offset: const Offset(0, -36),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Avatar with glowing story ring
-                      GestureDetector(
+                // Row: Avatar overlaps cover (-32), Badges stay completely below cover banner
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Transform.translate(
+                      offset: const Offset(0, -32),
+                      child: GestureDetector(
                         onTap: _showProfilePhotoOptions,
                         child: Container(
                           padding: const EdgeInsets.all(3.5),
@@ -915,84 +925,83 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                    ),
+                    const SizedBox(width: 12),
 
-                      // Quick badges
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-                                ),
-                                child: Text(
-                                  'خبرة ${profile.yearsOfExperience} سنوات',
-                                  style: const TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
-                                ),
+                    // Quick badges placed cleanly below the cover photo with zero overlap
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                               ),
-                              Container(
+                              child: Text(
+                                'خبرة ${profile.yearsOfExperience} سنوات',
+                                style: const TextStyle(color: Colors.amber, fontSize: 10.5, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _brightCyan.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_on_rounded, color: _brightCyan, size: 12),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    profile.wilaya,
+                                    style: const TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            InkWell(
+                              onTap: _showProfilePhotoOptions,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: _brightCyan.withValues(alpha: 0.15),
+                                  color: _brightCyan.withValues(alpha: 0.16),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: _brightCyan.withValues(alpha: 0.3)),
+                                  border: Border.all(color: _brightCyan.withValues(alpha: 0.4)),
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.location_on_rounded, color: _brightCyan, size: 12),
-                                    const SizedBox(width: 3),
+                                    Icon(Icons.add_a_photo_rounded, color: _brightCyan, size: 12),
+                                    SizedBox(width: 4),
                                     Text(
-                                      profile.wilaya,
-                                      style: const TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                      'الصورة الشخصية (Photo de profil)',
+                                      style: TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
                               ),
-                              InkWell(
-                                onTap: _showProfilePhotoOptions,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: _brightCyan.withValues(alpha: 0.16),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: _brightCyan.withValues(alpha: 0.4)),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add_a_photo_rounded, color: _brightCyan, size: 12),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'الصورة الشخصية (Photo de profil)',
-                                        style: TextStyle(color: _brightCyan, fontSize: 10.5, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
-                // Name & Headline
-                Transform.translate(
-                  offset: const Offset(0, -22),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                // Name & Headline (clean vertical flow under avatar/badges)
+                const SizedBox(height: 2),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                       Row(
                         children: [
                           Flexible(
@@ -1080,7 +1089,6 @@ class _TeacherAccountTabState extends State<TeacherAccountTab> {
                       ),
                     ],
                   ),
-                ),
               ],
             ),
           ),

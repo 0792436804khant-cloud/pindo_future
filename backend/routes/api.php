@@ -135,6 +135,7 @@ Route::get('/teachers/{teacherId}/public', [TeacherPublicController::class, 'sho
 Route::get('/courses', [PublicCourseController::class, 'index'])->name('api.v1.courses.index');
 Route::get('/courses/{identifier}', [PublicCourseController::class, 'show'])->name('api.v1.courses.show');
 Route::get('/cohorts', [CohortEnrollmentController::class, 'index'])->name('api.v1.cohorts.index');
+Route::get('/cohorts/{id}/preview', [CohortEnrollmentController::class, 'preview'])->name('api.v1.cohorts.preview');
 
 // Phase 5: Student Course & Cohort Enrollment & Learning Progress (Protected: auth:sanctum)
 Route::middleware('auth:sanctum')->group(function () {
@@ -146,6 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Phase 1: Student Study Cohorts
     Route::get('/student/cohorts', [CohortEnrollmentController::class, 'myCohorts'])->name('api.v1.student.cohorts.index');
     Route::post('/student/cohorts/{id}/join', [CohortEnrollmentController::class, 'join'])->name('api.v1.student.cohorts.join');
+    Route::post('/student/cohorts/{id}/subscribe-receipt', [CohortEnrollmentController::class, 'subscribeWithReceipt'])->name('api.v1.student.cohorts.subscribe_receipt');
     Route::delete('/student/cohorts/{id}/leave', [CohortEnrollmentController::class, 'leave'])->name('api.v1.student.cohorts.leave');
 
     // Real-Time Cohort Chat & Social Read Receipts
